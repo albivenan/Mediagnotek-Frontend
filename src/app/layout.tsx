@@ -2,8 +2,16 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'MediagnoTek - Platform Diagnostik & Knowledge Medis Futuristik',
-  description: 'MediagnoTek menyediakan platform cerdas untuk analisis penyakit, pencarian database medis, dan visualisasi data kesehatan interaktif.',
+  title: 'MediagnoTek - Sistem Cerdas Berbasis Deep Learning & AI dengan Panduan Klinis untuk Faskes',
+  description: 'MediagnoTek adalah sistem cerdas berbasis deep learning dan kecerdasan buatan (AI) dengan panduan klinis terstandarisasi untuk fasilitas kesehatan (faskes).',
+  icons: {
+    icon: [
+      { url: '/logo-mediagnotek.png', type: 'image/png' },
+      { url: '/icon.png', type: 'image/png' },
+    ],
+    shortcut: '/logo-mediagnotek.png',
+    apple: '/logo-mediagnotek.png',
+  },
 };
 
 export default function RootLayout({
@@ -13,6 +21,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" suppressHydrationWarning>
+      <head>
+        <link rel="icon" href="/logo-mediagnotek.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/logo-mediagnotek.png" />
+      </head>
       <body suppressHydrationWarning>
         {children}
       </body>
