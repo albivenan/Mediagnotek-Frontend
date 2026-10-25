@@ -174,6 +174,7 @@ export default function DashboardLayout({
       title: 'Klinis & Konseling AI',
       items: [
         { label: 'Asisten AI Apoteker', href: '/dashboard/ai-analisa', icon: Bot },
+        { label: 'Katalog Penyakit', href: '/dashboard/penyakit', icon: Dna },
       ]
     },
     {

@@ -1073,6 +1073,9 @@ export default function HomePage() {
             <Link href="/dashboard/ai-analisa" style={{ color: '#4B5563', fontSize: '0.86rem', textDecoration: 'none', fontWeight: 600 }}>
               Asisten AI
             </Link>
+            <Link href="/dashboard/penyakit" style={{ color: '#4B5563', fontSize: '0.86rem', textDecoration: 'none', fontWeight: 600 }}>
+              Katalog Penyakit
+            </Link>
             <Link href="/dashboard/keuangan" style={{ color: '#4B5563', fontSize: '0.86rem', textDecoration: 'none', fontWeight: 600 }}>
               Keuangan
             </Link>
