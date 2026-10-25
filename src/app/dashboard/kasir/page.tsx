@@ -284,7 +284,7 @@ export default function KasirPage() {
       {/* Main Grid: Data Pasien & Form Obat | Keranjang & Skrining */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
         gap: '24px',
         alignItems: 'start'
       }}>

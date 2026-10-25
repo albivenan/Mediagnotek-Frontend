@@ -341,8 +341,8 @@ export default function StokPage() {
 
       {/* Table Data Stok FEFO */}
       <div className="neo-card" style={{ backgroundColor: '#FFFFFF', overflow: 'hidden', boxShadow: '2.5px 3px 0px #1E1E1E' }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
+        <div className="table-responsive-neo">
+          <table style={{ width: '100%', minWidth: '760px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
             <thead>
               <tr style={{ backgroundColor: '#FEF3D6', borderBottom: '2px solid #1E1E1E' }}>
                 <th style={{ padding: '12px 16px', fontWeight: 800 }}>KODE & NAMA OBAT</th>

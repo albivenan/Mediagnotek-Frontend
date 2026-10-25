@@ -1,19 +1,31 @@
 import Link from 'next/link';
 import {
   LayoutDashboard,
-  Dna,
-  Microscope,
-  Pill,
-  Bot,
-  Zap,
-  Package,
-  LineChart,
-  Users,
   ShoppingCart,
+  Package,
+  Users,
+  Bot,
   ShieldCheck,
-  Building2,
+  ShieldAlert,
+  Wallet,
+  TrendingUp,
+  Pill,
   Stethoscope,
-  ArrowRight
+  Building2,
+  CheckCircle2,
+  ArrowRight,
+  Clock,
+  Sparkles,
+  Search,
+  Receipt,
+  QrCode,
+  Banknote,
+  Calendar,
+  AlertTriangle,
+  ChevronRight,
+  FileText,
+  UserPlus,
+  LogIn
 } from 'lucide-react';
 
 export default function HomePage() {
@@ -27,15 +39,12 @@ export default function HomePage() {
       position: 'relative',
       overflowX: 'hidden'
     }}>
-      {/* ===================== NAVBAR ===================== */}
-      <header style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 50,
-        backgroundColor: 'rgba(250, 248, 244, 0.92)',
+      {/* ===================== NAVBAR (FIXED ON DESKTOP, HIDDEN ON MOBILE) ===================== */}
+      <header className="landing-topbar" style={{
+        backgroundColor: 'rgba(250, 248, 244, 0.94)',
         backdropFilter: 'blur(10px)',
-        borderBottom: '1px solid rgba(0, 0, 0, 0.05)',
-        padding: '16px 32px'
+        borderBottom: '1.8px solid #1E1E1E',
+        padding: '14px 20px'
       }}>
         <div style={{
           maxWidth: '1240px',
@@ -43,435 +52,419 @@ export default function HomePage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '20px'
+          gap: '16px'
         }}>
           {/* Brand Logo */}
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
-            <div style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '11px',
-              backgroundColor: '#FEF3D6',
-              border: '1.8px solid #1E1E1E',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '1.5px 2px 0px #1E1E1E'
-            }}>
-              {/* 6-dot icon like SlotCal */}
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="#1E1E1E">
-                <circle cx="6" cy="6" r="2.5" />
-                <circle cx="12" cy="6" r="2.5" />
-                <circle cx="18" cy="6" r="2.5" />
-                <circle cx="6" cy="14" r="2.5" />
-                <circle cx="12" cy="14" r="2.5" />
-                <circle cx="18" cy="14" r="2.5" />
-              </svg>
+            <img
+              src="/logo-mediagnotek.png"
+              alt="MediagnoTek Logo"
+              style={{
+                width: '46px',
+                height: '46px',
+                objectFit: 'contain',
+                flexShrink: 0
+              }}
+            />
+            <div>
+              <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#18181B', letterSpacing: '-0.4px', display: 'block', lineHeight: 1.1 }}>
+                MediagnoTek
+              </span>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#166534', letterSpacing: '0.2px' }}>
+                ● Pharmacy & Health OS
+              </span>
             </div>
-            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#18181B', letterSpacing: '-0.4px' }}>
-              MediagnoTek
-            </span>
           </Link>
 
-          {/* Navigation Links */}
+          {/* Navigation Links (Hidden on small mobile) */}
           <nav style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '32px'
+            gap: '24px'
           }} className="hidden-mobile">
-            <Link href="/" style={{ color: '#18181B', fontWeight: 600, fontSize: '0.95rem', textDecoration: 'none' }}>
-              Home
-            </Link>
-            <Link href="/dashboard" style={{ color: '#4B5563', fontWeight: 500, fontSize: '0.95rem', textDecoration: 'none' }}>
+            <a href="#fitur" style={{ color: '#18181B', fontWeight: 700, fontSize: '0.88rem', textDecoration: 'none' }}>
+              Fitur Utama
+            </a>
+            <a href="#alur" style={{ color: '#4B5563', fontWeight: 600, fontSize: '0.88rem', textDecoration: 'none' }}>
+              Alur Apotek
+            </a>
+            <a href="#keunggulan" style={{ color: '#4B5563', fontWeight: 600, fontSize: '0.88rem', textDecoration: 'none' }}>
+              Keunggulan
+            </a>
+            <Link href="/dashboard" style={{ color: '#166534', fontWeight: 700, fontSize: '0.88rem', textDecoration: 'none' }}>
               Dashboard
             </Link>
           </nav>
 
           {/* Auth Action Buttons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <Link href="/login" className="nav-pill-login">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Link
+              href="/login"
+              className="nav-pill-login"
+              style={{ padding: '7px 16px', fontSize: '0.82rem' }}
+            >
               Login
             </Link>
-            <Link href="/register" className="nav-pill-join">
-              Join Now
+            <Link
+              href="/register"
+              className="nav-pill-join"
+              style={{ padding: '7px 16px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <span>Sign Up</span>
+              <ArrowRight size={14} />
             </Link>
           </div>
         </div>
       </header>
 
       {/* ===================== HERO SECTION ===================== */}
-      <main style={{ flex: 1, position: 'relative' }}>
-        <section style={{
-          maxWidth: '1280px',
+      <main className="landing-main" style={{ flex: 1, position: 'relative' }}>
+        <section className="hero-section-padding" style={{
+          maxWidth: '1240px',
           margin: '0 auto',
-          padding: '40px 24px 30px 24px',
-          position: 'relative',
-          minHeight: '700px'
+          padding: '48px 20px 40px 20px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          textAlign: 'center'
         }}>
-          {/* FLOATING CARD 1: TOP LEFT (Meeting Card + Hand Doodle) */}
+          {/* Top Pill Announcement */}
           <div style={{
-            position: 'absolute',
-            top: '25px',
-            left: '35px',
-            zIndex: 10,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            backgroundColor: '#FFFFFF',
+            border: '1.8px solid #1E1E1E',
+            padding: '5px 12px',
+            borderRadius: '9999px',
+            boxShadow: '1.5px 2px 0px #1E1E1E',
+            marginBottom: '18px',
+            maxWidth: '100%',
+            justifyContent: 'center'
+          }}>
+            <span style={{
+              backgroundColor: '#DCFCE7',
+              color: '#15803D',
+              border: '1px solid #166534',
+              borderRadius: '9999px',
+              padding: '2px 7px',
+              fontSize: '0.7rem',
+              fontWeight: 800
+            }}>
+              VERSI BETA 1.0
+            </span>
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#18181B' }}>
+              Sistem Cerdas Berbasis Deep Learning & AI Klinis
+            </span>
+          </div>
+
+          {/* Main Headline H1 */}
+          <h1 style={{
+            fontSize: 'clamp(1.85rem, 5vw, 3.6rem)',
+            fontWeight: 900,
+            lineHeight: 1.18,
+            letterSpacing: '-1px',
+            color: '#18181B',
+            maxWidth: '960px',
+            margin: '0 auto 18px auto'
+          }}>
+            Sistem Cerdas Berbasis Deep Learning & AI dengan Panduan Klinis untuk Fasilitas Kesehatan
+          </h1>
+
+          {/* Subtitle */}
+          <p style={{
+            fontSize: 'clamp(0.95rem, 2.2vw, 1.15rem)',
+            color: '#4B5563',
+            lineHeight: 1.6,
+            maxWidth: '780px',
+            margin: '0 auto 30px auto'
+          }}>
+            <strong>MediagnoTek</strong> adalah sistem cerdas berbasis deep learning dan kecerdasan buatan (AI) yang dirancang dengan panduan klinis terstandarisasi untuk fasilitas kesehatan (faskes) termasuk administrasi data keuangan dan pasien.
+          </p>
+
+          {/* Action CTA Buttons */}
+          <div className="hero-cta-group" style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
-          }} className="hero-floating-card top-left-card">
-            {/* Hand Doodle SVG on the left */}
-            <div style={{ transform: 'rotate(-6deg)', opacity: 0.95, marginRight: '2px' }}>
-              <svg width="44" height="44" viewBox="0 0 44 44" fill="none" stroke="#1E1E1E" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                {/* Hand waving / flower stem doodle */}
-                <path d="M16 34c-3-3-5-7-5-12 0-2 1.2-3 2.5-3s2 1 2.5 2v-9c0-1.2 1-2 2-2s2 0.8 2 2v6" />
-                <path d="M20 12c0-1.2 1-2 2-2s2 0.8 2 2v6" />
-                <path d="M24 14c0-1.2 1-2 2-2s2 0.8 2 2v5" />
-                <path d="M28 17c0-1.2 1-2 2-2s2 0.8 2 2v7c0 6-4 10-9 12" />
-                <path d="M12 26c2.5 3 6 6 11 6.5" />
-              </svg>
-            </div>
+            justifyContent: 'center',
+            gap: '12px',
+            flexWrap: 'wrap',
+            marginBottom: '36px',
+            width: '100%'
+          }}>
+            <Link
+              href="/register"
+              className="neo-btn-primary hero-cta-btn"
+              style={{
+                padding: '13px 28px',
+                fontSize: '0.96rem',
+                fontWeight: 800,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <UserPlus size={19} strokeWidth={2.4} />
+              <span>Daftar Akun (Sign Up)</span>
+            </Link>
 
-            {/* Skrining Resep & Alergi Pasien Card */}
-            <div className="neo-card animate-float" style={{
-              width: '230px',
-              padding: '16px 18px',
-              backgroundColor: '#FFFFFF',
-              boxShadow: '2.5px 3px 0px #1E1E1E'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{
-                    width: '30px',
-                    height: '30px',
-                    borderRadius: '8px',
-                    backgroundColor: '#FEF3D6',
-                    border: '1.2px solid #1E1E1E',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '1px 1px 0px #1E1E1E'
-                  }}>
-                    <ShieldCheck size={16} strokeWidth={2.2} color="#18181B" />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#18181B' }}>Skrining Resep</div>
-                    <div style={{ fontSize: '0.7rem', color: '#166534', fontWeight: 700 }}>● Validasi Otomatis</div>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#18181B', margin: '12px 0 10px 0' }}>
-                Alergi: Aman
-              </div>
-
-              <div style={{ display: 'flex', gap: '6px' }}>
-                <span className="tag-yellow" style={{ fontSize: '0.7rem', padding: '2px 8px' }}>Deep Learning</span>
-                <span className="tag-cyan" style={{ fontSize: '0.7rem', padding: '2px 8px' }}>Interaksi</span>
-              </div>
-            </div>
-          </div>
-
-          {/* FLOATING CARD 2: TOP RIGHT (Progress Chart) */}
-          <div style={{
-            position: 'absolute',
-            top: '25px',
-            right: '40px',
-            zIndex: 10
-          }} className="hero-floating-card top-right-card">
-            <div className="neo-card animate-float-reverse" style={{
-              width: '215px',
-              padding: '16px 18px',
-              backgroundColor: '#FFFFFF',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.03)'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#18181B' }}>Progress</span>
-                <span style={{ fontSize: '1.2rem', color: '#6B7280', lineHeight: 0.5, cursor: 'pointer', letterSpacing: '1px' }}>···</span>
-              </div>
-
-              {/* Progress SVG Wave Chart exactly like reference */}
-              <div style={{
-                width: '100%',
-                height: '66px',
+            <Link
+              href="/login"
+              className="hero-cta-btn"
+              style={{
+                padding: '13px 26px',
+                borderRadius: '9999px',
                 border: '1.8px solid #1E1E1E',
-                borderRadius: '10px',
-                overflow: 'hidden',
-                backgroundColor: '#FFFFFF',
-                position: 'relative'
-              }}>
-                <svg viewBox="0 0 160 55" preserveAspectRatio="none" style={{ width: '100%', height: '100%', display: 'block' }}>
-                  {/* Wave Yellow Fill */}
-                  <path
-                    d="M 0 32 L 20 28 L 42 16 L 68 25 L 94 20 L 122 10 L 145 9 L 160 10 L 160 55 L 0 55 Z"
-                    fill="#FDE68A"
-                  />
-                  {/* Wave Black Stroke Line */}
-                  <path
-                    d="M 0 32 L 20 28 L 42 16 L 68 25 L 94 20 L 122 10 L 145 9 L 160 10"
-                    fill="none"
-                    stroke="#1E1E1E"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-            </div>
+                backgroundColor: '#FEF3D6',
+                color: '#18181B',
+                fontSize: '0.96rem',
+                fontWeight: 800,
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '2px 2px 0px #1E1E1E',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <LogIn size={19} strokeWidth={2.2} />
+              <span>Masuk Portal (Login)</span>
+            </Link>
           </div>
 
-          {/* FLOATING CARD 3: BOTTOM LEFT (Inventori FEFO Pill) */}
-          <div style={{
-            position: 'absolute',
-            top: '390px',
-            left: '55px',
-            zIndex: 10
-          }} className="hero-floating-card bottom-left-card">
-            <div className="neo-card animate-float-reverse" style={{
-              padding: '12px 20px',
-              borderRadius: '14px',
-              backgroundColor: '#FFFFFF',
-              boxShadow: '2.5px 3px 0px #1E1E1E',
+          {/* ===================== HERO DASHBOARD SHOWCASE CARD (DESKTOP) ===================== */}
+          <div className="showcase-desktop" style={{
+            width: '100%',
+            maxWidth: '1080px',
+            backgroundColor: '#FFFFFF',
+            border: '2px solid #1E1E1E',
+            borderRadius: '20px',
+            boxShadow: '4px 6px 0px #1E1E1E',
+            overflow: 'hidden',
+            textAlign: 'left',
+            marginBottom: '40px'
+          }}>
+            {/* Window Topbar */}
+            <div style={{
+              backgroundColor: '#FAF8F4',
+              borderBottom: '1.8px solid #1E1E1E',
+              padding: '12px 18px',
               display: 'flex',
               alignItems: 'center',
-              gap: '12px'
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '10px'
             }}>
-              <div style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                backgroundColor: '#FEF3C7',
-                border: '1.5px solid #1E1E1E',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '1px 1.5px 0px #1E1E1E'
-              }}>
-                <Package size={18} strokeWidth={2.3} color="#18181B" />
-              </div>
-              <div>
-                <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#18181B' }}>
-                  Kontrol Stok FEFO
-                </div>
-                <div style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 700, marginTop: '2px' }}>
-                  ● Deteksi Dini Kadaluwarsa
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* FLOATING CARD 4: BOTTOM RIGHT (Instansi Faskes: Apotek, Klinik & RS) */}
-          <div style={{
-            position: 'absolute',
-            top: '320px',
-            right: '40px',
-            zIndex: 10
-          }} className="hero-floating-card bottom-right-card">
-            <div className="neo-card animate-float" style={{
-              width: '260px',
-              padding: '16px 18px',
-              backgroundColor: '#FFFFFF',
-              boxShadow: '2.5px 3.5px 0px #1E1E1E'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{
-                    width: '30px',
-                    height: '30px',
-                    borderRadius: '8px',
-                    backgroundColor: '#FEF3D6',
-                    border: '1.5px solid #1E1E1E',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '1px 1px 0px #1E1E1E'
-                  }}>
-                    <Building2 size={16} strokeWidth={2.2} color="#18181B" />
-                  </div>
-                  <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#18181B' }}>
-                    Ekosistem Faskes
-                  </span>
-                </div>
-                <span style={{ fontSize: '0.68rem', backgroundColor: '#DCFCE7', color: '#15803D', fontWeight: 800, padding: '2px 6px', borderRadius: '4px', border: '1px solid #1E1E1E' }}>
-                  TERUJI
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#EF4444', border: '1px solid #1E1E1E', display: 'inline-block' }} />
+                <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#F59E0B', border: '1px solid #1E1E1E', display: 'inline-block' }} />
+                <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#10B981', border: '1px solid #1E1E1E', display: 'inline-block' }} />
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#18181B', marginLeft: '6px' }}>
+                  Apotek Sehat Farma • Sesi Operasional Aktif
                 </span>
               </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{
+                  backgroundColor: '#DCFCE7',
+                  color: '#166534',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  border: '1px solid #1E1E1E'
+                }}>
+                  ● FastAPI Backend Connected
+                </span>
+              </div>
+            </div>
 
+            {/* Showcase Inside Grid: 4 Metric Cards */}
+            <div style={{
+              padding: '20px',
+              backgroundColor: '#FFFFFF',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '14px',
+              borderBottom: '1.8px solid #E5E7EB'
+            }}>
+              <div style={{ padding: '14px', borderRadius: '12px', backgroundColor: '#FAF8F4', border: '1.5px solid #1E1E1E' }}>
+                <div style={{ fontSize: '0.74rem', color: '#6B7280', fontWeight: 700 }}>OMZET TRANSAKSI HARI INI</div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#18181B', margin: '4px 0' }}>Rp 1.486.000</div>
+                <div style={{ fontSize: '0.72rem', color: '#166534', fontWeight: 700 }}>↑ 8 Transaksi Lunas</div>
+              </div>
+
+              <div style={{ padding: '14px', borderRadius: '12px', backgroundColor: '#DCFCE7', border: '1.5px solid #1E1E1E' }}>
+                <div style={{ fontSize: '0.74rem', color: '#166534', fontWeight: 800 }}>SKRINING RESEP PASIEN</div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#14532D', margin: '4px 0' }}>100% Aman</div>
+                <div style={{ fontSize: '0.72rem', color: '#166534', fontWeight: 700 }}>✓ Alergi Tervalidasi Otomatis</div>
+              </div>
+
+              <div style={{ padding: '14px', borderRadius: '12px', backgroundColor: '#FEF3C7', border: '1.5px solid #1E1E1E' }}>
+                <div style={{ fontSize: '0.74rem', color: '#92400E', fontWeight: 800 }}>KONTROL FEFO GUDANG</div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#78350F', margin: '4px 0' }}>2 Batch Expired</div>
+                <div style={{ fontSize: '0.72rem', color: '#B45309', fontWeight: 700 }}>⚠️ Prioritaskan Penjualan</div>
+              </div>
+
+              <div style={{ padding: '14px', borderRadius: '12px', backgroundColor: '#FAF8F4', border: '1.5px solid #1E1E1E' }}>
+                <div style={{ fontSize: '0.74rem', color: '#6B7280', fontWeight: 700 }}>PASIEN TERDAFTAR</div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#18181B', margin: '4px 0' }}>1.428 Pasien</div>
+                <div style={{ fontSize: '0.72rem', color: '#4B5563', fontWeight: 700 }}>Lengkap NIK & Catatan Medis</div>
+              </div>
+            </div>
+
+            {/* Showcase Inside Grid: Split Simulation Preview */}
+            <div style={{
+              padding: '20px',
+              backgroundColor: '#FAF8F4',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))',
+              gap: '16px'
+            }}>
+              {/* Left Widget: Kasir & Resep Skrining */}
               <div style={{
-                backgroundColor: '#FAF8F4',
-                borderRadius: '10px',
-                padding: '10px 12px',
-                marginBottom: '12px',
-                border: '1.2px solid #1E1E1E'
+                backgroundColor: '#FFFFFF',
+                borderRadius: '12px',
+                border: '1.8px solid #1E1E1E',
+                padding: '16px',
+                boxShadow: '2px 2px 0px #1E1E1E'
               }}>
-                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#18181B' }}>
-                  Apotek • Klinik • RS
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#18181B', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <ShoppingCart size={16} /> Kasir & Penebusan Resep
+                  </span>
+                  <span style={{ fontSize: '0.7rem', backgroundColor: '#FEF3D6', padding: '2px 8px', borderRadius: '6px', border: '1px solid #1E1E1E', fontWeight: 700 }}>
+                    TRX-9481
+                  </span>
                 </div>
-                <div style={{ fontSize: '0.72rem', color: '#6B7280', marginTop: '2px' }}>
-                  Standar ICD-10 & Farmakologi Nasional
+                <div style={{ fontSize: '0.78rem', color: '#4B5563', marginBottom: '10px' }}>
+                  Pasien: <strong>Budi Santoso</strong> • dr. H. Susanto, Sp.PD
+                </div>
+                <div style={{
+                  padding: '10px',
+                  borderRadius: '8px',
+                  backgroundColor: '#DCFCE7',
+                  border: '1.2px solid #166534',
+                  fontSize: '0.76rem',
+                  color: '#14532D',
+                  marginBottom: '10px',
+                  fontWeight: 700
+                }}>
+                  ✓ Skrining Alergi: Amoxicillin tidak ada dalam resep ini. Obat (Metformin & Amlodipine) aman ditebus!
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '8px', borderTop: '1px dashed #E5E7EB' }}>
+                  <span style={{ fontSize: '0.8rem', color: '#6B7280' }}>Total (Metode QRIS):</span>
+                  <span style={{ fontSize: '0.98rem', fontWeight: 900, color: '#15803D' }}>Rp 620.000</span>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{
-                    width: '26px',
-                    height: '26px',
-                    borderRadius: '8px',
-                    backgroundColor: '#E0E7FF',
-                    border: '1.2px solid #1E1E1E',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <Pill size={14} color="#3730A3" strokeWidth={2.3} />
+              {/* Right Widget: Asisten AI Apoteker */}
+              <div style={{
+                backgroundColor: '#FFFFFF',
+                borderRadius: '12px',
+                border: '1.8px solid #1E1E1E',
+                padding: '16px',
+                boxShadow: '2px 2px 0px #1E1E1E'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#18181B', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Bot size={16} color="#92400E" /> Konseling Farmasi AI
                   </span>
-                  <span style={{
-                    width: '26px',
-                    height: '26px',
-                    borderRadius: '8px',
-                    backgroundColor: '#DCFCE7',
-                    border: '1.2px solid #1E1E1E',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <Stethoscope size={14} color="#166534" strokeWidth={2.3} />
-                  </span>
-                  <span style={{
-                    width: '26px',
-                    height: '26px',
-                    borderRadius: '8px',
-                    backgroundColor: '#FEF3D6',
-                    border: '1.2px solid #1E1E1E',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <ShieldCheck size={14} color="#B45309" strokeWidth={2.3} />
+                  <span style={{ fontSize: '0.7rem', backgroundColor: '#DCFCE7', color: '#166534', padding: '2px 8px', borderRadius: '6px', border: '1px solid #1E1E1E', fontWeight: 700 }}>
+                    Aktif
                   </span>
                 </div>
-
-                <Link href="/dashboard" style={{
-                  padding: '5px 12px',
+                <div style={{
+                  backgroundColor: '#FAF8F4',
                   borderRadius: '8px',
-                  border: '1.5px solid #1E1E1E',
-                  backgroundColor: '#FEF3D6',
-                  color: '#18181B',
-                  textDecoration: 'none',
-                  fontWeight: 800,
+                  padding: '10px',
+                  border: '1.2px solid #E5E7EB',
                   fontSize: '0.78rem',
-                  boxShadow: '1.5px 1.5px 0px #1E1E1E',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
+                  lineHeight: 1.5,
+                  color: '#18181B',
+                  marginBottom: '10px'
                 }}>
-                  Dashboard <ArrowRight size={12} strokeWidth={2.5} />
+                  <strong>Apoteker:</strong> "Apakah aman jika Metformin 500mg dikombinasikan dengan Amlodipine 10mg?"<br />
+                  <strong style={{ color: '#0284C7' }}>AI Apoteker:</strong> "Aman tanpa interaksi merugikan langsung. Disarankan minum Metformin sesudah makan dan Amlodipine pada malam hari."
+                </div>
+                <Link
+                  href="/dashboard/ai-analisa"
+                  style={{
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    color: '#18181B',
+                    textDecoration: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  Coba Konseling AI Lengkap <ArrowRight size={13} />
                 </Link>
               </div>
             </div>
           </div>
 
-          {/* ===================== HERO CENTER CONTENT ===================== */}
-          <div style={{
-            maxWidth: '680px',
-            margin: '0 auto',
-            textAlign: 'center',
-            paddingTop: '20px',
-            paddingBottom: '20px',
-            zIndex: 5
+          {/* ===================== SIMPLIFIED HERO CARD FOR MOBILE ===================== */}
+          <div className="showcase-mobile" style={{
+            width: '100%',
+            backgroundColor: '#FFFFFF',
+            border: '2px solid #1E1E1E',
+            borderRadius: '16px',
+            boxShadow: '3px 4px 0px #1E1E1E',
+            padding: '16px',
+            textAlign: 'left',
+            marginBottom: '28px'
           }}>
-            {/* Medical Neo Badge Above Title */}
-            <div className="animate-wiggle" style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '50px',
-              height: '50px',
-              backgroundColor: '#FEF3D6',
-              border: '2px solid #1E1E1E',
-              borderRadius: '14px',
-              boxShadow: '2.5px 3px 0px #1E1E1E',
-              marginBottom: '22px',
-              cursor: 'pointer'
-            }}>
-              <Dna size={26} strokeWidth={2.3} color="#18181B" />
+            {/* Top status */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
+                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#18181B' }}>Apotek Sehat Farma</span>
+              </div>
+              <span style={{ fontSize: '0.68rem', backgroundColor: '#DCFCE7', color: '#166534', fontWeight: 800, padding: '2px 8px', borderRadius: '9999px', border: '1px solid #166534' }}>
+                POS Aktif
+              </span>
             </div>
 
-            {/* Main Headline H1 */}
-            <h1 style={{
-              fontSize: 'clamp(2.3rem, 4.5vw, 3.8rem)',
-              fontWeight: 900,
-              lineHeight: 1.15,
-              letterSpacing: '-1.2px',
-              color: '#18181B',
-              marginBottom: '20px'
-            }}>
-              Sistem Analisa Medis Penyakit & Obat Berbasis Deep Learning
-            </h1>
+            {/* 2 Key metrics */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
+              <div style={{ padding: '8px 10px', backgroundColor: '#FAF8F4', borderRadius: '10px', border: '1.2px solid #1E1E1E' }}>
+                <div style={{ fontSize: '0.65rem', color: '#6B7280', fontWeight: 700 }}>OMZET HARI INI</div>
+                <div style={{ fontSize: '1.08rem', fontWeight: 900, color: '#18181B', marginTop: '2px' }}>Rp 1.486.000</div>
+              </div>
+              <div style={{ padding: '8px 10px', backgroundColor: '#DCFCE7', borderRadius: '10px', border: '1.2px solid #1E1E1E' }}>
+                <div style={{ fontSize: '0.65rem', color: '#166534', fontWeight: 800 }}>SKRINING RESEP</div>
+                <div style={{ fontSize: '1.08rem', fontWeight: 900, color: '#14532D', marginTop: '2px' }}>100% Aman</div>
+              </div>
+            </div>
 
-            {/* Subtitle */}
-            <p style={{
-              fontSize: '1.05rem',
-              color: '#52525B',
-              lineHeight: 1.65,
-              maxWidth: '640px',
-              margin: '0 auto 36px auto'
-            }}>
-              <strong>MediagnoTek</strong> adalah media dan sistem cerdas analisis medis penyakit serta farmasi berbasis <em>Deep Learning</em>. Diperuntukkan secara terpadu untuk <strong>Apotek</strong>, <strong>Klinik</strong>, bahkan <strong>Rumah Sakit</strong> — menghadirkan skrining interaksi obat, deteksi alergi pasien, prediksi kebutuhan stok, dan katalog klinis akurat.
-            </p>
-
-            {/* Dual CTA Buttons */}
+            {/* Quick action bar */}
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              gap: '14px',
-              flexWrap: 'wrap'
+              justifyContent: 'space-between',
+              padding: '10px 12px',
+              backgroundColor: '#FEF3D6',
+              borderRadius: '10px',
+              border: '1.2px solid #1E1E1E'
             }}>
-              <Link
-                href="/dashboard"
-                className="neo-btn-primary"
-                style={{
-                  padding: '13px 28px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  fontSize: '0.96rem',
-                  fontWeight: 800
-                }}
-              >
-                <LayoutDashboard size={19} strokeWidth={2.3} />
-                <span>Masuk Dashboard Apotek</span>
-              </Link>
-              <Link
-                href="/dashboard/ai-analisa"
-                className="neo-btn-secondary"
-                style={{
-                  padding: '13px 28px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  fontSize: '0.96rem',
-                  fontWeight: 800
-                }}
-              >
-                <Bot size={19} strokeWidth={2.3} />
-                <span>AI Analisa & Diagnosis</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', fontWeight: 700, color: '#18181B' }}>
+                <ShoppingCart size={15} />
+                <span>Penebusan Resep & Kasir</span>
+              </div>
+              <Link href="/dashboard/kasir" style={{ fontSize: '0.78rem', fontWeight: 800, color: '#18181B', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                Buka <ChevronRight size={14} />
               </Link>
             </div>
           </div>
 
           {/* ===================== LOGO PARTNER STRIP ===================== */}
-          <div style={{
-            marginTop: '70px',
-            marginBottom: '10px',
-            textAlign: 'center',
-            zIndex: 5
-          }}>
+          <div style={{ width: '100%', marginTop: '10px', marginBottom: '10px' }}>
             <div style={{
-              fontSize: '0.82rem',
+              fontSize: '0.78rem',
               color: '#6B7280',
-              fontWeight: 700,
-              marginBottom: '20px',
+              fontWeight: 800,
+              marginBottom: '18px',
               textTransform: 'uppercase',
               letterSpacing: '0.8px'
             }}>
@@ -482,385 +475,551 @@ export default function HomePage() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '24px',
-              flexWrap: 'wrap',
-              opacity: 0.95
+              gap: '14px',
+              flexWrap: 'wrap'
             }}>
-              {/* Partner 1: Apotek Retail */}
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '10px',
+                gap: '8px',
                 fontWeight: 800,
-                fontSize: '0.92rem',
-                color: '#18181B',
+                fontSize: '0.88rem',
                 backgroundColor: '#FFFFFF',
                 border: '1.8px solid #1E1E1E',
                 padding: '8px 16px',
                 borderRadius: '12px',
                 boxShadow: '1.5px 2px 0px #1E1E1E'
               }}>
-                <span style={{
-                  backgroundColor: '#DCFCE7',
-                  border: '1.2px solid #1E1E1E',
-                  width: '28px',
-                  height: '28px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '7px',
-                  flexShrink: 0
-                }}>
-                  <Pill size={15} strokeWidth={2.4} color="#15803D" />
-                </span>
-                Jejaring Apotek & Farmasi
+                <Pill size={16} strokeWidth={2.4} color="#15803D" />
+                <span>Jejaring Apotek & Farmasi</span>
               </div>
 
-              {/* Partner 2: Klinik Pratama */}
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '10px',
+                gap: '8px',
                 fontWeight: 800,
-                fontSize: '0.92rem',
-                color: '#18181B',
+                fontSize: '0.88rem',
                 backgroundColor: '#FFFFFF',
                 border: '1.8px solid #1E1E1E',
                 padding: '8px 16px',
                 borderRadius: '12px',
                 boxShadow: '1.5px 2px 0px #1E1E1E'
               }}>
-                <span style={{
-                  backgroundColor: '#DBEAFE',
-                  border: '1.2px solid #1E1E1E',
-                  width: '28px',
-                  height: '28px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '7px',
-                  flexShrink: 0
-                }}>
-                  <Stethoscope size={15} strokeWidth={2.4} color="#1D4ED8" />
-                </span>
-                Klinik Pratama & Utama
+                <Stethoscope size={16} strokeWidth={2.4} color="#1D4ED8" />
+                <span>Klinik Pratama & Dokter</span>
               </div>
 
-              {/* Partner 3: Rumah Sakit */}
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '10px',
+                gap: '8px',
                 fontWeight: 800,
-                fontSize: '0.92rem',
-                color: '#18181B',
+                fontSize: '0.88rem',
                 backgroundColor: '#FFFFFF',
                 border: '1.8px solid #1E1E1E',
                 padding: '8px 16px',
                 borderRadius: '12px',
                 boxShadow: '1.5px 2px 0px #1E1E1E'
               }}>
-                <span style={{
-                  backgroundColor: '#FEF3D6',
-                  border: '1.2px solid #1E1E1E',
-                  width: '28px',
-                  height: '28px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '7px',
-                  flexShrink: 0
-                }}>
-                  <Building2 size={15} strokeWidth={2.4} color="#B45309" />
-                </span>
-                Instalasi Farmasi Rumah Sakit
-              </div>
-
-              {/* Partner 4: Laboratorium Medis */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                fontWeight: 800,
-                fontSize: '0.92rem',
-                color: '#18181B',
-                backgroundColor: '#FFFFFF',
-                border: '1.8px solid #1E1E1E',
-                padding: '8px 16px',
-                borderRadius: '12px',
-                boxShadow: '1.5px 2px 0px #1E1E1E'
-              }}>
-                <span style={{
-                  backgroundColor: '#FEE2E2',
-                  border: '1.2px solid #1E1E1E',
-                  width: '28px',
-                  height: '28px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '7px',
-                  flexShrink: 0
-                }}>
-                  <Microscope size={15} strokeWidth={2.4} color="#B91C1C" />
-                </span>
-                Laboratorium Diagnostik
+                <Building2 size={16} strokeWidth={2.4} color="#B45309" />
+                <span>Instalasi Farmasi RS</span>
               </div>
             </div>
           </div>
         </section>
 
-        {/* ===================== EXTENDED FEATURE SECTION (COHESIVE STYLE) ===================== */}
+        {/* ===================== SECTION FITUR UTAMA ===================== */}
         <section id="fitur" style={{
           maxWidth: '1240px',
           margin: '0 auto',
-          padding: '70px 24px 100px 24px',
-          borderTop: '1px dashed #D1D5DB',
-          marginTop: '40px'
+          padding: '60px 20px 80px 20px',
+          borderTop: '1.8px dashed #D1D5DB'
         }}>
-          <div style={{ textAlign: 'center', marginBottom: '50px' }}>
-            <span className="tag-yellow" style={{ padding: '6px 16px', fontSize: '0.82rem', marginBottom: '14px' }}>
-              Fitur Lengkap MediagnoTek
+          <div style={{ textAlign: 'center', marginBottom: '44px' }}>
+            <span className="tag-yellow" style={{ padding: '6px 16px', fontSize: '0.82rem', marginBottom: '12px' }}>
+              Panduan Klinis & Layanan Faskes Terpadu
             </span>
             <h2 style={{
-              fontSize: 'clamp(2rem, 3.5vw, 2.6rem)',
-              fontWeight: 800,
+              fontSize: 'clamp(1.8rem, 3.5vw, 2.6rem)',
+              fontWeight: 900,
               color: '#18181B',
               letterSpacing: '-0.8px',
               marginTop: '10px',
               marginBottom: '12px'
             }}>
-              Dirancang untuk Akurasi & Kecepatan Diagnostik
+              Solusi Klinis & Operasional untuk Fasilitas Kesehatan
             </h2>
-            <p style={{ color: '#6B7280', fontSize: '1rem', maxWidth: '600px', margin: '0 auto' }}>
-              Kombinasi komputasi cerdas, katalog data medis komprehensif, dan antarmuka ramah pengguna.
+            <p style={{ color: '#6B7280', fontSize: '0.98rem', maxWidth: '680px', margin: '0 auto' }}>
+              Semua modul terintegrasi dengan panduan klinis terstandarisasi: Dari skrining interaksi obat, kasir resep terproteksi, alokasi stok FEFO, hingga rekam keselamatan pasien di faskes.
             </p>
           </div>
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-            gap: '24px'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
+            gap: '20px'
           }}>
-            {/* Feature Card 1: Deep Learning Penyakit */}
-            <div className="neo-card" style={{ padding: '32px 28px', backgroundColor: '#FFFFFF', boxShadow: '2.5px 3px 0px #1E1E1E' }}>
+            {/* Fitur 1: Kasir & POS Resep */}
+            <div className="neo-card" style={{ padding: '26px 22px', backgroundColor: '#FFFFFF', boxShadow: '2.5px 3px 0px #1E1E1E' }}>
               <div style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '13px',
-                backgroundColor: '#FEF3D6',
-                border: '1.8px solid #1E1E1E',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '20px',
-                boxShadow: '1.5px 2px 0px #1E1E1E'
-              }}>
-                <Dna size={24} strokeWidth={2.2} color="#18181B" />
-              </div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#18181B', marginBottom: '10px' }}>
-                Katalog Penyakit & ICD-10
-              </h3>
-              <p style={{ color: '#52525B', fontSize: '0.92rem', lineHeight: 1.6 }}>
-                Database terstruktur memuat ribuan penyakit dengan indikasi klinis, komplikasi, klasifikasi standar ICD, dan panduan penanganan awal.
-              </p>
-              <div style={{ marginTop: '20px' }}>
-                <Link href="/dashboard/penyakit" style={{
-                  color: '#18181B',
-                  fontWeight: 800,
-                  fontSize: '0.88rem',
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}>
-                  Eksplorasi Katalog <span>→</span>
-                </Link>
-              </div>
-            </div>
-
-            {/* Feature Card 2: AI Analisa Gejala */}
-            <div className="neo-card" style={{ padding: '32px 28px', backgroundColor: '#FFFFFF', boxShadow: '2.5px 3px 0px #1E1E1E' }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '13px',
+                width: '46px',
+                height: '46px',
+                borderRadius: '12px',
                 backgroundColor: '#DCFCE7',
                 border: '1.8px solid #1E1E1E',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                marginBottom: '20px',
+                marginBottom: '16px',
                 boxShadow: '1.5px 2px 0px #1E1E1E'
               }}>
-                <Bot size={24} strokeWidth={2.2} color="#18181B" />
+                <ShoppingCart size={22} strokeWidth={2.3} color="#15803D" />
               </div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#18181B', marginBottom: '10px' }}>
-                AI Analisa Gejala Klinis
-              </h3>
-              <p style={{ color: '#52525B', fontSize: '0.92rem', lineHeight: 1.6 }}>
-                Modul penalaran cerdas untuk menghitung probabilitas diagnosis awal berdasarkan keluhan pasien dan parameter riwayat medis.
-              </p>
-              <div style={{ marginTop: '20px' }}>
-                <Link href="/dashboard/ai-analisa" style={{
-                  color: '#18181B',
-                  fontWeight: 800,
-                  fontSize: '0.88rem',
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}>
-                  Coba Analisa AI <span>→</span>
-                </Link>
-              </div>
-            </div>
-
-            {/* Feature Card 3: Kasir & Penebusan Resep POS */}
-            <div className="neo-card" style={{ padding: '32px 28px', backgroundColor: '#FFFFFF', boxShadow: '2.5px 3px 0px #1E1E1E' }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '13px',
-                backgroundColor: '#FEF3D6',
-                border: '1.8px solid #1E1E1E',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '20px',
-                boxShadow: '1.5px 2px 0px #1E1E1E'
-              }}>
-                <ShoppingCart size={24} strokeWidth={2.2} color="#18181B" />
-              </div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#18181B', marginBottom: '10px' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#18181B', marginBottom: '8px' }}>
                 Kasir & Penebusan Resep (POS)
               </h3>
-              <p style={{ color: '#52525B', fontSize: '0.92rem', lineHeight: 1.6 }}>
-                Layanan transaksi apotek terpadu untuk resep dokter dan obat bebas, lengkap dengan cetak etiket aturan pakai obat secara otomatis.
+              <p style={{ color: '#52525B', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '18px' }}>
+                Dukungan resep dokter maupun obat bebas (OTC), cetak etiket aturan pakai obat otomatis, serta pembayaran instan QRIS dan Tunai.
               </p>
-              <div style={{ marginTop: '20px' }}>
-                <Link href="/dashboard/kasir" style={{
-                  color: '#18181B',
-                  fontWeight: 800,
-                  fontSize: '0.88rem',
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}>
-                  Buka Kasir Resep <span>→</span>
-                </Link>
-              </div>
+              <Link href="/dashboard/kasir" style={{ color: '#18181B', fontWeight: 800, fontSize: '0.86rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                Buka Kasir Apotek <span>→</span>
+              </Link>
             </div>
 
-            {/* Feature Card 4: Inventori FEFO Apotek */}
-            <div className="neo-card" style={{ padding: '32px 28px', backgroundColor: '#FFFFFF', boxShadow: '2.5px 3px 0px #1E1E1E' }}>
+            {/* Fitur 2: Stok & FEFO */}
+            <div className="neo-card" style={{ padding: '26px 22px', backgroundColor: '#FFFFFF', boxShadow: '2.5px 3px 0px #1E1E1E' }}>
               <div style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '13px',
+                width: '46px',
+                height: '46px',
+                borderRadius: '12px',
                 backgroundColor: '#FEF3C7',
                 border: '1.8px solid #1E1E1E',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                marginBottom: '20px',
+                marginBottom: '16px',
                 boxShadow: '1.5px 2px 0px #1E1E1E'
               }}>
-                <Package size={24} strokeWidth={2.2} color="#18181B" />
+                <Package size={22} strokeWidth={2.3} color="#B45309" />
               </div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#18181B', marginBottom: '10px' }}>
-                Inventori & Kontrol FEFO
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#18181B', marginBottom: '8px' }}>
+                Kontrol Stok FEFO & Expired
               </h3>
-              <p style={{ color: '#52525B', fontSize: '0.92rem', lineHeight: 1.6 }}>
-                Manajemen nomor batch, masa kedaluwarsa First-Expired First-Out, dan deteksi otomatis stok menipis (defekta apotek).
+              <p style={{ color: '#52525B', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '18px' }}>
+                Lacak batch obat berdasarkan First Expired First Out. Deteksi dini obat mendekati kadaluwarsa (&lt; 60 hari) dan peringatan stok menipis (defecta).
               </p>
-              <div style={{ marginTop: '20px' }}>
-                <Link href="/dashboard/stok" style={{
-                  color: '#18181B',
-                  fontWeight: 800,
-                  fontSize: '0.88rem',
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}>
-                  Kelola Stok Obat <span>→</span>
-                </Link>
-              </div>
+              <Link href="/dashboard/stok" style={{ color: '#18181B', fontWeight: 800, fontSize: '0.86rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                Kelola Inventori & FEFO <span>→</span>
+              </Link>
             </div>
 
-            {/* Feature Card 5: Rekam Medis & Pasien */}
-            <div className="neo-card" style={{ padding: '32px 28px', backgroundColor: '#FFFFFF', boxShadow: '2.5px 3px 0px #1E1E1E' }}>
+            {/* Fitur 3: Rekam Pasien & Alergi */}
+            <div className="neo-card" style={{ padding: '26px 22px', backgroundColor: '#FFFFFF', boxShadow: '2.5px 3px 0px #1E1E1E' }}>
               <div style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '13px',
+                width: '46px',
+                height: '46px',
+                borderRadius: '12px',
                 backgroundColor: '#E0E7FF',
                 border: '1.8px solid #1E1E1E',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                marginBottom: '20px',
+                marginBottom: '16px',
                 boxShadow: '1.5px 2px 0px #1E1E1E'
               }}>
-                <Users size={24} strokeWidth={2.2} color="#18181B" />
+                <Users size={22} strokeWidth={2.3} color="#3730A3" />
               </div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#18181B', marginBottom: '10px' }}>
-                Buku Pasien & Peringatan Alergi
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#18181B', marginBottom: '8px' }}>
+                Buku Pasien & Skrining Alergi
               </h3>
-              <p style={{ color: '#52525B', fontSize: '0.92rem', lineHeight: 1.6 }}>
-                Penyimpanan profil pasien dengan rekam alergi obat, riwayat penyakit kronis, dan rekam jejak penebusan resep sebelumnya.
+              <p style={{ color: '#52525B', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '18px' }}>
+                Simpan data pasien lengkap dengan riwayat alergi obat dan penyakit kronis. Mencegah kesalahan peracikan fatal secara proaktif.
               </p>
-              <div style={{ marginTop: '20px' }}>
-                <Link href="/dashboard/pasien" style={{
-                  color: '#18181B',
-                  fontWeight: 800,
-                  fontSize: '0.88rem',
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}>
-                  Buka Data Pasien <span>→</span>
-                </Link>
-              </div>
+              <Link href="/dashboard/pasien" style={{ color: '#18181B', fontWeight: 800, fontSize: '0.86rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                Lihat Buku Data Pasien <span>→</span>
+              </Link>
             </div>
 
-            {/* Feature Card 6: Visualisasi & Statistik Kasus */}
-            <div className="neo-card" style={{ padding: '32px 28px', backgroundColor: '#FFFFFF', boxShadow: '2.5px 3px 0px #1E1E1E' }}>
+            {/* Fitur 4: AI Analisa Apoteker */}
+            <div className="neo-card" style={{ padding: '26px 22px', backgroundColor: '#FFFFFF', boxShadow: '2.5px 3px 0px #1E1E1E' }}>
               <div style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '13px',
+                width: '46px',
+                height: '46px',
+                borderRadius: '12px',
+                backgroundColor: '#FEF3D6',
+                border: '1.8px solid #1E1E1E',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '16px',
+                boxShadow: '1.5px 2px 0px #1E1E1E'
+              }}>
+                <Bot size={22} strokeWidth={2.3} color="#92400E" />
+              </div>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#18181B', marginBottom: '8px' }}>
+                Asisten AI Klinis Apoteker
+              </h3>
+              <p style={{ color: '#52525B', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '18px' }}>
+                Asisten interaktif berstandar ICD-10 untuk mengecek potensi interaksi antar obat, penyesuaian dosis khusus, dan panduan konseling farmasi.
+              </p>
+              <Link href="/dashboard/ai-analisa" style={{ color: '#18181B', fontWeight: 800, fontSize: '0.86rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                Mulai Tanya Jawab AI <span>→</span>
+              </Link>
+            </div>
+
+            {/* Fitur 5: Keuangan & Laba Rugi */}
+            <div className="neo-card" style={{ padding: '26px 22px', backgroundColor: '#FFFFFF', boxShadow: '2.5px 3px 0px #1E1E1E' }}>
+              <div style={{
+                width: '46px',
+                height: '46px',
+                borderRadius: '12px',
                 backgroundColor: '#E0F2FE',
                 border: '1.8px solid #1E1E1E',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                marginBottom: '20px',
+                marginBottom: '16px',
                 boxShadow: '1.5px 2px 0px #1E1E1E'
               }}>
-                <LineChart size={24} strokeWidth={2.2} color="#18181B" />
+                <Wallet size={22} strokeWidth={2.3} color="#0369A1" />
               </div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#18181B', marginBottom: '10px' }}>
-                Visualisasi & Statistik Kasus
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#18181B', marginBottom: '8px' }}>
+                Laporan Keuangan & HPP
               </h3>
-              <p style={{ color: '#52525B', fontSize: '0.92rem', lineHeight: 1.6 }}>
-                Grafik interaktif tren sebaran penyakit, konsumsi obat apotek, korelasi faktor risiko, dan estimasi beban penanganan secara real-time.
+              <p style={{ color: '#52525B', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '18px' }}>
+                Rekapitulasi otomatis arus kas masuk per metode (QRIS vs Tunai), kalkulasi HPP obat dari PBF, dan persentase margin keuntungan harian.
               </p>
-              <div style={{ marginTop: '20px' }}>
-                <Link href="/dashboard/visual" style={{
-                  color: '#18181B',
-                  fontWeight: 800,
-                  fontSize: '0.88rem',
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}>
-                  Buka Grafik Visual <span>→</span>
-                </Link>
+              <Link href="/dashboard/keuangan" style={{ color: '#18181B', fontWeight: 800, fontSize: '0.86rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                Buka Laporan Keuangan <span>→</span>
+              </Link>
+            </div>
+
+            {/* Fitur 6: Visual & Tren Statistik */}
+            <div className="neo-card" style={{ padding: '26px 22px', backgroundColor: '#FFFFFF', boxShadow: '2.5px 3px 0px #1E1E1E' }}>
+              <div style={{
+                width: '46px',
+                height: '46px',
+                borderRadius: '12px',
+                backgroundColor: '#F3E8FF',
+                border: '1.8px solid #1E1E1E',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '16px',
+                boxShadow: '1.5px 2px 0px #1E1E1E'
+              }}>
+                <TrendingUp size={22} strokeWidth={2.3} color="#7E22CE" />
               </div>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#18181B', marginBottom: '8px' }}>
+                Grafik Tren & Visual Data
+              </h3>
+              <p style={{ color: '#52525B', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '18px' }}>
+                Visualisasi interaktif pola penyakit musiman, tren resep bulanan, dan evaluasi keparahan kasus klinis faskes.
+              </p>
+              <Link href="/dashboard/visual" style={{ color: '#18181B', fontWeight: 800, fontSize: '0.86rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                Eksplorasi Grafik Data <span>→</span>
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* ===================== SECTION ALUR OPERASIONAL ===================== */}
+        <section id="alur" style={{
+          backgroundColor: '#FFFFFF',
+          borderTop: '1.8px solid #1E1E1E',
+          borderBottom: '1.8px solid #1E1E1E',
+          padding: '60px 20px 70px 20px'
+        }}>
+          <div style={{ maxWidth: '1240px', margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: '44px' }}>
+              <span className="tag-cyan" style={{ padding: '6px 16px', fontSize: '0.82rem', marginBottom: '12px' }}>
+                Alur Kerja Apotek
+              </span>
+              <h2 style={{
+                fontSize: 'clamp(1.8rem, 3.5vw, 2.6rem)',
+                fontWeight: 900,
+                color: '#18181B',
+                letterSpacing: '-0.8px',
+                marginTop: '10px',
+                marginBottom: '12px'
+              }}>
+                4 Langkah Mudah Penebusan Resep & Transaksi
+              </h2>
+              <p style={{ color: '#6B7280', fontSize: '0.98rem', maxWidth: '640px', margin: '0 auto' }}>
+                Bagaimana sistem melindungi apoteker dan mempercepat pelayanan kepada pasien.
+              </p>
+            </div>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))',
+              gap: '20px'
+            }}>
+              {/* Step 1 */}
+              <div style={{
+                padding: '24px',
+                borderRadius: '16px',
+                border: '1.8px solid #1E1E1E',
+                backgroundColor: '#FAF8F4',
+                boxShadow: '2px 3px 0px #1E1E1E',
+                position: 'relative'
+              }}>
+                <span style={{
+                  position: 'absolute',
+                  top: '-14px',
+                  left: '20px',
+                  backgroundColor: '#FEF3D6',
+                  color: '#18181B',
+                  border: '1.8px solid #1E1E1E',
+                  borderRadius: '9999px',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 900,
+                  fontSize: '0.95rem'
+                }}>
+                  1
+                </span>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginTop: '8px', marginBottom: '8px' }}>
+                  Pilih Data Pasien
+                </h3>
+                <p style={{ fontSize: '0.88rem', color: '#52525B', lineHeight: 1.5 }}>
+                  Cari nama atau NIK pasien terdaftar untuk memuat riwayat pengobatan dan riwayat alergi obat sebelumnya.
+                </p>
+              </div>
+
+              {/* Step 2 */}
+              <div style={{
+                padding: '24px',
+                borderRadius: '16px',
+                border: '1.8px solid #1E1E1E',
+                backgroundColor: '#FAF8F4',
+                boxShadow: '2px 3px 0px #1E1E1E',
+                position: 'relative'
+              }}>
+                <span style={{
+                  position: 'absolute',
+                  top: '-14px',
+                  left: '20px',
+                  backgroundColor: '#DCFCE7',
+                  color: '#166534',
+                  border: '1.8px solid #1E1E1E',
+                  borderRadius: '9999px',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 900,
+                  fontSize: '0.95rem'
+                }}>
+                  2
+                </span>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginTop: '8px', marginBottom: '8px' }}>
+                  Validasi Skrining Otomatis
+                </h3>
+                <p style={{ fontSize: '0.88rem', color: '#52525B', lineHeight: 1.5 }}>
+                  Sistem langsung mendeteksi kontraindikasi alergi dan interaksi antar obat secara real-time saat obat dimasukkan.
+                </p>
+              </div>
+
+              {/* Step 3 */}
+              <div style={{
+                padding: '24px',
+                borderRadius: '16px',
+                border: '1.8px solid #1E1E1E',
+                backgroundColor: '#FAF8F4',
+                boxShadow: '2px 3px 0px #1E1E1E',
+                position: 'relative'
+              }}>
+                <span style={{
+                  position: 'absolute',
+                  top: '-14px',
+                  left: '20px',
+                  backgroundColor: '#FEF3C7',
+                  color: '#92400E',
+                  border: '1.8px solid #1E1E1E',
+                  borderRadius: '9999px',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 900,
+                  fontSize: '0.95rem'
+                }}>
+                  3
+                </span>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginTop: '8px', marginBottom: '8px' }}>
+                  Alokasi Stok FEFO
+                </h3>
+                <p style={{ fontSize: '0.88rem', color: '#52525B', lineHeight: 1.5 }}>
+                  Stok otomatis terpotong dari batch yang mendekati expired terlebih dahulu, menghindari kerugian obat basi.
+                </p>
+              </div>
+
+              {/* Step 4 */}
+              <div style={{
+                padding: '24px',
+                borderRadius: '16px',
+                border: '1.8px solid #1E1E1E',
+                backgroundColor: '#FAF8F4',
+                boxShadow: '2px 3px 0px #1E1E1E',
+                position: 'relative'
+              }}>
+                <span style={{
+                  position: 'absolute',
+                  top: '-14px',
+                  left: '20px',
+                  backgroundColor: '#E0F2FE',
+                  color: '#0369A1',
+                  border: '1.8px solid #1E1E1E',
+                  borderRadius: '9999px',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 900,
+                  fontSize: '0.95rem'
+                }}>
+                  4
+                </span>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginTop: '8px', marginBottom: '8px' }}>
+                  Bayar & Cetak Etiket
+                </h3>
+                <p style={{ fontSize: '0.88rem', color: '#52525B', lineHeight: 1.5 }}>
+                  Terima pembayaran QRIS atau Tunai, cetak struk nota belanja serta etiket aturan minum obat pasien.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ===================== SECTION KEUNGGULAN (COMPARISON) ===================== */}
+        <section id="keunggulan" style={{
+          maxWidth: '1100px',
+          margin: '0 auto',
+          padding: '70px 20px 80px 20px'
+        }}>
+          <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+            <span className="tag-yellow" style={{ padding: '6px 16px', fontSize: '0.82rem', marginBottom: '12px' }}>
+              Perbandingan Sistem
+            </span>
+            <h2 style={{
+              fontSize: 'clamp(1.8rem, 3.5vw, 2.5rem)',
+              fontWeight: 900,
+              color: '#18181B',
+              letterSpacing: '-0.8px',
+              marginTop: '10px'
+            }}>
+              Mengapa Apotek Modern Memilih MediagnoTek?
+            </h2>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
+            gap: '24px'
+          }}>
+            {/* Box Cara Manual / Lama */}
+            <div style={{
+              padding: '28px',
+              borderRadius: '18px',
+              border: '1.8px solid #DC2626',
+              backgroundColor: '#FEF2F2',
+              boxShadow: '3px 3px 0px #DC2626'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#991B1B', fontWeight: 800, fontSize: '1.05rem', marginBottom: '16px' }}>
+                <AlertTriangle size={20} />
+                Sistem Apotek Konvensional / Manual
+              </div>
+              <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.88rem', color: '#7F1D1D' }}>
+                <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                  <span>✕</span> Stok kadaluwarsa tidak terpantau hingga obat basi di rak gudang.
+                </li>
+                <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                  <span>✕</span> Risiko fatal salah menyerahkan obat yang kontraindikasi dengan alergi pasien.
+                </li>
+                <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                  <span>✕</span> Kasir terpisah dari kartu stok sehingga selisih fisik obat sering terjadi.
+                </li>
+                <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                  <span>✕</span> Pencatatan uang tunai dan QRIS tercampur tanpa kalkulasi HPP dan laba bersih.
+                </li>
+              </ul>
+            </div>
+
+            {/* Box Dengan MediagnoTek */}
+            <div style={{
+              padding: '28px',
+              borderRadius: '18px',
+              border: '2px solid #166534',
+              backgroundColor: '#DCFCE7',
+              boxShadow: '3px 4px 0px #166534'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#166534', fontWeight: 900, fontSize: '1.05rem', marginBottom: '16px' }}>
+                <CheckCircle2 size={20} />
+                Dengan MediagnoTek Pharmacy OS
+              </div>
+              <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.88rem', color: '#14532D' }}>
+                <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                  <span>✓</span> Peringatan dini FEFO otomatis &lt; 60 hari sebelum expired dan defecta stok.
+                </li>
+                <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                  <span>✓</span> Skrining alergi real-time langsung memblokir peracikan obat berisiko.
+                </li>
+                <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                  <span>✓</span> Kasir otomatis memotong stok batch obat yang paling awal kadaluwarsa.
+                </li>
+                <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                  <span>✓</span> Laporan keuangan harian terpisah rapi antara QRIS dan Kas Tunai Kasir.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        {/* ===================== FINAL CALL TO ACTION ===================== */}
+        <section style={{
+          backgroundColor: '#FAF8F4',
+          borderTop: '1.8px solid #1E1E1E',
+          padding: '60px 20px 70px 20px'
+        }}>
+          <div style={{
+            maxWidth: '860px',
+            margin: '0 auto',
+            backgroundColor: '#FEF3D6',
+            border: '2px solid #1E1E1E',
+            borderRadius: '24px',
+            padding: '40px 28px',
+            textAlign: 'center',
+            boxShadow: '4px 5px 0px #1E1E1E'
+          }}>
+            <h2 style={{ fontSize: 'clamp(1.7rem, 3.5vw, 2.4rem)', fontWeight: 900, color: '#18181B', letterSpacing: '-0.6px', marginBottom: '12px' }}>
+              Mulai Modernisasi Apotek & Faskes Anda Hari Ini
+            </h2>
+            <p style={{ color: '#4B5563', fontSize: '1rem', maxWidth: '580px', margin: '0 auto 26px auto', lineHeight: 1.6 }}>
+              Akses demo instan tanpa ribet. Pantau inventori FEFO, layani pasien dengan skrining cerdas, dan tingkatkan profit faskes Anda.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <Link
+                href="/register"
+                className="neo-btn-primary"
+                style={{ padding: '13px 30px', fontSize: '0.96rem', fontWeight: 800 }}
+              >
+                Daftar Akun Faskes (Sign Up)
+              </Link>
+              <Link
+                href="/login"
+                className="neo-btn-secondary"
+                style={{ padding: '13px 28px', fontSize: '0.96rem', fontWeight: 800 }}
+              >
+                Masuk ke Akun (Login)
+              </Link>
             </div>
           </div>
         </section>
@@ -868,10 +1027,9 @@ export default function HomePage() {
 
       {/* ===================== FOOTER ===================== */}
       <footer style={{
+        backgroundColor: '#FFFFFF',
         borderTop: '1.8px solid #1E1E1E',
-        backgroundColor: '#FAF8F4',
-        padding: '36px 32px',
-        marginTop: 'auto'
+        padding: '30px 20px'
       }}>
         <div style={{
           maxWidth: '1240px',
@@ -884,56 +1042,46 @@ export default function HomePage() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
-              width: '28px',
-              height: '28px',
+              width: '30px',
+              height: '30px',
               borderRadius: '8px',
               backgroundColor: '#FEF3D6',
               border: '1.5px solid #1E1E1E',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              boxShadow: '1px 1px 0px #1E1E1E'
             }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: 800 }}>M</span>
+              <span style={{ fontSize: '0.82rem', fontWeight: 900 }}>M</span>
             </div>
-            <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#18181B' }}>
-              MediagnoTek © {new Date().getFullYear()}
+            <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#18181B' }}>
+              MediagnoTek Pharmacy OS
             </span>
-            <span style={{ color: '#9CA3AF', fontSize: '0.85rem' }}>— All rights reserved.</span>
+            <span style={{ color: '#9CA3AF', fontSize: '0.82rem' }}>— Hak Cipta © {new Date().getFullYear()}</span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-            <Link href="/" style={{ color: '#6B7280', fontSize: '0.88rem', textDecoration: 'none', fontWeight: 500 }}>
-              Privacy Policy
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+            <Link href="/dashboard/kasir" style={{ color: '#4B5563', fontSize: '0.86rem', textDecoration: 'none', fontWeight: 600 }}>
+              Kasir Resep
             </Link>
-            <Link href="/" style={{ color: '#6B7280', fontSize: '0.88rem', textDecoration: 'none', fontWeight: 500 }}>
-              Terms of Service
+            <Link href="/dashboard/stok" style={{ color: '#4B5563', fontSize: '0.86rem', textDecoration: 'none', fontWeight: 600 }}>
+              Stok FEFO
             </Link>
-            <Link href="/dashboard" style={{ color: '#18181B', fontSize: '0.88rem', textDecoration: 'none', fontWeight: 600 }}>
-              Dashboard
+            <Link href="/dashboard/pasien" style={{ color: '#4B5563', fontSize: '0.86rem', textDecoration: 'none', fontWeight: 600 }}>
+              Buku Pasien
+            </Link>
+            <Link href="/dashboard/ai-analisa" style={{ color: '#4B5563', fontSize: '0.86rem', textDecoration: 'none', fontWeight: 600 }}>
+              Asisten AI
+            </Link>
+            <Link href="/dashboard/keuangan" style={{ color: '#4B5563', fontSize: '0.86rem', textDecoration: 'none', fontWeight: 600 }}>
+              Keuangan
+            </Link>
+            <Link href="/dashboard" style={{ color: '#18181B', fontSize: '0.86rem', textDecoration: 'none', fontWeight: 800 }}>
+              Dashboard →
             </Link>
           </div>
         </div>
       </footer>
-
-      {/* Responsive CSS for Tablet & Mobile screens */}
-      <style>{`
-        @media (max-width: 1024px) {
-          .hero-floating-card {
-            position: static !important;
-            margin: 12px auto !important;
-            display: flex !important;
-            justify-content: center !important;
-          }
-          .top-left-card, .top-right-card, .bottom-left-card, .bottom-right-card {
-            position: static !important;
-          }
-        }
-        @media (max-width: 768px) {
-          .hidden-mobile {
-            display: none !important;
-          }
-        }
-      `}</style>
     </div>
   );
 }

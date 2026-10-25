@@ -57,16 +57,15 @@ export default function RegisterPage() {
     }
   };
 
-  // Google SSO Simulation
+  // Google SSO Handler
   const handleGoogleSignup = () => {
     setIsLoading(true);
-    setTimeout(() => {
-      setEmail('faskes.resmi@gmail.com');
-      setNamaFaskes('Apotek Medika Utama (via Google)');
-      setFotoPreview('https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=400&auto=format&fit=crop&q=80');
-      setIsLoading(false);
-      setCurrentStep(2);
-    }, 600);
+    setNamaFaskes('');
+    setNomorIzin('');
+    setTelepon('');
+    setAlamatLengkap('');
+    setIsLoading(false);
+    setCurrentStep(2);
   };
 
   const handleNextStep = (e: React.FormEvent) => {
@@ -99,9 +98,9 @@ export default function RegisterPage() {
       faskes_profile: {
         nama_faskes: namaFaskes,
         tipe_faskes: tipeFaskes,
-        nomor_izin_operasional: nomorIzin || 'SIA-3273/2026/089',
+        nomor_izin_operasional: nomorIzin,
         penanggung_jawab: penanggungJawab,
-        nomor_telepon: telepon || '081234567890',
+        nomor_telepon: telepon,
         foto_faskes_url: fotoPreview || '',
         alamat_lengkap: alamatLengkap,
         kota,
@@ -110,14 +109,28 @@ export default function RegisterPage() {
       created_at: new Date().toISOString()
     };
 
+    const userSession = {
+      id: `USR-${Date.now().toString().slice(-4)}`,
+      name: penanggungJawab || namaFaskes || 'Pengguna Terdaftar',
+      email: email,
+      role: 'ADMIN',
+      facility_id: 1,
+      facility_name: namaFaskes || 'Apotek Sehat Farma (Beta Demo)',
+      avatar: fotoPreview || null,
+      login_method: 'REGISTER_FORM',
+      login_time: new Date().toISOString(),
+      is_shared_demo: true
+    };
+
     if (typeof window !== 'undefined') {
       localStorage.setItem('mediagnotek_faskes_session', JSON.stringify(faskesData));
+      localStorage.setItem('mediagnotek_user_session', JSON.stringify(userSession));
     }
 
     setTimeout(() => {
       setIsLoading(false);
       router.push('/dashboard');
-    }, 800);
+    }, 600);
   };
 
   return (
@@ -131,42 +144,44 @@ export default function RegisterPage() {
       padding: '24px 16px',
       position: 'relative'
     }}>
-      {/* Back Button */}
       <div style={{
-        position: 'absolute',
-        top: '24px',
-        left: '24px'
-      }}>
-        <Link href="/" style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '8px 16px',
-          borderRadius: '10px',
-          border: '1.8px solid #1E1E1E',
-          backgroundColor: '#FFFFFF',
-          color: '#18181B',
-          fontWeight: 700,
-          fontSize: '0.86rem',
-          textDecoration: 'none',
-          boxShadow: '2px 2px 0px #1E1E1E'
-        }}>
-          <ArrowLeft size={16} strokeWidth={2.4} />
-          Kembali ke Beranda
-        </Link>
-      </div>
-
-      {/* Main Registration Card */}
-      <div className="neo-card" style={{
         width: '100%',
         maxWidth: currentStep === 1 ? '480px' : '580px',
-        padding: '36px 32px',
-        backgroundColor: '#FFFFFF',
-        boxShadow: '4px 5px 0px #1E1E1E',
-        borderRadius: '18px',
-        zIndex: 10,
-        transition: 'all 0.2s ease'
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px',
+        zIndex: 10
       }}>
+        {/* Back Button */}
+        <div>
+          <Link href="/" style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '7px 14px',
+            borderRadius: '10px',
+            border: '1.8px solid #1E1E1E',
+            backgroundColor: '#FFFFFF',
+            color: '#18181B',
+            fontWeight: 700,
+            fontSize: '0.84rem',
+            textDecoration: 'none',
+            boxShadow: '1.5px 2px 0px #1E1E1E'
+          }}>
+            <ArrowLeft size={15} strokeWidth={2.4} />
+            Kembali ke Beranda
+          </Link>
+        </div>
+
+        {/* Main Registration Card */}
+        <div className="neo-card" style={{
+          width: '100%',
+          padding: 'clamp(24px, 5vw, 36px) clamp(18px, 4vw, 32px)',
+          backgroundColor: '#FFFFFF',
+          boxShadow: '4px 5px 0px #1E1E1E',
+          borderRadius: '18px',
+          transition: 'all 0.2s ease'
+        }}>
         {/* Header Branding */}
         <div style={{ textAlign: 'center', marginBottom: '22px' }}>
           <div style={{
@@ -436,7 +451,7 @@ export default function RegisterPage() {
             </div>
 
             {/* Nama Faskes & No Izin */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: '#18181B', marginBottom: '4px' }}>
                   Nama Faskes / Usaha *
@@ -468,7 +483,7 @@ export default function RegisterPage() {
             </div>
 
             {/* Penanggung Jawab & WhatsApp */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '12px' }}>
+            <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '12px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: '#18181B', marginBottom: '4px' }}>
                   Penanggung Jawab Medis (PJ/APA) *
@@ -581,7 +596,7 @@ export default function RegisterPage() {
               />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: '#18181B', marginBottom: '4px' }}>
                   Kota / Kabupaten
@@ -668,6 +683,7 @@ export default function RegisterPage() {
             Masuk ke Portal
           </Link>
         </div>
+      </div>
       </div>
     </div>
   );

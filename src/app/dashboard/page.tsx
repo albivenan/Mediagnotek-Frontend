@@ -169,7 +169,7 @@ export default function DashboardOverviewPage() {
       </div>
 
       {/* Quick Alerts Banner */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+      <div className="responsive-split-equal">
         {criticalAlerts.map((ca, idx) => (
           <div
             key={idx}
@@ -290,8 +290,8 @@ export default function DashboardOverviewPage() {
         </div>
 
         {/* Tabel dengan Kolom No Urut (Angka) */}
-        <div style={{ overflowX: 'auto', border: '1.8px solid #1E1E1E', borderRadius: '12px' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
+        <div className="table-responsive-neo" style={{ border: '1.8px solid #1E1E1E', borderRadius: '12px' }}>
+          <table style={{ width: '100%', minWidth: '780px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
             <thead>
               <tr style={{ backgroundColor: '#FEF3D6', borderBottom: '2px solid #1E1E1E' }}>
                 <th style={{ padding: '12px 14px', fontWeight: 800, textAlign: 'center', width: '50px' }}>NO</th>

@@ -1,121 +1,139 @@
 'use client';
 
-import { useState } from 'react';
-import { Dna, Search } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Dna, Search, Database, RefreshCw, CheckCircle2, ChevronLeft, ChevronRight, Loader2, Pill } from 'lucide-react';
+import { getDiseases, getDiseaseDetail, Disease } from '@/lib/api';
 
-interface Disease {
-  id: string;
-  code: string;
-  name: string;
-  category: string;
-  severity: 'Ringan' | 'Sedang' | 'Tinggi' | 'Kritis';
-  description: string;
-  symptoms: string[];
-  treatment: string;
-}
-
-const diseaseData: Disease[] = [
+const mockDiseases: Disease[] = [
   {
-    id: '1',
-    code: 'ICD-10 E11',
-    name: 'Diabetes Mellitus Tipe 2',
-    category: 'Metabolik',
-    severity: 'Sedang',
-    description: 'Gangguan metabolisme yang ditandai dengan kadar gula darah tinggi akibat resistensi insulin.',
-    symptoms: ['Poliuria (sering kencing)', 'Polidipsia (sering haus)', 'Lemas berkepanjangan', 'Penglihatan kabur'],
-    treatment: 'Perubahan gaya hidup, terapi insulin, metformin.'
+    id: 1,
+    nama: 'Diabetes Mellitus Tipe 2',
+    deskripsi: 'Gangguan metabolisme yang ditandai dengan kadar gula darah tinggi akibat resistensi insulin.',
+    penyebab: 'Resistensi insulin dan defisiensi sekresi insulin.',
+    gejala_teks: 'Poliuria, polidipsia, lemas berkepanjangan, penglihatan kabur.'
   },
   {
-    id: '2',
-    code: 'ICD-10 I10',
-    name: 'Hipertensi Esensial',
-    category: 'Kardiologi',
-    severity: 'Sedang',
-    description: 'Kondisi kronis di mana tekanan darah pada arteri meningkat secara signifikan.',
-    symptoms: ['Sakit kepala belakang', 'Pusing / Nyeri tengkuk', 'Dada berdebar', 'Napas pendek'],
-    treatment: 'Antihipertensi (Amlodipine), diet rendah garam.'
+    id: 2,
+    nama: 'Hipertensi Esensial',
+    deskripsi: 'Kondisi kronis di mana tekanan darah pada arteri meningkat secara signifikan.',
+    penyebab: 'Faktor genetik, gaya hidup tinggi natrium, stres.',
+    gejala_teks: 'Sakit kepala belakang, nyeri tengkuk, dada berdebar.'
   },
   {
-    id: '3',
-    code: 'ICD-10 J18',
-    name: 'Pneumonia Bakterial',
-    category: 'Respirasi',
-    severity: 'Tinggi',
-    description: 'Infeksi pada salah satu atau kedua paru-paru yang menyebabkan kantung udara meradang.',
-    symptoms: ['Demam tinggi & menggigil', 'Batuk berdahak', 'Nyeri dada saat bernapas', 'Sesak napas'],
-    treatment: 'Antibiotik spektrum luas, terapi oksigen, cairan IV.'
-  },
-  {
-    id: '4',
-    code: 'ICD-10 G43',
-    name: 'Migrain Tanpa Aura',
-    category: 'Neurologi',
-    severity: 'Ringan',
-    description: 'Nyeri kepala berdenyut sedang hingga berat yang biasanya mengenai satu sisi kepala.',
-    symptoms: ['Nyeri kepala sebelah', 'Sensitif terhadap cahaya (Fotofobia)', 'Mual / Muntah'],
-    treatment: 'Analgesik, triptan, istirahat di ruangan gelap.'
-  },
-  {
-    id: '5',
-    code: 'ICD-10 J45',
-    name: 'Asthma Bronkial',
-    category: 'Respirasi',
-    severity: 'Sedang',
-    description: 'Penyakit kronis saluran pernapasan yang ditandai dengan peradangan dan penyempitan bronkus.',
-    symptoms: ['Mengi (seperti siulan)', 'Batuk malam hari', 'Dada terasa berat', 'Sesak napas akut'],
-    treatment: 'Inhaler kortikosteroid, bronkodilator (Salbutamol).'
-  },
-  {
-    id: '6',
-    code: 'ICD-10 I21',
-    name: 'Infark Miokard Akut (Serangan Jantung)',
-    category: 'Kardiologi',
-    severity: 'Kritis',
-    description: 'Kematian otot jantung akibat terhentinya pasokan darah secara mendadak.',
-    symptoms: ['Nyeri dada hebat menjalar ke lengan kiri', 'Keringat dingin', 'Mual parah', 'Kecemasan hebat'],
-    treatment: 'Penanganan darurat medis, trombolitik, angioplasti koroner.'
+    id: 3,
+    nama: 'Pneumonia Bakterial',
+    deskripsi: 'Infeksi pada salah satu atau kedua paru-paru yang menyebabkan kantung udara meradang.',
+    penyebab: 'Infeksi Streptococcus pneumoniae.',
+    gejala_teks: 'Demam tinggi, menggigil, batuk berdahak, sesak napas.'
   }
 ];
 
 export default function NamaPenyakitPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('Semua');
   const [activeModal, setActiveModal] = useState<Disease | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [diseases, setDiseases] = useState<Disease[]>(mockDiseases);
+  const [total, setTotal] = useState<number>(mockDiseases.length);
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(18);
+  const [isLiveDb, setIsLiveDb] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const categories = ['Semua', 'Metabolik', 'Kardiologi', 'Respirasi', 'Neurologi'];
-
-  const filteredDiseases = diseaseData.filter(d => {
-    const matchesSearch = d.name.toLowerCase().includes(searchTerm.toLowerCase()) || d.code.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'Semua' || d.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
-
-  const getSeverityStyle = (sev: string) => {
-    switch (sev) {
-      case 'Kritis':
-      case 'Tinggi':
-        return { bg: '#FEE2E2', text: '#991B1B', border: '#FCA5A5' };
-      case 'Sedang':
-        return { bg: '#FEF3D6', text: '#92400E', border: '#FDE68A' };
-      default:
-        return { bg: '#DCFCE7', text: '#166534', border: '#86EFAC' };
+  // Fetch data penyakit dari backend database SQL
+  const fetchDiseaseData = async (query: string, pageNum: number) => {
+    setLoading(true);
+    try {
+      const res = await getDiseases(query, pageNum, pageSize);
+      if (res && Array.isArray(res.items)) {
+        setDiseases(res.items);
+        setTotal(res.total);
+        setIsLiveDb(true);
+      } else {
+        setIsLiveDb(false);
+        const filtered = mockDiseases.filter(d =>
+          d.nama.toLowerCase().includes(query.toLowerCase()) ||
+          (d.deskripsi && d.deskripsi.toLowerCase().includes(query.toLowerCase()))
+        );
+        setDiseases(filtered);
+        setTotal(filtered.length);
+      }
+    } catch {
+      setIsLiveDb(false);
+    } finally {
+      setLoading(false);
     }
   };
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchDiseaseData(searchTerm, page);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm, page]);
+
+  // Handle buka detail penyakit
+  const handleViewDetail = async (disease: Disease) => {
+    setActiveModal(disease);
+    if (isLiveDb) {
+      setLoadingDetail(true);
+      try {
+        const fullDetail = await getDiseaseDetail(disease.id);
+        if (fullDetail) {
+          setActiveModal(fullDetail);
+        }
+      } catch (err) {
+        console.error('Error fetching disease detail:', err);
+      } finally {
+        setLoadingDetail(false);
+      }
+    }
+  };
+
+  const totalPages = Math.ceil(total / pageSize) || 1;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '26px' }}>
-      {/* Page Title */}
-      <div>
-        <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: '#18181B', letterSpacing: '-0.5px', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Dna size={28} strokeWidth={2.2} style={{ color: '#18181B' }} />
-          Katalog & Database Nama Penyakit
-        </h1>
-        <p style={{ color: '#52525B', fontSize: '0.95rem' }}>
-          Database medis terstruktur dengan rincian kode ICD-10, gejala klinis, dan panduan penanganan awal.
-        </p>
+      {/* Page Header with Database Status Badge */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+        <div>
+          <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: '#18181B', letterSpacing: '-0.5px', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Dna size={28} strokeWidth={2.2} style={{ color: '#18181B' }} />
+            Katalog & Database Nama Penyakit
+          </h1>
+          <p style={{ color: '#52525B', fontSize: '0.95rem' }}>
+            Database medis terstruktur dengan rincian kode patologi, gejala klinis, dan relasi farmakoterapi.
+          </p>
+        </div>
+
+        {/* Live Badge Database */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '8px 16px',
+          borderRadius: '9999px',
+          backgroundColor: isLiveDb ? '#DCFCE7' : '#FEF3C7',
+          border: '1.5px solid #1E1E1E',
+          boxShadow: '2px 2px 0px #1E1E1E',
+          fontWeight: 700,
+          fontSize: '0.85rem',
+          color: isLiveDb ? '#166534' : '#92400E'
+        }}>
+          {isLiveDb ? (
+            <>
+              <CheckCircle2 size={16} />
+              <span>SQL Database Terhubung ({total.toLocaleString('id-ID')} Penyakit)</span>
+            </>
+          ) : (
+            <>
+              <Database size={16} />
+              <span>Mode Lokal Fallback</span>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* Filter and Search Bar in Neo Card */}
+      {/* Filter and Search Bar */}
       <div className="neo-card" style={{ padding: '22px 24px', backgroundColor: '#FFFFFF', boxShadow: '2.5px 3px 0px #1E1E1E' }}>
         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
           <div style={{ flex: 1, minWidth: '280px', position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -123,48 +141,45 @@ export default function NamaPenyakitPage() {
             <input
               type="text"
               className="form-input-neo"
-              placeholder="Cari nama penyakit atau kode ICD-10..."
+              placeholder="Cari dari 1.358+ penyakit di database (contoh: Diabetes, Asma, Hipertensi, Xerosis)..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setPage(1);
+              }}
               style={{ paddingLeft: '44px' }}
             />
           </div>
 
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {categories.map((cat) => {
-              const isActive = selectedCategory === cat;
-              return (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  style={{
-                    padding: '8px 18px',
-                    borderRadius: '9999px',
-                    border: '1.5px solid #1E1E1E',
-                    background: isActive ? '#FEF3D6' : '#FFFFFF',
-                    color: '#18181B',
-                    fontWeight: isActive ? 700 : 500,
-                    fontSize: '0.88rem',
-                    cursor: 'pointer',
-                    boxShadow: isActive ? '2px 2px 0px #1E1E1E' : 'none',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  {cat}
-                </button>
-              );
-            })}
-          </div>
+          <button
+            onClick={() => fetchDiseaseData(searchTerm, page)}
+            className="neo-btn-secondary"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', fontSize: '0.88rem' }}
+          >
+            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            Refresh
+          </button>
         </div>
       </div>
 
-      {/* Disease Cards Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '22px' }}>
-        {filteredDiseases.map((d) => {
-          const sevStyle = getSeverityStyle(d.severity);
-          return (
+      {/* Loading State / List */}
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '60px', gap: '12px' }}>
+          <Loader2 size={32} className="animate-spin" style={{ color: '#18181B' }} />
+          <span style={{ fontWeight: 700, color: '#18181B' }}>Memuat data penyakit dari database SQL...</span>
+        </div>
+      ) : diseases.length === 0 ? (
+        <div className="neo-card" style={{ padding: '48px', textAlign: 'center', backgroundColor: '#FFFFFF' }}>
+          <Dna size={42} style={{ margin: '0 auto 14px', color: '#9CA3AF' }} />
+          <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>Penyakit tidak ditemukan</h3>
+          <p style={{ color: '#6B7280', fontSize: '0.9rem' }}>Coba ubah kata kunci pencarian Anda.</p>
+        </div>
+      ) : (
+        /* Disease Grid */
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: '22px' }}>
+          {diseases.map((disease) => (
             <div
-              key={d.id}
+              key={disease.id}
               className="neo-card"
               style={{
                 padding: '24px',
@@ -177,69 +192,71 @@ export default function NamaPenyakitPage() {
               }}
             >
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                  <span style={{
-                    backgroundColor: '#FEF3D6',
-                    color: '#92400E',
-                    border: '1.2px solid #1E1E1E',
-                    borderRadius: '9999px',
-                    padding: '3px 12px',
-                    fontSize: '0.78rem',
-                    fontWeight: 700
-                  }}>
-                    {d.code}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', gap: '8px', flexWrap: 'wrap' }}>
+                  <span className="tag-yellow" style={{ fontSize: '0.78rem' }}>
+                    Diagnosa Terdaftar
                   </span>
-                  <span style={{
-                    backgroundColor: sevStyle.bg,
-                    color: sevStyle.text,
-                    border: '1.2px solid #1E1E1E',
-                    borderRadius: '9999px',
-                    padding: '3px 12px',
-                    fontSize: '0.75rem',
-                    fontWeight: 700
-                  }}>
-                    {d.severity}
+                  <span className="tag-cyan" style={{ fontSize: '0.78rem' }}>
+                    ID: #{disease.id}
                   </span>
                 </div>
 
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#18181B', marginBottom: '8px' }}>
-                  {d.name}
+                  {disease.nama}
                 </h3>
-                <p style={{ fontSize: '0.88rem', color: '#52525B', lineHeight: 1.55, marginBottom: '16px' }}>
-                  {d.description}
-                </p>
 
-                <div style={{ fontSize: '0.82rem', color: '#18181B', marginBottom: '8px', fontWeight: 700 }}>Gejala Utama:</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                  {d.symptoms.map((sym, idx) => (
-                    <span key={idx} style={{
-                      fontSize: '0.76rem',
-                      backgroundColor: '#F8FAFC',
-                      border: '1px solid #E2E8F0',
-                      padding: '4px 10px',
-                      borderRadius: '8px',
-                      color: '#475569',
-                      fontWeight: 500
-                    }}>
-                      • {sym}
-                    </span>
-                  ))}
-                </div>
+                <p style={{
+                  fontSize: '0.88rem',
+                  color: '#52525B',
+                  lineHeight: 1.55,
+                  marginBottom: '16px',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden'
+                }}>
+                  {disease.deskripsi || 'Tidak ada uraian deskripsi klinis.'}
+                </p>
               </div>
 
               <button
-                onClick={() => setActiveModal(d)}
+                onClick={() => handleViewDetail(disease)}
                 className="neo-btn-secondary"
-                style={{ width: '100%', padding: '10px', fontSize: '0.88rem', marginTop: '14px', borderRadius: '12px' }}
+                style={{ width: '100%', padding: '10px', fontSize: '0.88rem', marginTop: '12px', borderRadius: '12px' }}
               >
-                Lihat Detail Penyakit & Pengobatan →
+                Lihat Rincian Patologi & Terapi →
               </button>
             </div>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
 
-      {/* Disease Detail Modal */}
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '14px', marginTop: '10px' }}>
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="neo-btn-secondary"
+            style={{ padding: '8px 14px', display: 'flex', alignItems: 'center', gap: '6px', opacity: page === 1 ? 0.5 : 1 }}
+          >
+            <ChevronLeft size={16} /> Sebelumnya
+          </button>
+          <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#18181B' }}>
+            Halaman {page} dari {totalPages} ({total} Total)
+          </span>
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages}
+            className="neo-btn-secondary"
+            style={{ padding: '8px 14px', display: 'flex', alignItems: 'center', gap: '6px', opacity: page >= totalPages ? 0.5 : 1 }}
+          >
+            Selanjutnya <ChevronRight size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* Disease Modal Detail */}
       {activeModal && (
         <div style={{
           position: 'fixed',
@@ -257,16 +274,17 @@ export default function NamaPenyakitPage() {
         }}>
           <div className="neo-card" style={{
             width: '100%',
-            maxWidth: '580px',
+            maxWidth: '620px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
             padding: '32px',
             backgroundColor: '#FFFFFF',
-            boxShadow: '6px 8px 0px #1E1E1E',
-            position: 'relative'
+            boxShadow: '6px 8px 0px #1E1E1E'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
               <div>
-                <span className="tag-yellow" style={{ marginBottom: '8px' }}>{activeModal.code}</span>
-                <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#18181B', marginTop: '6px' }}>{activeModal.name}</h2>
+                <span className="tag-yellow" style={{ marginBottom: '8px' }}>Penyakit Terverifikasi</span>
+                <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#18181B', marginTop: '6px' }}>{activeModal.nama}</h2>
               </div>
               <button
                 onClick={() => setActiveModal(null)}
@@ -289,43 +307,73 @@ export default function NamaPenyakitPage() {
               </button>
             </div>
 
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
-              <span className="tag-cyan">Kategori: {activeModal.category}</span>
-              <span className="tag-yellow">Keparahan: {activeModal.severity}</span>
-            </div>
-
-            <div style={{ marginBottom: '16px' }}>
-              <h4 style={{ fontSize: '0.9rem', color: '#18181B', fontWeight: 700, marginBottom: '6px' }}>Deskripsi Medis:</h4>
-              <p style={{ fontSize: '0.9rem', color: '#52525B', lineHeight: 1.6 }}>{activeModal.description}</p>
-            </div>
-
-            <div style={{ marginBottom: '16px' }}>
-              <h4 style={{ fontSize: '0.9rem', color: '#18181B', fontWeight: 700, marginBottom: '6px' }}>Gejala Klinis Terkait:</h4>
-              <ul style={{ paddingLeft: '20px', fontSize: '0.88rem', color: '#52525B', lineHeight: 1.6 }}>
-                {activeModal.symptoms.map((s, i) => (
-                  <li key={i}>{s}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div style={{ marginBottom: '24px' }}>
-              <h4 style={{ fontSize: '0.9rem', color: '#166534', fontWeight: 700, marginBottom: '6px' }}>Standar Penanganan / Obat:</h4>
-              <div style={{
-                fontSize: '0.9rem',
-                color: '#166534',
-                backgroundColor: '#DCFCE7',
-                padding: '12px 16px',
-                borderRadius: '12px',
-                border: '1.5px solid #1E1E1E'
-              }}>
-                {activeModal.treatment}
+            {loadingDetail ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '16px 0' }}>
+                <Loader2 size={18} className="animate-spin" />
+                <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>Memuat rincian relasi farmakologi...</span>
               </div>
+            ) : null}
+
+            <div style={{ marginBottom: '16px' }}>
+              <h4 style={{ fontSize: '0.9rem', color: '#18181B', fontWeight: 700, marginBottom: '6px' }}>Deskripsi Klinis:</h4>
+              <p style={{ fontSize: '0.9rem', color: '#52525B', lineHeight: 1.6 }}>{activeModal.deskripsi}</p>
             </div>
+
+            {activeModal.penyebab && (
+              <div style={{ marginBottom: '16px' }}>
+                <h4 style={{ fontSize: '0.9rem', color: '#18181B', fontWeight: 700, marginBottom: '6px' }}>Etiologi & Penyebab:</h4>
+                <p style={{ fontSize: '0.9rem', color: '#52525B', lineHeight: 1.6 }}>{activeModal.penyebab}</p>
+              </div>
+            )}
+
+            {activeModal.gejala_teks && (
+              <div style={{ marginBottom: '16px' }}>
+                <h4 style={{ fontSize: '0.9rem', color: '#92400E', fontWeight: 700, marginBottom: '6px' }}>Gejala Klinis:</h4>
+                <div style={{
+                  fontSize: '0.88rem',
+                  color: '#92400E',
+                  backgroundColor: '#FEF3C7',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: '1.5px solid #1E1E1E'
+                }}>
+                  {activeModal.gejala_teks}
+                </div>
+              </div>
+            )}
+
+            {activeModal.symptoms && activeModal.symptoms.length > 0 && (
+              <div style={{ marginBottom: '16px' }}>
+                <h4 style={{ fontSize: '0.9rem', color: '#18181B', fontWeight: 700, marginBottom: '6px' }}>Tanda & Gejala Terpetakan (Dataset):</h4>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {activeModal.symptoms.map((s) => (
+                    <span key={s.id} className="tag-yellow" style={{ fontSize: '0.8rem' }}>
+                      {s.nama}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeModal.drugs && activeModal.drugs.length > 0 && (
+              <div style={{ marginBottom: '16px' }}>
+                <h4 style={{ fontSize: '0.9rem', color: '#166534', fontWeight: 700, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Pill size={16} /> Rekomendasi Terapi Obat (Database):
+                </h4>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {activeModal.drugs.map((d) => (
+                    <span key={d.id} className="tag-cyan" style={{ fontSize: '0.82rem' }}>
+                      {d.nama}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <button
               onClick={() => setActiveModal(null)}
               className="neo-btn-primary"
-              style={{ width: '100%', padding: '12px' }}
+              style={{ width: '100%', padding: '12px', marginTop: '12px' }}
             >
               Tutup Modal Detail
             </button>

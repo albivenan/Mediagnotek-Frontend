@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -22,8 +22,12 @@ import {
   ChevronLeft,
   ChevronRight,
   Menu,
-  Wallet
+  Wallet,
+  Building2,
+  User,
+  HelpCircle
 } from 'lucide-react';
+import { apiGetCurrentUser } from '@/lib/api';
 
 export default function DashboardLayout({
   children,
@@ -31,7 +35,118 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [faskesName, setFaskesName] = useState('');
+  const [userSession, setUserSession] = useState<{
+    id?: number | string;
+    name: string;
+    email: string;
+    role: string;
+    avatar?: string | null;
+  }>({
+    name: '',
+    email: '',
+    role: 'APOTEKER',
+    avatar: null
+  });
+
+  // Load sessions on mount & sync dynamically when changed
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadSession = async () => {
+      if (typeof window === 'undefined') return;
+
+      let currentName = '';
+      let currentEmail = '';
+      let currentRole = 'APOTEKER';
+      let currentAvatar: string | null = null;
+      let currentFaskes = '';
+      let userId: number | undefined = undefined;
+
+      // 1. Read user session from localStorage
+      try {
+        const savedUser = localStorage.getItem('mediagnotek_user_session');
+        if (savedUser) {
+          const parsedUser = JSON.parse(savedUser);
+          if (parsedUser?.name) currentName = parsedUser.name;
+          if (parsedUser?.email) currentEmail = parsedUser.email;
+          if (parsedUser?.role) currentRole = parsedUser.role;
+          if (parsedUser?.avatar) currentAvatar = parsedUser.avatar;
+          if (parsedUser?.facility_name) currentFaskes = parsedUser.facility_name;
+          if (parsedUser?.id && !isNaN(Number(parsedUser.id))) userId = Number(parsedUser.id);
+        }
+      } catch (err) {
+        console.warn('Error reading mediagnotek_user_session:', err);
+      }
+
+      // 2. Read faskes session from localStorage
+      try {
+        const savedSession = localStorage.getItem('mediagnotek_faskes_session');
+        if (savedSession) {
+          const parsed = JSON.parse(savedSession);
+          if (parsed?.faskes_profile?.nama_faskes && !currentFaskes) {
+            currentFaskes = parsed.faskes_profile.nama_faskes;
+          }
+          if (!currentName && parsed?.faskes_profile?.penanggung_jawab) {
+            currentName = parsed.faskes_profile.penanggung_jawab;
+          }
+          if (!currentEmail && parsed?.email) {
+            currentEmail = parsed.email;
+          }
+          if (!currentAvatar && parsed?.faskes_profile?.foto_faskes_url) {
+            currentAvatar = parsed.faskes_profile.foto_faskes_url;
+          }
+        }
+      } catch (err) {
+        console.warn('Error reading mediagnotek_faskes_session:', err);
+      }
+
+      // 3. If still empty, fetch dynamically from backend API /auth/me
+      if (!currentName) {
+        try {
+          const apiUser = await apiGetCurrentUser(userId);
+          if (apiUser?.nama_lengkap) {
+            currentName = apiUser.nama_lengkap;
+            if (!currentEmail && apiUser.email) currentEmail = apiUser.email;
+            if (apiUser.role) currentRole = apiUser.role;
+            if (!currentFaskes && apiUser.facility_name) currentFaskes = apiUser.facility_name;
+            if (!currentAvatar && apiUser.avatar_url) currentAvatar = apiUser.avatar_url;
+          }
+        } catch (apiErr) {
+          console.warn('Failed to fetch user from backend /auth/me:', apiErr);
+        }
+      }
+
+      if (!isMounted) return;
+
+      setUserSession({
+        name: currentName || 'Pengelola Farmasi',
+        email: currentEmail || 'apoteker@faskes.id',
+        role: currentRole || 'APOTEKER',
+        avatar: currentAvatar
+      });
+
+      if (currentFaskes) {
+        setFaskesName(currentFaskes);
+      }
+    };
+
+    loadSession();
+    window.addEventListener('storage', loadSession);
+    window.addEventListener('mediagnotek_session_updated', loadSession);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('storage', loadSession);
+      window.removeEventListener('mediagnotek_session_updated', loadSession);
+    };
+  }, []);
+
+  // Close sidebar drawer automatically when navigating
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
 
   const navSections = [
     {
@@ -67,21 +182,30 @@ export default function DashboardLayout({
         { label: 'Analisa & Visual', href: '/dashboard/visual', icon: LineChart },
         { label: 'Laporan Keuangan', href: '/dashboard/keuangan', icon: Wallet },
       ]
+    },
+    {
+      title: 'Bantuan & SOP',
+      items: [
+        { label: 'Petunjuk & Alur', href: '/dashboard/petunjuk', icon: HelpCircle },
+      ]
     }
   ];
 
   const allNavItems = navSections.flatMap((s) => s.items);
 
   return (
-    <div style={{
-      display: 'flex',
-      height: '100vh',
-      width: '100vw',
-      overflow: 'hidden',
-      backgroundColor: 'var(--warm-bg)',
-      color: 'var(--warm-text)',
-      position: 'relative'
-    }}>
+    <div
+      suppressHydrationWarning
+      style={{
+        display: 'flex',
+        height: '100vh',
+        width: '100vw',
+        overflow: 'hidden',
+        backgroundColor: 'var(--warm-bg)',
+        color: 'var(--warm-text)',
+        position: 'relative'
+      }}
+    >
       {/* Backdrop overlay saat sidebar terbuka di layar mobile / tablet */}
       {sidebarOpen && (
         <div
@@ -119,28 +243,17 @@ export default function DashboardLayout({
           justifyContent: 'space-between',
           gap: '10px'
         }}>
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none', minWidth: 0 }}>
-            <div style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '10px',
-              backgroundColor: '#FEF3D6',
-              border: '1.8px solid #1E1E1E',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '1.5px 2px 0px #1E1E1E',
-              flexShrink: 0
-            }}>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="#1E1E1E">
-                <circle cx="6" cy="6" r="2.5" />
-                <circle cx="12" cy="6" r="2.5" />
-                <circle cx="18" cy="6" r="2.5" />
-                <circle cx="6" cy="14" r="2.5" />
-                <circle cx="12" cy="14" r="2.5" />
-                <circle cx="18" cy="14" r="2.5" />
-              </svg>
-            </div>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none', minWidth: 0 }}>
+            <img
+              src="/logo-mediagnotek.png"
+              alt="MediagnoTek Logo"
+              style={{
+                width: '44px',
+                height: '44px',
+                objectFit: 'contain',
+                flexShrink: 0
+              }}
+            />
             <div style={{ overflow: 'hidden' }}>
               <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#18181B', lineHeight: 1.1, letterSpacing: '-0.3px' }}>
                 MediagnoTek
@@ -255,7 +368,7 @@ export default function DashboardLayout({
         {/* User Card & Logout */}
         <div style={{ padding: '16px', borderTop: '1.8px solid #1E1E1E' }}>
           <div style={{
-            padding: '12px',
+            padding: '10px 12px',
             backgroundColor: '#FAF8F4',
             border: '1.5px solid #1E1E1E',
             borderRadius: '14px',
@@ -264,45 +377,76 @@ export default function DashboardLayout({
             gap: '10px',
             boxShadow: '1.5px 2px 0px #1E1E1E'
           }}>
-            <div style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '10px',
-              backgroundColor: '#DCFCE7',
-              border: '1.5px solid #1E1E1E',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 800,
-              color: '#166534',
-              fontSize: '0.82rem',
-              boxShadow: '1px 1px 0px #1E1E1E',
-              flexShrink: 0
-            }}>
-              🏥
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#18181B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                Apotek Sehat Farma
+            <Link
+              href="/dashboard/profil"
+              title="Lihat & Edit Profil Fasilitas Kesehatan"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                flex: 1,
+                minWidth: 0,
+                textDecoration: 'none',
+                color: 'inherit'
+              }}
+            >
+              <div style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                backgroundColor: pathname === '/dashboard/profil' ? '#FEF3D6' : '#DCFCE7',
+                border: '1.5px solid #1E1E1E',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: pathname === '/dashboard/profil' ? '#18181B' : '#166534',
+                boxShadow: '1px 1px 0px #1E1E1E',
+                flexShrink: 0,
+                transition: 'all 0.15s ease',
+                overflow: 'hidden'
+              }}>
+                {userSession.avatar ? (
+                  <img src={userSession.avatar} alt="User Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <User size={18} strokeWidth={2.2} />
+                )}
               </div>
-              <div style={{ fontSize: '0.7rem', color: '#166534', fontWeight: 700 }}>
-                ● Admin Faskes Resmi
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#18181B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={userSession.name}>
+                  {userSession.name || 'Memuat Profil...'}
+                </div>
+                <div style={{ fontSize: '0.68rem', color: '#166534', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  ● {userSession.role || 'APOTEKER'} {faskesName ? `• ${faskesName.replace(' (Beta Demo)', '')}` : ''}
+                </div>
               </div>
-            </div>
-            <Link href="/" title="Keluar ke Landing Page" style={{
-              width: '30px',
-              height: '30px',
-              borderRadius: '8px',
-              border: '1.2px solid #1E1E1E',
-              backgroundColor: '#FFFFFF',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#18181B',
-              textDecoration: 'none'
-            }}>
-              <LogOut size={15} strokeWidth={2} />
             </Link>
+
+            <button
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  localStorage.removeItem('mediagnotek_user_session');
+                  window.location.href = '/login';
+                }
+              }}
+              title="Keluar / Ganti Akun"
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                border: '1.2px solid #1E1E1E',
+                backgroundColor: '#FFFFFF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#EF4444',
+                cursor: 'pointer',
+                flexShrink: 0,
+                transition: 'all 0.15s ease',
+                boxShadow: '1px 1px 0px #1E1E1E'
+              }}
+            >
+              <LogOut size={15} strokeWidth={2} />
+            </button>
           </div>
         </div>
       </aside>
@@ -336,6 +480,7 @@ export default function DashboardLayout({
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             {/* Toggle Button: Muncul selalu di mobile atau jika sidebar tertutup */}
             <button
+              suppressHydrationWarning
               onClick={() => setSidebarOpen(!sidebarOpen)}
               title={sidebarOpen ? "Tutup Sidebar Menu" : "Buka Sidebar Menu"}
               style={{
@@ -372,7 +517,9 @@ export default function DashboardLayout({
                 overflow: 'hidden',
                 textOverflow: 'ellipsis'
               }}>
-                {allNavItems.find(n => n.href === pathname)?.label || 'Overview Apotek'}
+                {(pathname === '/dashboard/petunjuk' || pathname === '/dashboard/panduan')
+                  ? 'Petunjuk & Alur'
+                  : (allNavItems.find(n => n.href === pathname)?.label || 'Overview Apotek')}
               </span>
             </div>
           </div>
@@ -380,11 +527,12 @@ export default function DashboardLayout({
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div
               className="header-badge-status"
+              title="Shared Beta Active: Semua akun terdaftar berbagi akses ke database operasional Apotek Sehat Farma"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                padding: '6px 12px',
+                padding: '6px 14px',
                 borderRadius: '9999px',
                 backgroundColor: '#DCFCE7',
                 border: '1.5px solid #1E1E1E',
@@ -394,19 +542,8 @@ export default function DashboardLayout({
                 boxShadow: '1.5px 2px 0px #1E1E1E'
               }}
             >
-              ● FastAPI Connected
+              ● Shared Beta Active
             </div>
-            <Link
-              href="/"
-              className="nav-pill-login"
-              style={{
-                padding: '6px 14px',
-                fontSize: '0.8rem',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              Landing Page
-            </Link>
           </div>
         </header>
 

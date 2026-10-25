@@ -1,20 +1,29 @@
 // API Client Helper for MediagnoTek FastAPI Backend
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1';
 
 export interface Disease {
   id: number;
   nama: string;
   deskripsi: string;
+  penyebab?: string;
+  gejala_teks?: string;
+  symptoms?: { id: number; nama: string }[];
+  drugs?: Drug[];
 }
 
 export interface Drug {
   id: number;
   nama: string;
-  kategori: string;
   deskripsi: string;
-  dosis_standar: string;
+  kategori?: string;
+  dosis_standar?: string;
+  dosis?: string;
+  peringatan?: string;
+  efek_samping?: string;
+  merek_dagang?: string;
   rxcui?: string;
+  diseases?: Disease[];
 }
 
 export interface DrugInteraction {
@@ -126,6 +135,17 @@ export async function getDiseases(search?: string, page = 1, size = 20) {
   }
 }
 
+export async function getDiseaseDetail(diseaseId: number) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/diseases/${diseaseId}`);
+    if (!res.ok) throw new Error('Failed to fetch disease detail');
+    return await res.json();
+  } catch (error) {
+    console.warn('API Error:', error);
+    return null;
+  }
+}
+
 // Drugs
 export async function getDrugs(search?: string, page = 1, size = 20) {
   try {
@@ -136,6 +156,17 @@ export async function getDrugs(search?: string, page = 1, size = 20) {
     return await res.json();
   } catch (error) {
     console.warn('API Error (using fallback data):', error);
+    return null;
+  }
+}
+
+export async function getDrugDetail(drugId: number) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/drugs/${drugId}`);
+    if (!res.ok) throw new Error('Failed to fetch drug detail');
+    return await res.json();
+  } catch (error) {
+    console.warn('API Error:', error);
     return null;
   }
 }
@@ -187,3 +218,136 @@ export async function predictStock(drugId: number, periodDays = 30) {
     return null;
   }
 }
+
+// Authentication APIs
+export async function apiGoogleAuth(data: { id_token?: string; email: string; name: string; picture?: string }) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Google Auth Failed');
+    return await res.json();
+  } catch (error) {
+    console.warn('Backend Auth API unreachable, using client auth handler:', error);
+    return null;
+  }
+}
+
+export async function apiLogin(email: string, password: string) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    if (!res.ok) throw new Error('Login Failed');
+    return await res.json();
+  } catch (error) {
+    console.warn('Backend Login API unreachable, using client auth handler:', error);
+    return null;
+  }
+}
+
+export async function apiRegister(email: string, password: string, namaLengkap: string, role = 'APOTEKER') {
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, nama_lengkap: namaLengkap, role }),
+    });
+    if (!res.ok) throw new Error('Register Failed');
+    return await res.json();
+  } catch (error) {
+    console.warn('Backend Register API unreachable, using client auth handler:', error);
+    return null;
+  }
+}
+
+export async function apiGetCurrentUser(userId?: number) {
+  try {
+    const url = userId ? `${API_BASE_URL}/auth/me?user_id=${userId}` : `${API_BASE_URL}/auth/me`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (error) {
+    console.warn('Backend /auth/me unreachable:', error);
+    return null;
+  }
+}
+
+export async function apiUpdateUserProfile(data: {
+  nama_lengkap?: string;
+  email?: string;
+  role?: string;
+  facility_name?: string;
+  avatar_url?: string;
+}, userId?: number) {
+  try {
+    const url = userId ? `${API_BASE_URL}/auth/me?user_id=${userId}` : `${API_BASE_URL}/auth/me`;
+    const res = await fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (error) {
+    console.warn('Backend PUT /auth/me unreachable:', error);
+    return null;
+  }
+}
+
+// AI Clinical Chat API
+export interface AIChatPayload {
+  message: string;
+  patient_context?: any;
+  attachment?: {
+    name: string;
+    type: string;
+    dataUrl?: string;
+  };
+  api_key?: string;
+}
+
+export interface AIChatResponse {
+  reply: string;
+  icd_code: string;
+  confidence: string;
+  provider: string;
+  timestamp: string;
+}
+
+export async function apiSendAiChatMessage(payload: AIChatPayload): Promise<AIChatResponse | null> {
+  // 1. Coba panggil Next.js API Route internal (/api/ai/chat) yang selalu aktif bersama web
+  try {
+    const res = await fetch('/api/ai/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn('Next.js /api/ai/chat endpoint unavailable, trying backend port 8000...', err);
+  }
+
+  // 2. Coba panggil FastAPI Backend jika aktif di port 8000
+  try {
+    const res = await fetch(`${API_BASE_URL}/ai/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (error) {
+    console.warn('Backend AI Chat API unreachable:', error);
+  }
+
+  return null;
+}
+

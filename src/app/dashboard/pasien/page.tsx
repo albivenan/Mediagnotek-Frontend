@@ -166,7 +166,7 @@ export default function PasienPage() {
       </div>
 
       {/* Grid Content: Daftar Pasien & Detail Pasien */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: '24px', alignItems: 'start' }}>
+      <div className="responsive-split-grid">
         {/* Kolom Kiri: Search & List Pasien */}
         <div className="neo-card" style={{ padding: '20px', backgroundColor: '#FFFFFF', boxShadow: '2.5px 3px 0px #1E1E1E' }}>
           <div style={{ position: 'relative', marginBottom: '16px' }}>

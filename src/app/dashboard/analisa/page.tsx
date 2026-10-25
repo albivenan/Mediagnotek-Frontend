@@ -55,7 +55,7 @@ export default function AnalisaPage() {
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '24px' }}>
         {/* Input Form Column */}
         <div className="neo-card" style={{ padding: '28px', backgroundColor: '#FFFFFF', boxShadow: '3px 4px 0px #1E1E1E' }}>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '20px', color: '#18181B', display: 'flex', alignItems: 'center', gap: '8px' }}>

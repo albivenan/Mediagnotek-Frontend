@@ -29,6 +29,7 @@ import {
   FileSpreadsheet,
   ShieldAlert
 } from 'lucide-react';
+import { apiSendAiChatMessage } from '@/lib/api';
 
 interface AttachedFile {
   name: string;
@@ -153,6 +154,26 @@ export default function AiAnalisaPage() {
   const [promptsCountdown, setPromptsCountdown] = useState(15);
   const promptTimerRef = useRef<NodeJS.Timeout | null>(null);
   const promptIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  // Handle ESC key to exit fullscreen and prevent background scrolling
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    if (isFullscreen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isFullscreen]);
 
   // Notification Toast State
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -170,28 +191,37 @@ export default function AiAnalisaPage() {
   const docInputRef = useRef<HTMLInputElement | null>(null);
   const attachMenuRef = useRef<HTMLDivElement | null>(null);
 
-  // Active Patient Information
-  const [activePatient, setActivePatient] = useState({
-    id: '#4102',
-    name: 'Tn. Budi Santoso',
-    age: '45 Th',
-    gender: 'Pria',
-    bloodPressure: '135/85 mmHg',
-    symptoms: 'Demam 38.5°C, batuk berdahak pekat, napas berat'
-  });
+  // Active Patient Context (Opsional: null jika mode konsultasi umum)
+  const [activePatient, setActivePatient] = useState<{
+    id: string;
+    name: string;
+    age: string;
+    gender: string;
+    bloodPressure: string;
+    symptoms: string;
+  } | null>(null);
 
   // Current Active Chat Messages
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'msg-init-1',
       sender: 'ai',
-      text: 'Halo dr. Anita! Saya adalah **MediagnoTek AI Medical Assistant** v2.4.\n\nSesi diagnosa untuk **Tn. Budi Santoso (#4102)** telah aktif. Anda dapat menanyakan estimasi diagnosa berdasarkan kombinasi gejala, mencari referensi obat, atau meminta analisis data klinis pasien.',
-      timestamp: '12:45 PM'
+      text: 'Halo! Saya adalah **MediagnoTek AI Medical & Clinical Assistant** v2.4.\n\nSaya siap membantu Anda dalam:\n- **Konsultasi & Tanya Jawab Medis Umum** (gejala penyakit, keluhan fisik, penanganan awal).\n- **Estimasi Diagnosa Klinis & Kode Standar ICD-10**.\n- **Informasi Obat, Dosis Lazim, & Skrining Interaksi**.\n- **Analisis Lampiran Berkas** (Foto Rontgen Thorax, Hasil Lab Darah, EKG, dsb).\n\nAda yang bisa saya bantu terkait kesehatan, klinis, atau farmasi hari ini?',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
 
   const [inputQuery, setInputQuery] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+
+  // Auto-scroll chat feed to bottom
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isTyping, scrollToBottom]);
 
   // Modal State for Viewing Detailed History Session
   const [selectedHistoryModal, setSelectedHistoryModal] = useState<HistorySession | null>(null);
@@ -484,7 +514,7 @@ export default function AiAnalisaPage() {
     stopCamera();
   }, [stopCamera, triggerToast]);
 
-  const handleSendMessage = useCallback((textToSend?: string) => {
+  const handleSendMessage = useCallback(async (textToSend?: string) => {
     const query = textToSend || inputQuery;
     if (!query.trim() && !stagedAttachment) return;
 
@@ -505,7 +535,36 @@ export default function AiAnalisaPage() {
     setStagedAttachment(null);
     setIsTyping(true);
 
-    // Simulate AI medical response with Clinical Context Lock
+    // 1. Hubungkan langsung ke API AI Backend (FastAPI / Gemini / OpenAI)
+    try {
+      const apiRes = await apiSendAiChatMessage({
+        message: query,
+        patient_context: activePatient,
+        attachment: currentAttachment ? {
+          name: currentAttachment.name,
+          type: currentAttachment.type,
+          dataUrl: currentAttachment.dataUrl
+        } : undefined
+      });
+
+      if (apiRes && apiRes.reply) {
+        const aiMsg: ChatMessage = {
+          id: 'ai_' + Date.now().toString(),
+          sender: 'ai',
+          text: apiRes.reply,
+          timestamp: apiRes.timestamp || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          icdCode: apiRes.icd_code,
+          confidence: apiRes.confidence
+        };
+        setMessages((prev) => [...prev, aiMsg]);
+        setIsTyping(false);
+        return;
+      }
+    } catch (err) {
+      console.warn('Gagal memanggil API AI eksternal, beralih ke mesin penalaran lokal:', err);
+    }
+
+    // 2. Mesin Penalaran Klinis Lokal Apotek (Fallback jika backend offline)
     setTimeout(() => {
       let responseText = '';
       let icd = '';
@@ -513,34 +572,29 @@ export default function AiAnalisaPage() {
 
       const lowerQ = query.toLowerCase().trim();
 
-      // Clinical Context Validation Guard: Check if query is out-of-context
-      const outOfContextPatterns = [
-        'koding', 'coding', 'program', 'python', 'javascript', 'html', 'css', 'sql', 'buatkan kode', 'script',
-        'politik', 'pemilu', 'presiden', 'menteri', 'partai', 'pilkada', 'dpr',
-        'resep masakan', 'memasak', 'bikin kue', 'resep makanan', 'kuliner', 'restoran',
-        'game', 'main game', 'film', 'sinopsis', 'lagu', 'chord', 'lirik', 'musik',
-        'cuaca besok', 'ramalan', 'zodiak', 'horoskop', 'crypto', 'bitcoin', 'saham', 'trading',
-        'siapa kamu', 'ceritakan lelucon', 'bikin puisi', 'cerpen', 'dongeng'
-      ];
+      // Pure Spam Guard: Hanya tolak jika secara eksplisit menanyakan topik yang 100% di luar kesehatan & platform
+      const isExplicitSpam = [
+        'koding', 'coding', 'python', 'javascript', 'html', 'css', 'script bot', 'sql injection',
+        'pilpres', 'pemilu', 'partai politik', 'presiden', 'dpr', 'pilkada',
+        'resep kue', 'resep masakan', 'bumbu rendang', 'kuliner makanan',
+        'game mobile legends', 'free fire', 'pubg', 'ps5', 'playstation',
+        'chord lagu', 'lirik lagu pop', 'sinopsis film',
+        'ramalan zodiak', 'horoskop', 'slot gacor', 'crypto bitcoin'
+      ].some(pattern => lowerQ.includes(pattern));
 
-      const medicalKeywords = [
-        'demam', 'batuk', 'sesak', 'nyeri', 'sakit', 'pusing', 'mual', 'muntah', 'diare',
-        'gula darah', 'tekanan darah', 'tensi', 'jantung', 'paru', 'infeksi', 'alergi',
-        'obat', 'dosis', 'resep', 'gejala', 'diagnosa', 'diagnosis', 'pasien', 'klinis',
-        'darah', 'rontgen', 'lab', 'laboratorium', 'terapi', 'icd', 'hba1c', 'kolesterol',
-        'diabetes', 'hipertensi', 'pneumonia', 'faringitis', 'asma', 'bronkitis', 'dispepsia',
-        'stroke', 'anemia', 'ginjal', 'hati', 'kulit', 'mata', 'telinga', 'lambung',
-        'analisa', 'analisis', 'periksa', 'cek', 'hasil', 'lampiran', 'file', 'unggah', 'baca', 'terlampir', 'dokumen', 'foto'
-      ];
-
-      const isExplicitlyOutOfContext = outOfContextPatterns.some(pattern => lowerQ.includes(pattern));
-      const hasMedicalKeyword = medicalKeywords.some(keyword => lowerQ.includes(keyword)) || !!currentAttachment;
-
-      if (isExplicitlyOutOfContext || (!hasMedicalKeyword && lowerQ.length > 3 && !lowerQ.includes('halo') && !lowerQ.includes('hi') && !lowerQ.includes('pagi') && !lowerQ.includes('siang') && !lowerQ.includes('malam'))) {
+      if (isExplicitSpam && !currentAttachment) {
         // Out of Context Rejection Response
-        responseText = `⚠️ **Pemberitahuan Pembatasan Konteks (Context Lock Active)**\n\nSaya adalah **MediagnoTek AI Medical Diagnostic Assistant** yang diprogram secara khusus hanya untuk membantu evaluasi medis klinis, estimasi diagnosa penyakit, analisis gejala pasien, serta referensi farmakologis.\n\nPertanyaan Anda berada **di luar lingkup medis dan diagnostik kesehatan**. Silakan ajukan pertanyaan seputar:\n- Gejala klinis pasien & keluhan fisik\n- Estimasi diagnosa diferensial & kode ICD-10\n- Evaluasi dosis obat & kontraindikasi/interaksi\n- Interpretasi lampiran foto rontgen, hasil lab, atau rekam medis`;
+        responseText = `⚠️ **Pemberitahuan Pembatasan Konteks (CDSS Guardrail Active)**\n\nSaya adalah **MediagnoTek AI Medical & Clinical Pharmacy Assistant** yang dirancang khusus untuk konsultasi klinis medis, telaah obat & resep, interpretasi berkas medis, serta operasional faskes dan apotek.\n\nPertanyaan Anda berada **di luar lingkup medis, kesehatan, maupun platform apotek**. Silakan ajukan pertanyaan seputar:\n- Gejala klinis pasien & keluhan fisik (termasuk nyeri, pegal otot, pusing, demam)\n- Estimasi diagnosa diferensial & kode standar ICD-10\n- Evaluasi dosis obat, interaksi, & aturan FEFO\n- Analisis laporan keuangan (/dashboard/keuangan) atau berkas rekam medis terlampir`;
         icd = 'Pedoman Klinis';
         conf = 'Akses Dibatasi';
+      } else if (lowerQ.includes('pegal') || lowerQ.includes('muncak') || lowerQ.includes('naik gunung') || lowerQ.includes('mendaki') || lowerQ.includes('linu') || lowerQ.includes('doms') || lowerQ.includes('asam laktat') || lowerQ.includes('kram')) {
+        responseText = `Hasil Evaluasi Klinis Muskuloskeletal:\n\n**🩺 Estimasi Diagnosa Medis Utama:**\n**Delayed Onset Muscle Soreness (DOMS) / Myalgia Pasca-Eksersi Fisik Berat (ICD-10 M79.1)** — Tingkat Keyakinan: 96.8%\n\n**📖 Patofisiologi & Penyebab Pegal Setelah Muncak (Mendaki Gunung):**\n1. **Mikrotrauma Serabut Otot (Micro-tears)**: Saat mendaki dan terutama menuruni lereng curam, otot paha (*quadriceps*), betis (*gastrocnemius*), dan pinggang mengalami **kontraksi eksentrik intensitas tinggi** (otot memanjang saat menahan beban tubuh dan tas carrier).\n2. **Inflamasi Steril & Respon Edema**: Robekan mikro pada sarkomer memicu pelepasan mediator bradikinin, prostaglandin, dan histamin dalam 24–72 jam pasca aktivitas (menjelaskan mengapa rasa pegal justru memuncak di hari ke-2).\n3. **Akumulasi Asam Laktat Sementara**: Akumulasi ion hidrogen metabolik mempercepat kelelahan otot lokal.\n\n**💊 Rekomendasi Terapi & Tindakan Apoteker:**\n- **Analgesik Oral**: Parasetamol 500mg tiap 6 jam PO, atau NSAID seperti Ibuprofen 400mg PO sesudah makan untuk menekan peradangan serabut otot.\n- **Obat Topikal**: Oleskan gel Natrium Diklofenak 1% atau salep metil salisilat/menthol 3–4x sehari pada paha dan betis.\n- **Rehidrasi & Elektrolit**: Konsumsi air elektrolit (mengandung Kalium & Magnesium) untuk mencegah spasme kram otot, serta suplementasi Vitamin B Kompleks (B1, B6, B12 neurotropik).\n- **Non-Farmakologis**: Istirahat aktif (peregangan ringan/stretching), rendam kaki air hangat, dan hindari pijat keras pada area otot yang sedang radang akut.`;
+        icd = 'ICD-10 M79.1';
+        conf = '96.8%';
+      } else if (lowerQ.includes('keuangan') || lowerQ.includes('omzet') || lowerQ.includes('omset') || lowerQ.includes('laba') || lowerQ.includes('hpp') || lowerQ.includes('margin') || lowerQ.includes('neraca') || lowerQ.includes('arus kas') || lowerQ.includes('cash flow')) {
+        responseText = `Laporan Analisis Finansial & Kinerja Keuangan Apotek MediagnoTek:\n\n**💼 Ringkasan KPI Keuangan Terkini (/dashboard/keuangan):**\n- **Total Omzet Penjualan**: **Rp 3.973.000** (tercatat 18 transaksi perputaran)\n- **Total HPP (Harga Pokok Penjualan)**: **Rp 2.508.500** (modal beli netto distributor PBF)\n- **Total Laba Kotor (Gross Profit)**: **Rp 1.464.500**\n- **Rata-rata Margin Keuntungan**: **36.9%** (berada pada standar rentang apotek sehat 30%–45%)\n\n**📊 Breakdown Kategori Penjualan:**\n1. **Penebusan Resep Dokter**: Menghasilkan omzet tertinggi dengan tiket transaksi rata-rata Rp 145.000 – Rp 730.000 per pasien (margin berkisar 31.4% s/d 38.9%).\n2. **Obat Bebas (OTC)**: Memberikan persentase margin laba kotor tertinggi rata-rata **42.8% – 45.7%**.\n\n**💳 Distribusi Metode Pembayaran:**\n- **QRIS Dinamis/Statis**: Mendominasi **72.4%** total transaksi kasir (lebih cepat & otomatis terekonsiliasi).\n- **Tunai (Cash)**: **27.6%** total transaksi.\n\n**🎯 Rekomendasi Optimalisasi Keuangan Apoteker:**\n1. Pantau perputaran produk *Fast-Moving* (Paracetamol, Amlodipine, Cefixime) agar stok tidak mengalami kekosongan (*stockout*).\n2. Integrasikan penjualan kasir dengan peringatan stok FEFO untuk mencegah kerugian akibat obat kedaluwarsa (*expired inventory loss*).\n3. Lakukan rekonsiliasi harian antara saldo kas fisik kasir dengan laporan sistem Kasir POS.`;
+        icd = 'FIN-KPI-01';
+        conf = '98.9%';
       } else if (currentAttachment) {
         // High-Precision Multi-Modal Clinical Attachment Analysis
         const fName = (currentAttachment.name || '').toLowerCase();
@@ -602,24 +656,38 @@ export default function AiAnalisaPage() {
           icd = 'Evaluasi Medis (Z00.0)';
           conf = '94.2%';
         }
+      } else if (lowerQ.includes('fefo') || lowerQ.includes('expired') || lowerQ.includes('kadaluarsa') || lowerQ.includes('batch')) {
+        responseText = 'Penjelasan Manajemen Stok FEFO pada Sistem MediagnoTek:\n\n**📦 Prinsip FEFO (First-Expired, First-Out):**\nSistem memprioritaskan pengeluaran obat berdasarkan tanggal kedaluwarsa terdekat (bukan waktu kedatangan barang). Pada Kasir POS, nomor batch dengan masa expired terdekat akan terpotong secara otomatis.\n\n**Peringatan Visual:**\n- **Merah**: < 30 hari (Kritis)\n- **Kuning**: < 90 hari (Waspada)\n- **Hijau**: > 90 hari (Aman)';
+        icd = 'SOP-FEFO';
+        conf = '98.5%';
+      } else if (lowerQ.includes('interaksi') || lowerQ.includes('resep') || lowerQ.includes('ciprofloxacin') || lowerQ.includes('antasida')) {
+        responseText = 'Hasil Telaah Resep & Skrining Interaksi Obat:\n\n**🔍 Evaluasi Keamanan Farmasi (ICD-10 Z76.0):**\n1. **Kelasi Ciprofloxacin + Antasida**: Kation Al/Mg mengikat antibiotik kuinolon dan menghambat absorbsi tubuh. Berikan jeda waktu minimal **2 jam sebelum atau 4 jam sesudah** antasida.\n2. **Kesesuaian Dosis**: Dosis berada dalam rentang terapi lazim Farmakope Indonesia VI.\n3. **Instruksi KIE**: Pastikan antibiotik dihabiskan dan minum air putih yang cukup.';
+        icd = 'ICD-10 Z76.0';
+        conf = '98.0%';
+      } else if (lowerQ.includes('golongan') || lowerQ.includes('obat keras') || lowerQ.includes('obat bebas')) {
+        responseText = 'Klasifikasi Golongan Obat di Sistem MediagnoTek:\n\n1. **Obat Bebas (Hijau)**: Paracetamol 500mg, Vitamin C 500mg (Dapat dijual bebas).\n2. **Obat Bebas Terbatas (Biru)**: Cetirizine 10mg, CTM 4mg (Tanda peringatan P.No 1-6).\n3. **Obat Keras (K Merah)**: Amoxicillin, Cefixime, Amlodipine, Metformin (Wajib resep/DOWA).\n4. **Narkotika & Psikotropika**: Penyimpanan lemari double-lock dan pelaporan SIPNAP berkala.';
+        icd = 'BPOM-REG';
+        conf = '99.2%';
       } else if (lowerQ.includes('demam') || lowerQ.includes('batuk')) {
-        responseText = 'Berdasarkan gejala **Demam (38.5°C)** dan **Batuk Berdahak Pekat**, terdapat probabilitas tinggi indikasi **Pneumonia Bakterial (ICD-10 J18)**.\n\n**Rekomendasi Tindakan Medis:**\n1. Pemeriksaan Foto Rontgen Thorax PA/Lateral.\n2. Pemeriksaan Darah Lengkap & Kultur Dahak.\n3. Pertimbangkan terapi antibiotik spektrum luas serta antipiretik.';
-        icd = 'ICD-10 J18';
-        conf = '94.2%';
-      } else if (lowerQ.includes('diabetes')) {
-        responseText = 'Untuk **Diabetes Mellitus Tipe 2 (ICD-10 E11)**, faktor risiko utama mencakup resistensi insulin dan obesitas.\n\n**Penanganan Standar:**\n- Terapi lini pertama: **Metformin** (500mg 2x/hari saat makan).\n- Perubahan pola makan (rendah indeks glikemik) & olahraga teratur.';
-        icd = 'ICD-10 E11';
+        responseText = 'Berdasarkan gejala **Demam** dan **Batuk Berdahak Pekat**, terdapat probabilitas tinggi indikasi **Pneumonia Bakterial (ICD-10 J18.1)**.\n\n**Rekomendasi Tindakan Medis:**\n1. Pemeriksaan Foto Rontgen Thorax PA/Lateral.\n2. Pemeriksaan Darah Lengkap & Kultur Dahak.\n3. Pertimbangkan terapi antibiotik empiris serta mukolitik.';
+        icd = 'ICD-10 J18.1';
+        conf = '96.2%';
+      } else if (lowerQ.includes('diabetes') || lowerQ.includes('gula darah')) {
+        responseText = 'Untuk **Diabetes Mellitus Tipe 2 (ICD-10 E11.9)**, evaluasi kendali glikemik berkala dengan parameter target HbA1c < 7.0%.\n\n**Penanganan Standar:**\n- Terapi lini pertama: **Metformin** 500mg 2x/hari diberikan bersama atau sesudah makan.\n- Edukasi diet seimbang dan pemantauan faal ginjal (eGFR) berkala.';
+        icd = 'ICD-10 E11.9';
         conf = '97.8%';
-      } else if (lowerQ.includes('hipertensi') || lowerQ.includes('amlodipine')) {
-        responseText = 'Untuk indikasi **Hipertensi Primer Esensial (ICD-10 I10)**, pemberian **Amlodipine** (5-10 mg 1x/hari) efektif sebagai calcium channel blocker perifer.\n\n**Monitoring:**\n- Evaluasi tekanan darah serial pagi & malam.\n- Waspadai efek edema tungkai dan pusing ortostatik.';
+      } else if (lowerQ.includes('hipertensi') || lowerQ.includes('amlodipine') || lowerQ.includes('tensi')) {
+        responseText = 'Untuk indikasi **Hipertensi Primer Esensial (ICD-10 I10)**, pemberian **Amlodipine** (5-10 mg 1x/hari) efektif sebagai calcium channel blocker perifer.\n\n**Monitoring Apoteker:**\n- Evaluasi tekanan darah serial pagi & malam hari.\n- Edukasi pasien mengenai potensi efek samping edema perifer dan pembatasan asupan natrium (<2g/hari).';
         icd = 'ICD-10 I10';
-        conf = '95.1%';
+        conf = '95.6%';
       } else if (lowerQ.includes('halo') || lowerQ.includes('hi') || lowerQ.includes('pagi') || lowerQ.includes('siang') || lowerQ.includes('malam')) {
-        responseText = 'Halo dr. Anita! Saya siap membantu analisa diagnostik pasien. Silakan masukkan deskripsi gejala, parameter vitalitas klinis, atau lampirkan berkas penunjang.';
+        responseText = 'Halo Rekan Apoteker & Tenaga Medis! Saya adalah **MediagnoTek AI Clinical & Pharmacy Assistant**.\n\nSaya siap membantu:\n- Analisis gejala & estimasi kode diagnosa ICD-10\n- Skrining interaksi obat, kontraindikasi, & penyesuaian dosis\n- Panduan sistem stok FEFO, Kasir POS, & Buku Rekam Pasien\n\nSilakan sampaikan pertanyaan atau lampirkan berkas medis yang ingin ditelaah.';
+        icd = 'ICD-10 Z71.9';
         conf = '99.0%';
       } else {
-        responseText = `Terima kasih atas query klinis: "${query}".\n\nAnalisis algoritma kami mendeteksi indikasi perlu tindak lanjut komprehensif. Disarankan melakukan anamnesis tambahan terkait durasi gejala dan riwayat alergi obat pasien.`;
-        conf = '91.5%';
+        responseText = `Hasil Analisis Klinis MediagnoTek AI:\n\nPertanyaan: "${query}"\n\n**Rekomendasi Farmasi & Evaluasi Medis:**\n1. Lakukan verifikasi riwayat alergi obat dan penyakit komorbid pada menu Buku Pasien.\n2. Pastikan transaksi obat di Kasir POS mematuhi prinsip FEFO (First-Expired, First-Out).\n3. Sampaikan informasi aturan pakai (KIE) yang jelas dan anjurkan evaluasi bila keluhan menetap.`;
+        icd = 'ICD-10 R68.8';
+        conf = '93.5%';
       }
 
       const aiMsg: ChatMessage = {
@@ -633,8 +701,8 @@ export default function AiAnalisaPage() {
 
       setMessages((prev) => [...prev, aiMsg]);
       setIsTyping(false);
-    }, 1000);
-  }, [inputQuery, stagedAttachment]);
+    }, 600);
+  }, [inputQuery, stagedAttachment, activePatient]);
 
   // Save current active chat session to history
   const handleSaveToHistory = useCallback(() => {
@@ -645,12 +713,12 @@ export default function AiAnalisaPage() {
     const newSession: HistorySession = {
       id: 's_' + Date.now().toString(),
       sessionCode: `SESI-2026-${sessionNum}`,
-      patientId: activePatient.id,
-      patientName: activePatient.name,
-      patientAge: activePatient.age,
-      patientGender: activePatient.gender,
-      bloodPressure: activePatient.bloodPressure,
-      chiefComplaint: activePatient.symptoms,
+      patientId: activePatient?.id || '#UMUM',
+      patientName: activePatient?.name || 'Konsultasi Mandiri (Pengguna)',
+      patientAge: activePatient?.age || '-',
+      patientGender: activePatient?.gender || '-',
+      bloodPressure: activePatient?.bloodPressure || '-',
+      chiefComplaint: activePatient?.symptoms || 'Tanya jawab kesehatan & farmasi umum',
       date: timeNow.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
       time: timeNow.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' WIB',
       primaryDiagnosis: latestAiMsg?.icdCode === 'ICD-10 J18' ? 'Pneumonia Bakterial' :
@@ -659,37 +727,29 @@ export default function AiAnalisaPage() {
       icdCode: latestAiMsg?.icdCode || 'ICD-10 R69',
       confidence: latestAiMsg?.confidence || '92.0%',
       status: 'Terverifikasi',
-      doctorNote: 'Sesi konsultasi disimpan dari Sesi Chat aktif oleh dr. Anita R.',
+      doctorNote: 'Sesi konsultasi disimpan dari Sesi Chat aktif.',
       messages: [...messages]
     };
 
     setHistoryList((prev) => [newSession, ...prev]);
-    triggerToast(`Sesi konsultasi ${newSession.sessionCode} (${activePatient.name}) berhasil disimpan ke Riwayat!`);
+    triggerToast(`Sesi konsultasi ${newSession.sessionCode} berhasil disimpan ke Riwayat!`);
   }, [activePatient, messages, triggerToast]);
 
   // Start new clean chat session
   const handleNewSession = useCallback((patientPreset?: { id: string; name: string; age: string; gender: string; bloodPressure: string; symptoms: string }) => {
-    const randomId = Math.floor(4000 + Math.random() * 900);
-    const p = patientPreset || {
-      id: `#${randomId}`,
-      name: 'Pasien Rawat Jalan Baru',
-      age: '35 Th',
-      gender: 'Pria',
-      bloodPressure: '120/80 mmHg',
-      symptoms: 'Belum ada keluhan tercatat'
-    };
-
-    setActivePatient(p);
+    setActivePatient(patientPreset || null);
     setMessages([
       {
         id: 'msg_new_1',
         sender: 'ai',
-        text: `Sesi diagnosa baru dimulai untuk **${p.name} (${p.id})**.\n\nSilakan masukkan keluhan utama, parameter klinis, atau pilih contoh pertanyaan cepat di bawah.`,
+        text: patientPreset 
+          ? `Sesi diagnosa baru dimulai untuk **${patientPreset.name} (${patientPreset.id})**.\n\nSilakan masukkan keluhan utama, parameter klinis, atau pilih contoh pertanyaan cepat.`
+          : 'Sesi konsultasi baru telah dibuka.\n\nSilakan ajukan pertanyaan seputar keluhan medis, telaah resep obat, atau berkas pemeriksaan yang ingin dianalisis.',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
     ]);
     setActiveTab('chat');
-    triggerToast(`Sesi baru untuk ${p.name} siap digunakan.`);
+    triggerToast(patientPreset ? `Sesi baru untuk ${patientPreset.name} siap digunakan.` : 'Sesi konsultasi baru siap digunakan.');
   }, [triggerToast]);
 
   // Load a session from History into the interactive chat
@@ -751,7 +811,10 @@ export default function AiAnalisaPage() {
   });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minHeight: 'calc(100vh - 130px)' }}>
+    <div
+      suppressHydrationWarning
+      style={{ display: 'flex', flexDirection: 'column', gap: '20px', minHeight: 'calc(100vh - 130px)' }}
+    >
       {/* Toast Notification */}
       {toastMessage && (
         <div style={{
@@ -777,198 +840,174 @@ export default function AiAnalisaPage() {
         </div>
       )}
 
-      {/* Header Banner: Title & Controls */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
-        <div>
-          <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: '#18181B', letterSpacing: '-0.5px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Bot size={28} strokeWidth={2.2} style={{ color: '#18181B' }} />
-            Asisten Pintar AI Analisa Diagnostik
-          </h1>
-          <p style={{ color: '#52525B', fontSize: '0.92rem' }}>
-            Interaksi penalaran medis terintegrasi dengan data rekam medis, ICD-10, dan panduan klinis global.
-          </p>
-        </div>
+      {/* Header Banner: Title & Controls (Hidden when in Fullscreen Room Chat) */}
+      {!isFullscreen && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
+          <div>
+            <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: '#18181B', letterSpacing: '-0.5px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Bot size={28} strokeWidth={2.2} style={{ color: '#18181B' }} />
+              Asisten Pintar AI Analisa Diagnostik
+            </h1>
+            <p style={{ color: '#52525B', fontSize: '0.92rem' }}>
+              Interaksi penalaran medis terintegrasi dengan data rekam medis, ICD-10, dan panduan klinis global.
+            </p>
+          </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button
-            onClick={() => handleNewSession()}
-            className="neo-btn-secondary"
-            style={{ padding: '8px 18px', fontSize: '0.86rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-          >
-            <Plus size={16} strokeWidth={2.4} />
-            <span>Sesi Baru</span>
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button
+              onClick={() => handleNewSession()}
+              className="neo-btn-secondary"
+              style={{ padding: '8px 18px', fontSize: '0.86rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Plus size={16} strokeWidth={2.4} />
+              <span>Sesi Baru</span>
+            </button>
 
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '7px 16px',
-            borderRadius: '9999px',
-            backgroundColor: '#DCFCE7',
-            border: '1.5px solid #1E1E1E',
-            color: '#166534',
-            fontSize: '0.82rem',
-            fontWeight: 700,
-            boxShadow: '1.5px 2px 0px #1E1E1E'
-          }}>
-            ● Medical LLM v2.4 Active
+            <div
+              title="Terhubung ke API AI Backend FastAPI & Engine Gemini (.env)"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '7px 16px',
+                borderRadius: '9999px',
+                backgroundColor: '#DCFCE7',
+                border: '1.5px solid #1E1E1E',
+                color: '#166534',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                boxShadow: '1.5px 2px 0px #1E1E1E'
+              }}
+            >
+              ● AI API Engine Active
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Two-Tab Navigation Bar (Sesi Chat vs Riwayat) */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        borderBottom: '2px solid #1E1E1E',
-        paddingBottom: '2px',
-        backgroundColor: '#FFFFFF',
-        borderRadius: '16px 16px 0 0',
-        padding: '12px 18px 0 18px',
-        border: '1.8px solid #1E1E1E',
-        boxShadow: '2px 2px 0px #1E1E1E'
-      }}>
-        {/* Tab Buttons */}
-        <div style={{ display: 'flex', gap: '10px' }}>
-          {/* Tab 1: Sesi Chat */}
-          <button
-            onClick={() => setActiveTab('chat')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '10px 22px',
-              borderRadius: '12px 12px 0 0',
-              fontWeight: 800,
-              fontSize: '0.94rem',
-              cursor: 'pointer',
-              border: '1.8px solid #1E1E1E',
-              borderBottom: activeTab === 'chat' ? '1.8px solid #FEF3D6' : '1.8px solid #1E1E1E',
-              backgroundColor: activeTab === 'chat' ? '#FEF3D6' : '#FAF8F4',
-              color: activeTab === 'chat' ? '#18181B' : '#6B7280',
-              marginBottom: '-2px',
-              boxShadow: activeTab === 'chat' ? '2px -2px 0px #1E1E1E' : 'none',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <MessageSquare size={18} strokeWidth={2.2} style={{ color: activeTab === 'chat' ? '#18181B' : '#6B7280' }} />
-            <span>Sesi Chat</span>
-            <span style={{
-              backgroundColor: activeTab === 'chat' ? '#439335' : '#D1D5DB',
-              color: '#FFFFFF',
-              fontSize: '0.72rem',
-              padding: '1px 7px',
-              borderRadius: '9999px',
-              fontWeight: 700
-            }}>
-              Aktif
-            </span>
-          </button>
-
-          {/* Tab 2: Riwayat */}
-          <button
-            onClick={() => setActiveTab('history')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '10px 22px',
-              borderRadius: '12px 12px 0 0',
-              fontWeight: 800,
-              fontSize: '0.94rem',
-              cursor: 'pointer',
-              border: '1.8px solid #1E1E1E',
-              borderBottom: activeTab === 'history' ? '1.8px solid #FEF3D6' : '1.8px solid #1E1E1E',
-              backgroundColor: activeTab === 'history' ? '#FEF3D6' : '#FAF8F4',
-              color: activeTab === 'history' ? '#18181B' : '#6B7280',
-              marginBottom: '-2px',
-              boxShadow: activeTab === 'history' ? '2px -2px 0px #1E1E1E' : 'none',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <History size={18} strokeWidth={2.2} style={{ color: activeTab === 'history' ? '#18181B' : '#6B7280' }} />
-            <span>Riwayat Analisa</span>
-            <span style={{
-              backgroundColor: '#18181B',
-              color: '#FFFFFF',
-              fontSize: '0.72rem',
-              padding: '1px 8px',
-              borderRadius: '9999px',
-              fontWeight: 700
-            }}>
-              {historyList.length}
-            </span>
-          </button>
-        </div>
-
-        {/* Tab Right Quick Action */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '10px' }}>
-          {activeTab === 'chat' ? (
+      {/* Two-Tab Navigation Bar (Sesi Chat vs Riwayat) (Hidden when in Fullscreen Room Chat) */}
+      {!isFullscreen && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '10px',
+          borderBottom: '2px solid #1E1E1E',
+          backgroundColor: '#FFFFFF',
+          borderRadius: '16px 16px 0 0',
+          padding: '12px 18px 0 18px',
+          border: '1.8px solid #1E1E1E',
+          boxShadow: '2px 2px 0px #1E1E1E'
+        }}>
+          {/* Tab Buttons */}
+          <div style={{ display: 'flex', gap: '10px' }}>
+            {/* Tab 1: Sesi Chat */}
             <button
-              onClick={handleSaveToHistory}
-              title="Simpan percakapan saat ini ke Riwayat"
-              className="neo-btn-primary"
-              style={{ padding: '7px 16px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              onClick={() => setActiveTab('chat')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 22px',
+                borderRadius: '12px 12px 0 0',
+                fontWeight: 800,
+                fontSize: '0.94rem',
+                cursor: 'pointer',
+                border: '1.8px solid #1E1E1E',
+                borderBottom: activeTab === 'chat' ? '1.8px solid #FEF3D6' : '1.8px solid #1E1E1E',
+                backgroundColor: activeTab === 'chat' ? '#FEF3D6' : '#FAF8F4',
+                color: activeTab === 'chat' ? '#18181B' : '#6B7280',
+                marginBottom: '-2px',
+                boxShadow: activeTab === 'chat' ? '2px -2px 0px #1E1E1E' : 'none',
+                transition: 'all 0.15s ease'
+              }}
             >
-              <ShieldCheck size={16} strokeWidth={2.2} />
-              <span>Simpan ke Riwayat</span>
+              <MessageSquare size={18} strokeWidth={2.2} style={{ color: activeTab === 'chat' ? '#18181B' : '#6B7280' }} />
+              <span>Sesi Chat</span>
+              <span style={{
+                backgroundColor: activeTab === 'chat' ? '#439335' : '#D1D5DB',
+                color: '#FFFFFF',
+                fontSize: '0.72rem',
+                padding: '1px 7px',
+                borderRadius: '9999px',
+                fontWeight: 700
+              }}>
+                Aktif
+              </span>
             </button>
-          ) : (
-            <span style={{ fontSize: '0.82rem', color: '#6B7280', fontWeight: 600 }}>
-              Menampilkan {filteredHistory.length} dari {historyList.length} sesi
-            </span>
-          )}
+
+            {/* Tab 2: Riwayat */}
+            <button
+              onClick={() => setActiveTab('history')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 22px',
+                borderRadius: '12px 12px 0 0',
+                fontWeight: 800,
+                fontSize: '0.94rem',
+                cursor: 'pointer',
+                border: '1.8px solid #1E1E1E',
+                borderBottom: activeTab === 'history' ? '1.8px solid #FEF3D6' : '1.8px solid #1E1E1E',
+                backgroundColor: activeTab === 'history' ? '#FEF3D6' : '#FAF8F4',
+                color: activeTab === 'history' ? '#18181B' : '#6B7280',
+                marginBottom: '-2px',
+                boxShadow: activeTab === 'history' ? '2px -2px 0px #1E1E1E' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <History size={18} strokeWidth={2.2} style={{ color: activeTab === 'history' ? '#18181B' : '#6B7280' }} />
+              <span>Riwayat Analisa</span>
+              <span style={{
+                backgroundColor: '#18181B',
+                color: '#FFFFFF',
+                fontSize: '0.72rem',
+                padding: '1px 8px',
+                borderRadius: '9999px',
+                fontWeight: 700
+              }}>
+                {historyList.length}
+              </span>
+            </button>
+          </div>
+
+          {/* Tab Right Quick Action */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '10px' }}>
+            {activeTab === 'chat' ? (
+              <button
+                onClick={handleSaveToHistory}
+                title="Simpan percakapan saat ini ke Riwayat"
+                className="neo-btn-primary"
+                style={{ padding: '7px 16px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <ShieldCheck size={16} strokeWidth={2.2} />
+                <span>Simpan ke Riwayat</span>
+              </button>
+            ) : (
+              <span style={{ fontSize: '0.82rem', color: '#6B7280', fontWeight: 600 }}>
+                Menampilkan {filteredHistory.length} dari {historyList.length} sesi
+              </span>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ========================================================= */}
       {/* TAB 1: SESI CHAT                                         */}
       {/* ========================================================= */}
       {activeTab === 'chat' && (
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          flex: 1,
-          minHeight: isFullscreen ? '100vh' : '620px',
-          position: isFullscreen ? 'fixed' : 'relative',
-          top: isFullscreen ? 0 : 'auto',
-          left: isFullscreen ? 0 : 'auto',
-          right: isFullscreen ? 0 : 'auto',
-          bottom: isFullscreen ? 0 : 'auto',
-          zIndex: isFullscreen ? 99999 : 'auto',
-          backgroundColor: isFullscreen ? '#FAF8F4' : 'transparent',
-          padding: isFullscreen ? '20px' : 0
-        }}>
+        <div className={`chat-room-container ${isFullscreen ? 'fullscreen' : ''}`}>
           {/* Main Chat Conversation Container */}
-          <div className="neo-card" style={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            backgroundColor: '#FFFFFF',
-            boxShadow: isFullscreen ? '0 10px 40px rgba(0,0,0,0.2)' : '3px 4px 0px #1E1E1E',
-            border: '2px solid #1E1E1E',
-            borderRadius: '20px',
-            height: isFullscreen ? 'calc(100vh - 40px)' : 'auto'
-          }}>
-            {/* Head Chat AI: Title, Status & Fullscreen Button */}
-            <div style={{
-              padding: '14px 24px',
-              borderBottom: '1.8px solid #1E1E1E',
-              backgroundColor: '#FAF8F4',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '12px'
-            }}>
+          <div className="chat-room-card">
+            {/* Room Chat Header: Compact WhatsApp/Telegram style */}
+            <div className="chat-room-header">
               {/* Left Head: Chat Title & Online Indicator */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                 <div style={{
-                  width: '36px',
-                  height: '36px',
+                  width: '34px',
+                  height: '34px',
                   borderRadius: '10px',
                   backgroundColor: '#FEF3D6',
                   border: '1.5px solid #1E1E1E',
@@ -976,60 +1015,62 @@ export default function AiAnalisaPage() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   color: '#92400E',
-                  boxShadow: '1.5px 1.5px 0px #1E1E1E'
+                  boxShadow: '1.5px 1.5px 0px #1E1E1E',
+                  flexShrink: 0
                 }}>
-                  <Bot size={20} strokeWidth={2.2} />
+                  <Bot size={18} strokeWidth={2.2} />
                 </div>
-                <div>
+                <div style={{ minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#18181B', letterSpacing: '-0.3px', margin: 0 }}>
-                      Sesi Percakapan Asisten AI Diagnostik
+                    <h3 style={{ fontSize: '0.94rem', fontWeight: 800, color: '#18181B', letterSpacing: '-0.3px', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      MediagnoTek AI
                     </h3>
                     <span style={{
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '5px',
-                      padding: '2px 8px',
+                      gap: '4px',
+                      padding: '1px 7px',
                       borderRadius: '9999px',
                       backgroundColor: '#DCFCE7',
                       border: '1px solid #1E1E1E',
                       color: '#166534',
-                      fontSize: '0.72rem',
-                      fontWeight: 700
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      flexShrink: 0
                     }}>
-                      ● Online (v2.4)
+                      ● Online
                     </span>
                   </div>
-                  <p style={{ fontSize: '0.78rem', color: '#6B7280', margin: '2px 0 0 0' }}>
-                    Penalaran klinis instan berbasis ICD-10 & Panduan Medis Global
+                  <p className="chat-header-subtext" style={{ fontSize: '0.74rem', color: '#6B7280', margin: '1px 0 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    Penalaran klinis instan ICD-10 & Panduan Medis Global
                   </p>
                 </div>
               </div>
 
-              {/* Right Head: Actions including Fullscreen Button */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {/* Right Head: Actions including Sesi Baru & Fullscreen Button */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                 {/* Reset Chat Button */}
                 <button
                   onClick={() => handleNewSession()}
                   style={{
                     backgroundColor: '#FFFFFF',
                     border: '1.5px solid #1E1E1E',
-                    borderRadius: '10px',
-                    padding: '6px 12px',
-                    fontSize: '0.8rem',
+                    borderRadius: '9px',
+                    padding: '6px 10px',
+                    fontSize: '0.78rem',
                     fontWeight: 700,
                     cursor: 'pointer',
                     color: '#18181B',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px',
-                    boxShadow: '1px 1.5px 0px #1E1E1E',
+                    gap: '5px',
+                    boxShadow: '1px 1px 0px #1E1E1E',
                     transition: 'all 0.15s ease'
                   }}
                   title="Mulai sesi percakapan baru"
                 >
                   <RotateCcw size={14} />
-                  <span>Sesi Baru</span>
+                  <span className="chat-header-btn-text">Sesi Baru</span>
                 </button>
 
                 {/* Fullscreen Button */}
@@ -1038,29 +1079,29 @@ export default function AiAnalisaPage() {
                   style={{
                     backgroundColor: isFullscreen ? '#FEF3D6' : '#FFFFFF',
                     border: '1.5px solid #1E1E1E',
-                    borderRadius: '10px',
-                    padding: '6px 12px',
-                    fontSize: '0.8rem',
+                    borderRadius: '9px',
+                    padding: '6px 10px',
+                    fontSize: '0.78rem',
                     fontWeight: 700,
                     cursor: 'pointer',
                     color: '#18181B',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px',
-                    boxShadow: '1.5px 2px 0px #1E1E1E',
+                    gap: '5px',
+                    boxShadow: '1.5px 1.5px 0px #1E1E1E',
                     transition: 'all 0.15s ease'
                   }}
-                  title={isFullscreen ? 'Keluar dari mode layar penuh' : 'Tampilkan mode layar penuh'}
+                  title={isFullscreen ? 'Keluar dari mode layar penuh (ESC)' : 'Tampilkan mode layar penuh'}
                 >
                   {isFullscreen ? (
                     <>
                       <Minimize2 size={15} strokeWidth={2.2} />
-                      <span>Keluar Layar Penuh</span>
+                      <span className="chat-header-btn-text">Keluar Layar Penuh</span>
                     </>
                   ) : (
                     <>
                       <Maximize2 size={15} strokeWidth={2.2} />
-                      <span>Layar Penuh</span>
+                      <span className="chat-header-btn-text">Layar Penuh</span>
                     </>
                   )}
                 </button>
@@ -1068,62 +1109,42 @@ export default function AiAnalisaPage() {
             </div>
 
             {/* Chat Messages Feed Area */}
-            <div style={{
-              flex: 1,
-              padding: '24px',
-              overflowY: 'auto',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '18px',
-              backgroundColor: '#FAF8F4',
-              minHeight: isFullscreen ? 'auto' : '420px',
-              maxHeight: isFullscreen ? 'none' : '560px'
-            }}>
+            <div className="chat-room-feed">
               {messages.map((msg) => (
                 <div
                   key={msg.id}
                   style={{
                     display: 'flex',
-                    gap: '12px',
+                    gap: '10px',
                     flexDirection: msg.sender === 'user' ? 'row-reverse' : 'row',
                     alignItems: 'flex-start'
                   }}
                 >
                   {/* Avatar */}
                   <div style={{
-                    width: '38px',
-                    height: '38px',
-                    borderRadius: '12px',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '10px',
                     backgroundColor: msg.sender === 'user' ? '#DCFCE7' : '#FEF3D6',
                     border: '1.5px solid #1E1E1E',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontWeight: 800,
-                    fontSize: '1rem',
+                    fontSize: '0.9rem',
                     color: msg.sender === 'user' ? '#166534' : '#92400E',
                     boxShadow: '1px 1px 0px #1E1E1E',
                     flexShrink: 0
                   }}>
-                    {msg.sender === 'user' ? <User size={18} strokeWidth={2} /> : <Bot size={20} strokeWidth={2} />}
+                    {msg.sender === 'user' ? <User size={16} strokeWidth={2.2} /> : <Bot size={17} strokeWidth={2.2} />}
                   </div>
 
                   {/* Message Bubble */}
-                  <div style={{
-                    maxWidth: '80%',
-                    backgroundColor: '#FFFFFF',
-                    border: '1.8px solid #1E1E1E',
-                    padding: '16px 20px',
-                    borderRadius: '18px',
-                    color: '#18181B',
-                    fontSize: '0.92rem',
-                    lineHeight: 1.6,
-                    boxShadow: msg.sender === 'user' ? '2.5px 3px 0px #1E1E1E' : '2px 2.5px 0px #1E1E1E'
-                  }}>
+                  <div className={msg.sender === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai'}>
                     {msg.icdCode && (
-                      <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', alignItems: 'center' }}>
-                        <span className="tag-yellow" style={{ fontWeight: 800 }}>{msg.icdCode}</span>
-                        {msg.confidence && <span className="tag-cyan" style={{ fontWeight: 700 }}>Keyakinan: {msg.confidence}</span>}
+                      <div style={{ display: 'flex', gap: '6px', marginBottom: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <span className="tag-yellow" style={{ fontWeight: 800, fontSize: '0.72rem', padding: '2px 8px' }}>{msg.icdCode}</span>
+                        {msg.confidence && <span className="tag-cyan" style={{ fontWeight: 700, fontSize: '0.72rem', padding: '2px 8px' }}>Keyakinan: {msg.confidence}</span>}
                       </div>
                     )}
 
@@ -1131,8 +1152,8 @@ export default function AiAnalisaPage() {
                     {msg.attachment && (
                       <div style={{
                         marginBottom: '10px',
-                        padding: '10px 12px',
-                        borderRadius: '12px',
+                        padding: '8px 10px',
+                        borderRadius: '10px',
                         backgroundColor: '#FAF8F4',
                         border: '1.2px solid #1E1E1E',
                         display: 'flex',
@@ -1150,9 +1171,9 @@ export default function AiAnalisaPage() {
                         ) : null}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span style={{
-                            padding: '3px 8px',
-                            borderRadius: '6px',
-                            fontSize: '0.72rem',
+                            padding: '2px 6px',
+                            borderRadius: '5px',
+                            fontSize: '0.68rem',
                             fontWeight: 800,
                             backgroundColor: msg.attachment.type === 'pdf' ? '#FEE2E2' : msg.attachment.type === 'docx' ? '#DBEAFE' : '#FEF3D6',
                             color: msg.attachment.type === 'pdf' ? '#991B1B' : msg.attachment.type === 'docx' ? '#1E40AF' : '#92400E',
@@ -1160,11 +1181,11 @@ export default function AiAnalisaPage() {
                           }}>
                             {msg.attachment.type.toUpperCase()}
                           </span>
-                          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#18181B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#18181B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {msg.attachment.name}
                           </span>
                           {msg.attachment.size && (
-                            <span style={{ fontSize: '0.74rem', color: '#6B7280', marginLeft: 'auto' }}>
+                            <span style={{ fontSize: '0.72rem', color: '#6B7280', marginLeft: 'auto' }}>
                               {msg.attachment.size}
                             </span>
                           )}
@@ -1176,7 +1197,7 @@ export default function AiAnalisaPage() {
                       {renderFormattedMedicalText(msg.text)}
                     </div>
 
-                    <div style={{ fontSize: '0.72rem', color: '#6B7280', marginTop: '8px', textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.68rem', color: '#6B7280', marginTop: '6px', textAlign: 'right' }}>
                       {msg.timestamp}
                     </div>
                   </div>
@@ -1184,29 +1205,30 @@ export default function AiAnalisaPage() {
               ))}
 
               {isTyping && (
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                   <div style={{
-                    width: '38px',
-                    height: '38px',
-                    borderRadius: '12px',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '10px',
                     backgroundColor: '#FEF3D6',
                     border: '1.5px solid #1E1E1E',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontWeight: 800,
-                    fontSize: '1rem',
-                    color: '#92400E'
+                    fontSize: '0.9rem',
+                    color: '#92400E',
+                    flexShrink: 0
                   }}>
-                    <Bot size={20} strokeWidth={2} />
+                    <Bot size={17} strokeWidth={2.2} />
                   </div>
                   <div style={{
-                    padding: '12px 18px',
+                    padding: '10px 14px',
                     backgroundColor: '#FFFFFF',
                     border: '1.5px solid #1E1E1E',
                     borderRadius: '14px',
                     color: '#52525B',
-                    fontSize: '0.85rem',
+                    fontSize: '0.82rem',
                     fontWeight: 600,
                     boxShadow: '1.5px 2px 0px #1E1E1E'
                   }}>
@@ -1214,6 +1236,7 @@ export default function AiAnalisaPage() {
                   </div>
                 </div>
               )}
+              <div ref={messagesEndRef} />
             </div>
 
             {/* Quick Prompt Suggestions with Toggle & Close Button */}
@@ -1231,15 +1254,18 @@ export default function AiAnalisaPage() {
                   <div style={{ fontSize: '0.76rem', color: '#6B7280', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Sparkles size={14} style={{ color: '#92400E' }} />
                     <span>Rekomendasi Pertanyaan Klinis Cepat</span>
-                    <span style={{
-                      fontSize: '0.7rem',
-                      fontWeight: 700,
-                      color: '#92400E',
-                      backgroundColor: '#FEF3D6',
-                      padding: '1px 7px',
-                      borderRadius: '9999px',
-                      border: '1px solid #FDE68A'
-                    }}>
+                    <span
+                      suppressHydrationWarning
+                      style={{
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        color: '#92400E',
+                        backgroundColor: '#FEF3D6',
+                        padding: '1px 7px',
+                        borderRadius: '9999px',
+                        border: '1px solid #FDE68A'
+                      }}
+                    >
                       Otomatis menutup dlm {promptsCountdown}d
                     </span>
                   </div>
@@ -1366,7 +1392,7 @@ export default function AiAnalisaPage() {
             )}
 
             {/* Chat Input Bar */}
-            <div style={{ padding: '16px 24px', borderTop: '1.8px solid #1E1E1E', backgroundColor: '#FFFFFF', position: 'relative' }}>
+            <div style={{ padding: '10px 14px', borderTop: '1.8px solid #1E1E1E', backgroundColor: '#FFFFFF', position: 'relative', flexShrink: 0 }}>
               {/* Attachment Selection Menu Popup */}
               {isAttachMenuOpen && (
                 <div
@@ -1555,7 +1581,7 @@ export default function AiAnalisaPage() {
                   e.preventDefault();
                   handleSendMessage();
                 }}
-                style={{ display: 'flex', gap: '12px', alignItems: 'center' }}
+                style={{ display: 'flex', gap: '8px', alignItems: 'center' }}
               >
                 {/* Paperclip Button with Toggle Menu */}
                 <button
@@ -1566,13 +1592,15 @@ export default function AiAnalisaPage() {
                     backgroundColor: isAttachMenuOpen ? '#FEF3D6' : '#FAF8F4',
                     border: '1.5px solid #1E1E1E',
                     color: isAttachMenuOpen ? '#92400E' : '#18181B',
-                    padding: '12px 14px',
-                    borderRadius: '12px',
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '10px',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    boxShadow: '1px 1.5px 0px #1E1E1E',
+                    boxShadow: '1px 1px 0px #1E1E1E',
+                    flexShrink: 0,
                     transition: 'all 0.15s ease'
                   }}
                 >
@@ -1582,10 +1610,15 @@ export default function AiAnalisaPage() {
                 <input
                   type="text"
                   className="form-input-neo"
-                  placeholder={stagedAttachment ? `Ketik catatan atau pertanyaan untuk lampiran "${stagedAttachment.name}"...` : "Ketik keluhan, parameter vital, atau kombinasi gejala pasien di sini..."}
+                  placeholder={stagedAttachment ? `Catatan untuk ${stagedAttachment.name}...` : "Ketik keluhan, vital, atau gejala..."}
                   value={inputQuery}
                   onChange={(e) => setInputQuery(e.target.value)}
-                  style={{ flex: 1, padding: '12px 18px' }}
+                  style={{
+                    flex: 1,
+                    padding: '10px 14px',
+                    fontSize: '0.88rem',
+                    minWidth: 0
+                  }}
                 />
 
                 <button
@@ -1593,16 +1626,19 @@ export default function AiAnalisaPage() {
                   disabled={(!inputQuery.trim() && !stagedAttachment) || isTyping}
                   className="neo-btn-primary"
                   style={{
-                    padding: '12px 24px',
+                    height: '38px',
+                    padding: '0 16px',
                     opacity: (!inputQuery.trim() && !stagedAttachment) || isTyping ? 0.6 : 1,
-                    borderRadius: '12px',
+                    borderRadius: '10px',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '6px'
+                    justifyContent: 'center',
+                    gap: '6px',
+                    flexShrink: 0
                   }}
                 >
-                  <span>Kirim</span>
                   <Send size={15} strokeWidth={2.2} />
+                  <span className="chat-send-btn-label">Kirim</span>
                 </button>
               </form>
             </div>
