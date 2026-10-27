@@ -432,7 +432,14 @@ body:has(.dark-dashboard-root) {
   gap: 20px;
 }
 
+@media (min-width: 1025px) {
+  .md-hidden-desktop {
+    display: none !important;
+  }
+}
+
 @media (max-width: 1024px) {
+
   .dashboard-sidebar-drawer {
     position: fixed !important;
     top: 0;

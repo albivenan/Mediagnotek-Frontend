@@ -302,12 +302,12 @@ export default function DashboardLayout({
             </div>
           </Link>
 
-          {/* Toggle Close Button */}
+          {/* Toggle Close Button (Hanya tampil di mobile/tablet untuk menutup drawer) */}
           <button
+            className="md-hidden-desktop"
             onClick={handleToggleSidebar}
             title="Tutup Sidebar"
             style={{
-
               width: '32px',
               height: '32px',
               borderRadius: '8px',
@@ -324,6 +324,7 @@ export default function DashboardLayout({
           >
             <PanelLeftClose size={18} strokeWidth={2.2} />
           </button>
+
         </div>
 
 
@@ -517,13 +518,13 @@ export default function DashboardLayout({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {/* Toggle Button: Muncul selalu di mobile atau jika sidebar tertutup */}
+            {/* Toggle Button: Muncul di mobile / tablet layar < 1024px */}
             <button
+              className="md-hidden-desktop"
               suppressHydrationWarning
               onClick={handleToggleSidebar}
               title={sidebarOpen ? "Tutup Sidebar Menu" : "Buka Sidebar Menu"}
               style={{
-
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
@@ -541,6 +542,7 @@ export default function DashboardLayout({
               {sidebarOpen ? <PanelLeftClose size={17} strokeWidth={2.2} /> : <PanelLeft size={17} strokeWidth={2.2} />}
               <span>Menu</span>
             </button>
+
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span className="header-breadcrumb-prefix" style={{ fontSize: '0.88rem', color: '#6B7280', fontWeight: 500 }}>Dashboard /</span>

@@ -24,11 +24,13 @@ import {
   Maximize2,
   Minimize2,
   Image as ImageIcon,
-
   Camera,
   FileSpreadsheet,
-  ShieldAlert
+  ShieldAlert,
+  Save,
+  Bookmark
 } from 'lucide-react';
+
 import { apiSendAiChatMessage } from '@/lib/api';
 
 interface AttachedFile {
@@ -260,147 +262,26 @@ export default function AiAnalisaPage() {
   const [historySearch, setHistorySearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'Semua' | 'Terverifikasi' | 'Tindak Lanjut Lab' | 'Arsip Rekam Medis'>('Semua');
 
-  // Consultation History Data
-  const [historyList, setHistoryList] = useState<HistorySession[]>([
-    {
-      id: 's1',
-      sessionCode: 'SESI-2026-081',
-      patientId: '#4102',
-      patientName: 'Tn. Budi Santoso',
-      patientAge: '45 Th',
-      patientGender: 'Pria',
-      bloodPressure: '135/85 mmHg',
-      chiefComplaint: 'Demam tinggi 38.5°C, batuk berdahak kuning pekat, sesak napas ringan',
-      date: '19 Okt 2026',
-      time: '12:45 WIB',
-      primaryDiagnosis: 'Pneumonia Bakterial',
-      icdCode: 'ICD-10 J18',
-      confidence: '94.2%',
-      status: 'Terverifikasi',
-      doctorNote: 'Disarankan rontgen thorax PA, cek leukosit darah lengkap, serta terapi antibiotik spektrum luas.',
-      messages: [
-        {
-          id: 'm1',
-          sender: 'ai',
-          text: 'Halo dr. Anita! Saya adalah MediagnoTek AI Medical Assistant v2.4. Sesi diagnosa aktif.',
-          timestamp: '12:45 PM'
-        },
-        {
-          id: 'm2',
-          sender: 'user',
-          text: 'Analisis gejala demam 38.5°C + batuk berdahak pekat pada pasien usia 45 tahun.',
-          timestamp: '12:46 PM'
-        },
-        {
-          id: 'm3',
-          sender: 'ai',
-          text: 'Berdasarkan gejala Demam (38.5°C) dan Batuk Berdahak Pekat, terdapat probabilitas tinggi indikasi Pneumonia Bakterial (ICD-10 J18).\n\nRekomendasi Tindakan Medis:\n1. Pemeriksaan Foto Rontgen Thorax PA/Lateral.\n2. Pemeriksaan Darah Lengkap & Kultur Dahak.\n3. Terapi antibiotik spektrum luas serta antipiretik.',
-          timestamp: '12:46 PM',
-          icdCode: 'ICD-10 J18',
-          confidence: '94.2%'
+  // Consultation History Data: Murni dari percakapan yang disimpan pengguna
+  const [historyList, setHistoryList] = useState<HistorySession[]>([]);
+
+  // Load history dari localStorage per akun pengguna
+  useEffect(() => {
+    if (typeof window !== 'undefined' && userEmail) {
+      try {
+        const historyKey = `mediagnotek_ai_history_${userEmail}`;
+        const savedHistory = localStorage.getItem(historyKey);
+        if (savedHistory) {
+          const parsed = JSON.parse(savedHistory);
+          if (Array.isArray(parsed)) {
+            setHistoryList(parsed);
+          }
         }
-      ]
-    },
-    {
-      id: 's2',
-      sessionCode: 'SESI-2026-080',
-      patientId: '#3890',
-      patientName: 'Ny. Siti Rahmawati',
-      patientAge: '52 Th',
-      patientGender: 'Wanita',
-      bloodPressure: '140/90 mmHg',
-      chiefComplaint: 'Gula darah puasa 215 mg/dL, poliuria, polidipsia, lemas berkepanjangan',
-      date: '18 Okt 2026',
-      time: '15:20 WIB',
-      primaryDiagnosis: 'Diabetes Mellitus Tipe 2',
-      icdCode: 'ICD-10 E11',
-      confidence: '97.8%',
-      status: 'Tindak Lanjut Lab',
-      doctorNote: 'Jadwalkan uji HbA1c serial dan panel fungsi ginjal. Terapi lini pertama Metformin 500mg 2x/hari.',
-      messages: [
-        {
-          id: 'm4',
-          sender: 'user',
-          text: 'Penjelasan faktor risiko & evaluasi penanganan Diabetes Mellitus Tipe 2 dengan GDP 215 mg/dL.',
-          timestamp: '15:20 WIB'
-        },
-        {
-          id: 'm5',
-          sender: 'ai',
-          text: 'Untuk Diabetes Mellitus Tipe 2 (ICD-10 E11), faktor risiko utama mencakup resistensi insulin dan obesitas metabolik.\n\nPenanganan Standar:\n- Terapi lini pertama: Metformin 500mg 2x/hari saat makan.\n- Perubahan pola makan rendah indeks glikemik & aktivitas aerobik rutin.',
-          timestamp: '15:21 WIB',
-          icdCode: 'ICD-10 E11',
-          confidence: '97.8%'
-        }
-      ]
-    },
-    {
-      id: 's3',
-      sessionCode: 'SESI-2026-079',
-      patientId: '#4055',
-      patientName: 'Tn. Hendra Wijaya',
-      patientAge: '58 Th',
-      patientGender: 'Pria',
-      bloodPressure: '155/95 mmHg',
-      chiefComplaint: 'Sakit kepala oksipital menjalar, tengkuk terasa kaku dan tegang',
-      date: '17 Okt 2026',
-      time: '09:15 WIB',
-      primaryDiagnosis: 'Hipertensi Primer Esensial',
-      icdCode: 'ICD-10 I10',
-      confidence: '95.1%',
-      status: 'Terverifikasi',
-      doctorNote: 'Tekanan darah target <130/80 mmHg. Evaluasi EKG dan profil lipid darah lengkap.',
-      messages: [
-        {
-          id: 'm6',
-          sender: 'user',
-          text: 'Evaluasi dosis & efek samping antihipertensi Amlodipine untuk TD 155/95 mmHg.',
-          timestamp: '09:15 WIB'
-        },
-        {
-          id: 'm7',
-          sender: 'ai',
-          text: 'Hipertensi Primer Grade 1-2 (ICD-10 I10) dapat dimulai dengan monoterapi Amlodipine 5mg sekali sehari. Waspadai efek edema perifer.',
-          timestamp: '09:16 WIB',
-          icdCode: 'ICD-10 I10',
-          confidence: '95.1%'
-        }
-      ]
-    },
-    {
-      id: 's4',
-      sessionCode: 'SESI-2026-078',
-      patientId: '#3921',
-      patientName: 'Nn. Dewi Sartika',
-      patientAge: '28 Th',
-      patientGender: 'Wanita',
-      bloodPressure: '115/75 mmHg',
-      chiefComplaint: 'Nyeri menelan akut, demam subfebris 37.8°C, amandel hiperemis',
-      date: '16 Okt 2026',
-      time: '14:00 WIB',
-      primaryDiagnosis: 'Faringitis Akut',
-      icdCode: 'ICD-10 J02',
-      confidence: '91.0%',
-      status: 'Arsip Rekam Medis',
-      doctorNote: 'Terapi suportif: antipiretik analgetik, hidrasi cukup, dan evaluasi Centor Score.',
-      messages: [
-        {
-          id: 'm8',
-          sender: 'user',
-          text: 'Bandingkan gejala Faringitis Akut vs Tonsilitis dengan demam 37.8°C dan odinofagia.',
-          timestamp: '14:00 WIB'
-        },
-        {
-          id: 'm9',
-          sender: 'ai',
-          text: 'Faringitis Akut (ICD-10 J02) ditandai eritema dinding faring posterior tanpa eksudat folikular tonsil yang masif. Direkomendasikan simtomatik.',
-          timestamp: '14:01 WIB',
-          icdCode: 'ICD-10 J02',
-          confidence: '91.0%'
-        }
-      ]
+      } catch (err) {
+        console.warn('Gagal membaca riwayat analisa dari localStorage:', err);
+      }
     }
-  ]);
+  }, [userEmail]);
 
   const quickPrompts = [
     'Analisis gejala demam 38.5°C + batuk berdahak pekat',
@@ -779,9 +660,14 @@ export default function AiAnalisaPage() {
       messages: [...messages]
     };
 
-    setHistoryList((prev) => [newSession, ...prev]);
+    const updatedList = [newSession, ...historyList];
+    setHistoryList(updatedList);
+    if (typeof window !== 'undefined' && userEmail) {
+      localStorage.setItem(`mediagnotek_ai_history_${userEmail}`, JSON.stringify(updatedList));
+    }
     triggerToast(`Sesi konsultasi ${newSession.sessionCode} berhasil disimpan ke Riwayat!`);
-  }, [activePatient, messages, triggerToast]);
+  }, [activePatient, messages, triggerToast, historyList, userEmail]);
+
 
   // Start new clean chat session
   const handleNewSession = useCallback((patientPreset?: { id: string; name: string; age: string; gender: string; bloodPressure: string; symptoms: string }) => {
@@ -829,10 +715,15 @@ export default function AiAnalisaPage() {
   const handleDeleteHistory = (id: string, code: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (window.confirm(`Hapus arsip sesi ${code} dari riwayat analisa?`)) {
-      setHistoryList(prev => prev.filter(item => item.id !== id));
+      const updated = historyList.filter(item => item.id !== id);
+      setHistoryList(updated);
+      if (typeof window !== 'undefined' && userEmail) {
+        localStorage.setItem(`mediagnotek_ai_history_${userEmail}`, JSON.stringify(updated));
+      }
       triggerToast(`Arsip sesi ${code} telah dihapus.`);
     }
   };
+
 
   // Copy summary to clipboard
   const handleCopySummary = (session: HistorySession, e?: React.MouseEvent) => {
@@ -1026,19 +917,20 @@ export default function AiAnalisaPage() {
             {activeTab === 'chat' ? (
               <button
                 onClick={handleSaveToHistory}
-                title="Simpan percakapan saat ini ke Riwayat"
+                title="Simpan percakapan saat ini ke Memori Riwayat"
                 className="neo-btn-primary"
                 style={{ padding: '7px 16px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
-                <ShieldCheck size={16} strokeWidth={2.2} />
+                <Save size={16} strokeWidth={2.2} />
                 <span>Simpan ke Riwayat</span>
               </button>
             ) : (
               <span style={{ fontSize: '0.82rem', color: '#6B7280', fontWeight: 600 }}>
-                Menampilkan {filteredHistory.length} dari {historyList.length} sesi
+                Menampilkan {filteredHistory.length} dari {historyList.length} sesi tersimpan
               </span>
             )}
           </div>
+
         </div>
       )}
 
@@ -1097,6 +989,30 @@ export default function AiAnalisaPage() {
 
               {/* Right Head: Actions including Sesi Baru & Fullscreen Button */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                {/* Save Current Session to History Button (Ikon Memori/Simpan) */}
+                <button
+                  onClick={handleSaveToHistory}
+                  style={{
+                    backgroundColor: '#FEF3D6',
+                    border: '1.5px solid #1E1E1E',
+                    borderRadius: '9px',
+                    padding: '6px 12px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    color: '#18181B',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '1.5px 1.5px 0px #1E1E1E',
+                    transition: 'all 0.15s ease'
+                  }}
+                  title="Simpan percakapan ini ke memori riwayat"
+                >
+                  <Save size={14} strokeWidth={2.2} style={{ color: '#92400E' }} />
+                  <span className="chat-header-btn-text">Simpan Sesi</span>
+                </button>
+
                 {/* Reset Chat Button */}
                 <button
                   onClick={() => handleNewSession()}
@@ -1120,6 +1036,7 @@ export default function AiAnalisaPage() {
                   <RotateCcw size={14} />
                   <span className="chat-header-btn-text">Sesi Baru</span>
                 </button>
+
 
                 {/* Fullscreen Button */}
                 <button
