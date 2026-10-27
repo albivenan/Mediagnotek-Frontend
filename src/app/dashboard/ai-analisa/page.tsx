@@ -23,8 +23,8 @@ import {
   RotateCcw,
   Maximize2,
   Minimize2,
-  Sparkles,
   Image as ImageIcon,
+
   Camera,
   FileSpreadsheet,
   ShieldAlert
@@ -1300,9 +1300,9 @@ export default function AiAnalisaPage() {
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ fontSize: '0.76rem', color: '#6B7280', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Sparkles size={14} style={{ color: '#92400E' }} />
                     <span>Rekomendasi Pertanyaan Klinis Cepat</span>
                     <span
+
                       suppressHydrationWarning
                       style={{
                         fontSize: '0.7rem',
@@ -1413,9 +1413,9 @@ export default function AiAnalisaPage() {
                       boxShadow: '1.5px 1.5px 0px #1E1E1E'
                     }}
                   >
-                    <Sparkles size={13} />
                     <span>Analisa Sekarang</span>
                   </button>
+
                   <button
                     type="button"
                     onClick={() => setStagedAttachment(null)}
@@ -1653,9 +1653,9 @@ export default function AiAnalisaPage() {
                   fontWeight: 600
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Sparkles size={13} style={{ color: '#059669' }} />
                     <span>Mode Beta: Maksimal 6 Request / Akun</span>
                   </div>
+
                   <div style={{
                     padding: '2px 8px',
                     borderRadius: '6px',
