@@ -36,7 +36,32 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Sidebar status: default open di desktop, persisten via localStorage
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Sync sidebar state dari localStorage saat mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isMobile = window.innerWidth < 768;
+      const savedState = localStorage.getItem('mediagnotek_sidebar_open');
+      if (savedState !== null) {
+        setSidebarOpen(isMobile ? false : savedState === 'true');
+      } else {
+        setSidebarOpen(!isMobile);
+      }
+    }
+  }, []);
+
+  const handleToggleSidebar = () => {
+    setSidebarOpen((prev) => {
+      const next = !prev;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('mediagnotek_sidebar_open', String(next));
+      }
+      return next;
+    });
+  };
+
 
   const [faskesName, setFaskesName] = useState('');
   const [userSession, setUserSession] = useState<{
@@ -152,10 +177,13 @@ export default function DashboardLayout({
     };
   }, []);
 
-  // Close sidebar drawer automatically when navigating
+  // Hanya tutup drawer otomatis saat navigasi jika pada layar mobile (< 768px)
   useEffect(() => {
-    setSidebarOpen(false);
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      setSidebarOpen(false);
+    }
   }, [pathname]);
+
 
   const navSections = [
     {
@@ -276,9 +304,10 @@ export default function DashboardLayout({
 
           {/* Toggle Close Button */}
           <button
-            onClick={() => setSidebarOpen(false)}
+            onClick={handleToggleSidebar}
             title="Tutup Sidebar"
             style={{
+
               width: '32px',
               height: '32px',
               borderRadius: '8px',
@@ -491,9 +520,10 @@ export default function DashboardLayout({
             {/* Toggle Button: Muncul selalu di mobile atau jika sidebar tertutup */}
             <button
               suppressHydrationWarning
-              onClick={() => setSidebarOpen(!sidebarOpen)}
+              onClick={handleToggleSidebar}
               title={sidebarOpen ? "Tutup Sidebar Menu" : "Buka Sidebar Menu"}
               style={{
+
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',

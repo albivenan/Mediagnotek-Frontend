@@ -211,8 +211,38 @@ export default function AiAnalisaPage() {
     }
   ]);
 
+  // Beta Limit State: Maksimal 6 request per akun
+  const MAX_BETA_REQUESTS = 6;
+  const [userEmail, setUserEmail] = useState<string>('guest@apotek.id');
+  const [requestCount, setRequestCount] = useState<number>(0);
+  const [quotaExceeded, setQuotaExceeded] = useState<boolean>(false);
+
+  // Sync user email & kuota request saat mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      let email = 'guest@apotek.id';
+      try {
+        const savedUser = localStorage.getItem('mediagnotek_user_session');
+        if (savedUser) {
+          const parsed = JSON.parse(savedUser);
+          if (parsed?.email) email = parsed.email.trim().toLowerCase();
+        }
+      } catch (_) {}
+
+      setUserEmail(email);
+
+      const usageKey = `mediagnotek_ai_usage_${email}`;
+      const savedCount = Number(localStorage.getItem(usageKey) || '0');
+      setRequestCount(savedCount);
+      if (savedCount >= MAX_BETA_REQUESTS) {
+        setQuotaExceeded(true);
+      }
+    }
+  }, []);
+
   const [inputQuery, setInputQuery] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+
 
   // Auto-scroll chat feed to bottom
   const scrollToBottom = useCallback(() => {
@@ -518,9 +548,27 @@ export default function AiAnalisaPage() {
     const query = textToSend || inputQuery;
     if (!query.trim() && !stagedAttachment) return;
 
+    // Cek batas kuota mode beta (Maksimal 6 request per akun)
+    const usageKey = `mediagnotek_ai_usage_${userEmail}`;
+    const currentUsage = Number(localStorage.getItem(usageKey) || '0');
+    if (currentUsage >= MAX_BETA_REQUESTS) {
+      setQuotaExceeded(true);
+      triggerToast('Batas kuota beta (6 request) untuk akun Anda telah tercapai.');
+      return;
+    }
+
+    // Increment request count
+    const nextCount = currentUsage + 1;
+    localStorage.setItem(usageKey, String(nextCount));
+    setRequestCount(nextCount);
+    if (nextCount >= MAX_BETA_REQUESTS) {
+      setQuotaExceeded(true);
+    }
+
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const userMsgId = 'usr_' + Date.now().toString();
     const currentAttachment = stagedAttachment;
+
 
     const userMsg: ChatMessage = {
       id: userMsgId,
@@ -1576,6 +1624,51 @@ export default function AiAnalisaPage() {
                 }}
               />
 
+              {/* Beta Quota Indicator & Warning Banner */}
+              {quotaExceeded ? (
+                <div style={{
+                  marginBottom: '10px',
+                  padding: '8px 12px',
+                  borderRadius: '10px',
+                  backgroundColor: '#FEF2F2',
+                  border: '1.5px solid #EF4444',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '0.8rem',
+                  color: '#991B1B',
+                  fontWeight: 700
+                }}>
+                  <ShieldAlert size={16} />
+                  <span>Batas Uji Coba Beta Terpenuhi (6/6 request). Kuota akun Anda ({userEmail}) telah habis.</span>
+                </div>
+              ) : (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '8px',
+                  fontSize: '0.73rem',
+                  color: '#6B7280',
+                  fontWeight: 600
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Sparkles size={13} style={{ color: '#059669' }} />
+                    <span>Mode Beta: Maksimal 6 Request / Akun</span>
+                  </div>
+                  <div style={{
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    backgroundColor: requestCount >= 5 ? '#FEE2E2' : '#DCFCE7',
+                    color: requestCount >= 5 ? '#991B1B' : '#166534',
+                    border: '1px solid #1E1E1E',
+                    fontWeight: 700
+                  }}>
+                    Sisa Kuota: {Math.max(0, MAX_BETA_REQUESTS - requestCount)} / {MAX_BETA_REQUESTS}
+                  </div>
+                </div>
+              )}
+
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -1586,6 +1679,7 @@ export default function AiAnalisaPage() {
                 {/* Paperclip Button with Toggle Menu */}
                 <button
                   type="button"
+                  disabled={quotaExceeded}
                   title="Lampirkan File Medis (Gambar, PDF, DOCX, Kamera)"
                   onClick={() => setIsAttachMenuOpen(prev => !prev)}
                   style={{
@@ -1595,7 +1689,8 @@ export default function AiAnalisaPage() {
                     width: '38px',
                     height: '38px',
                     borderRadius: '10px',
-                    cursor: 'pointer',
+                    cursor: quotaExceeded ? 'not-allowed' : 'pointer',
+                    opacity: quotaExceeded ? 0.5 : 1,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -1609,38 +1704,43 @@ export default function AiAnalisaPage() {
 
                 <input
                   type="text"
+                  disabled={quotaExceeded}
                   className="form-input-neo"
-                  placeholder={stagedAttachment ? `Catatan untuk ${stagedAttachment.name}...` : "Ketik keluhan, vital, atau gejala..."}
+                  placeholder={quotaExceeded ? "Kuota pesan beta akun Anda sudah habis (6/6 request)" : (stagedAttachment ? `Catatan untuk ${stagedAttachment.name}...` : "Ketik keluhan, vital, atau gejala...")}
                   value={inputQuery}
                   onChange={(e) => setInputQuery(e.target.value)}
                   style={{
                     flex: 1,
                     padding: '10px 14px',
                     fontSize: '0.88rem',
-                    minWidth: 0
+                    minWidth: 0,
+                    backgroundColor: quotaExceeded ? '#F3F4F6' : undefined,
+                    cursor: quotaExceeded ? 'not-allowed' : 'text'
                   }}
                 />
 
                 <button
                   type="submit"
-                  disabled={(!inputQuery.trim() && !stagedAttachment) || isTyping}
+                  disabled={(!inputQuery.trim() && !stagedAttachment) || isTyping || quotaExceeded}
                   className="neo-btn-primary"
                   style={{
                     height: '38px',
                     padding: '0 16px',
-                    opacity: (!inputQuery.trim() && !stagedAttachment) || isTyping ? 0.6 : 1,
+                    opacity: (!inputQuery.trim() && !stagedAttachment) || isTyping || quotaExceeded ? 0.6 : 1,
                     borderRadius: '10px',
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '6px',
-                    flexShrink: 0
+                    flexShrink: 0,
+                    cursor: quotaExceeded ? 'not-allowed' : 'pointer'
                   }}
                 >
                   <Send size={15} strokeWidth={2.2} />
                   <span className="chat-send-btn-label">Kirim</span>
                 </button>
               </form>
+
             </div>
           </div>
         </div>
