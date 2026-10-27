@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Dna,
@@ -35,7 +35,9 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
   const [faskesName, setFaskesName] = useState('');
   const [userSession, setUserSession] = useState<{
     id?: number | string;
@@ -102,8 +104,8 @@ export default function DashboardLayout({
         console.warn('Error reading mediagnotek_faskes_session:', err);
       }
 
-      // 3. If still empty, fetch dynamically from backend API /auth/me
-      if (!currentName) {
+      // 3. If still empty, check backend if userId exists
+      if (!currentName && userId) {
         try {
           const apiUser = await apiGetCurrentUser(userId);
           if (apiUser?.nama_lengkap) {
@@ -120,9 +122,15 @@ export default function DashboardLayout({
 
       if (!isMounted) return;
 
+      // 4. Strict Production Route Guard: Redirect to /login if unauthenticated
+      if (!currentEmail && !currentName) {
+        router.push('/login');
+        return;
+      }
+
       setUserSession({
-        name: currentName || 'Pengelola Farmasi',
-        email: currentEmail || 'apoteker@faskes.id',
+        name: currentName || 'Pengguna',
+        email: currentEmail || '',
         role: currentRole || 'APOTEKER',
         avatar: currentAvatar
       });
@@ -131,6 +139,7 @@ export default function DashboardLayout({
         setFaskesName(currentFaskes);
       }
     };
+
 
     loadSession();
     window.addEventListener('storage', loadSession);

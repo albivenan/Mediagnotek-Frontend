@@ -110,41 +110,29 @@ export default function LoginPage() {
     setIsLoading(true);
 
     // Call backend API
-    const apiRes = await apiLogin(email, password);
+    const apiRes = await apiLogin(email.trim().toLowerCase(), password);
 
-    // Dynamic name from email if not provided
-    const emailPrefix = email.split('@')[0];
-    const dynamicName = emailPrefix
-      .split(/[._-]/)
-      .map(part => part.charAt(0).toUpperCase() + part.slice(1))
-      .join(' ');
+    if (!apiRes || !apiRes.success) {
+      setLoginError(apiRes?.error || 'Email atau kata sandi tidak cocok. Harap periksa kembali.');
+      setIsLoading(false);
+      return;
+    }
 
-    const role = apiRes?.user?.role || (email.includes('kasir') ? 'KASIR' : email.includes('keuangan') ? 'KEUANGAN' : 'APOTEKER');
-
-    // Check if company data exists in storage
-    let existingFaskes = 'Apotek Sehat Farma (Beta Demo)';
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('mediagnotek_faskes_session');
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (parsed?.faskes_profile?.nama_faskes) {
-            existingFaskes = parsed.faskes_profile.nama_faskes;
-          }
-        } catch (_) {}
-      }
+    if (apiRes.access_token && typeof window !== 'undefined') {
+      localStorage.setItem('mediagnotek_auth_token', apiRes.access_token);
     }
 
     persistSession({
-      name: apiRes?.user?.nama_lengkap || dynamicName,
-      email: email,
-      role: role,
-      facilityName: existingFaskes
+      name: apiRes.user?.nama_lengkap || email.split('@')[0],
+      email: apiRes.user?.email || email,
+      role: apiRes.user?.role || 'ADMIN',
+      facilityName: apiRes.user?.facility_name || 'Fasilitas Kesehatan'
     });
 
     setIsLoading(false);
     router.push('/dashboard');
   };
+
 
   // 2. Click Google SSO button -> Opens Dynamic Google Account Dialog
   const handleOpenGoogleAuth = () => {

@@ -242,28 +242,48 @@ export async function apiLogin(email: string, password: string) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
-    if (!res.ok) throw new Error('Login Failed');
-    return await res.json();
-  } catch (error) {
-    console.warn('Backend Login API unreachable, using client auth handler:', error);
-    return null;
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return { success: false, error: data?.detail || 'Gagal login. Email atau kata sandi tidak cocok.' };
+    }
+    return { success: true, ...data };
+  } catch (error: any) {
+    console.error('Backend Login API error:', error);
+    return { success: false, error: 'Tidak dapat terhubung ke server backend (port 8001).' };
   }
 }
 
-export async function apiRegister(email: string, password: string, namaLengkap: string, role = 'APOTEKER') {
+export async function apiRegister(payload: {
+  email: string;
+  password: string;
+  nama_lengkap: string;
+  role?: string;
+  nama_faskes?: string;
+  tipe_faskes?: string;
+  nomor_izin_operasional?: string;
+  nomor_telepon?: string;
+  alamat_lengkap?: string;
+  kota?: string;
+  provinsi?: string;
+  foto_faskes_url?: string;
+}) {
   try {
     const res = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, nama_lengkap: namaLengkap, role }),
+      body: JSON.stringify(payload),
     });
-    if (!res.ok) throw new Error('Register Failed');
-    return await res.json();
-  } catch (error) {
-    console.warn('Backend Register API unreachable, using client auth handler:', error);
-    return null;
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return { success: false, error: data?.detail || 'Gagal melakukan pendaftaran akun.' };
+    }
+    return { success: true, ...data };
+  } catch (error: any) {
+    console.error('Backend Register API error:', error);
+    return { success: false, error: 'Tidak dapat terhubung ke server backend (port 8001).' };
   }
 }
+
 
 export async function apiGetCurrentUser(userId?: number) {
   try {

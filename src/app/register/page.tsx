@@ -19,6 +19,8 @@ import {
   Phone,
   Sparkles
 } from 'lucide-react';
+import { apiRegister } from '@/lib/api';
+
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -82,56 +84,85 @@ export default function RegisterPage() {
     setCurrentStep(2);
   };
 
-  const handleFinalSubmit = (e: React.FormEvent) => {
+  const handleFinalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!namaFaskes || !alamatLengkap || !penanggungJawab) {
       setErrorMessage('Harap lengkapi informasi fasilitas kesehatan.');
       return;
     }
 
+    setErrorMessage('');
     setIsLoading(true);
 
-    const faskesData = {
-      id: `FSK-${Date.now().toString().slice(-4)}`,
-      email,
-      role: 'FASKES_ADMIN',
-      faskes_profile: {
-        nama_faskes: namaFaskes,
+    try {
+      const res = await apiRegister({
+        email: email.trim().toLowerCase(),
+        password,
+        nama_lengkap: penanggungJawab.trim(),
+        role: 'ADMIN',
+        nama_faskes: namaFaskes.trim(),
         tipe_faskes: tipeFaskes,
-        nomor_izin_operasional: nomorIzin,
-        penanggung_jawab: penanggungJawab,
-        nomor_telepon: telepon,
-        foto_faskes_url: fotoPreview || '',
-        alamat_lengkap: alamatLengkap,
-        kota,
-        provinsi
-      },
-      created_at: new Date().toISOString()
-    };
+        nomor_izin_operasional: nomorIzin.trim(),
+        nomor_telepon: telepon.trim(),
+        alamat_lengkap: alamatLengkap.trim(),
+        kota: kota.trim(),
+        provinsi: provinsi.trim(),
+        foto_faskes_url: fotoPreview || ''
+      });
 
-    const userSession = {
-      id: `USR-${Date.now().toString().slice(-4)}`,
-      name: penanggungJawab || namaFaskes || 'Pengguna Terdaftar',
-      email: email,
-      role: 'ADMIN',
-      facility_id: 1,
-      facility_name: namaFaskes || 'Apotek Sehat Farma (Beta Demo)',
-      avatar: fotoPreview || null,
-      login_method: 'REGISTER_FORM',
-      login_time: new Date().toISOString(),
-      is_shared_demo: true
-    };
+      if (!res.success) {
+        setErrorMessage(res.error || 'Pendaftaran gagal. Silakan coba lagi.');
+        setIsLoading(false);
+        return;
+      }
 
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('mediagnotek_faskes_session', JSON.stringify(faskesData));
-      localStorage.setItem('mediagnotek_user_session', JSON.stringify(userSession));
-    }
+      const faskesData = {
+        id: `FSK-${res.user?.facility_id || '001'}`,
+        email,
+        role: 'FASKES_ADMIN',
+        faskes_profile: {
+          nama_faskes: namaFaskes,
+          tipe_faskes: tipeFaskes,
+          nomor_izin_operasional: nomorIzin,
+          penanggung_jawab: penanggungJawab,
+          nomor_telepon: telepon,
+          foto_faskes_url: fotoPreview || '',
+          alamat_lengkap: alamatLengkap,
+          kota,
+          provinsi
+        },
+        created_at: new Date().toISOString()
+      };
 
-    setTimeout(() => {
-      setIsLoading(false);
+      const userSession = {
+        id: res.user?.id ? String(res.user.id) : `USR-${Date.now().toString().slice(-4)}`,
+        name: res.user?.nama_lengkap || penanggungJawab,
+        email: res.user?.email || email,
+        role: res.user?.role || 'ADMIN',
+        facility_id: res.user?.facility_id || 1,
+        facility_name: res.user?.facility_name || namaFaskes,
+        avatar: fotoPreview || null,
+        login_method: 'REGISTER_FORM',
+        login_time: new Date().toISOString(),
+        is_shared_demo: false
+      };
+
+      if (typeof window !== 'undefined') {
+        if (res.access_token) {
+          localStorage.setItem('mediagnotek_auth_token', res.access_token);
+        }
+        localStorage.setItem('mediagnotek_faskes_session', JSON.stringify(faskesData));
+        localStorage.setItem('mediagnotek_user_session', JSON.stringify(userSession));
+      }
+
       router.push('/dashboard');
-    }, 600);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Terjadi kesalahan sistem.');
+    } finally {
+      setIsLoading(false);
+    }
   };
+
 
   return (
     <div style={{
