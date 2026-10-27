@@ -91,29 +91,21 @@ export default function HomePage() {
             <a href="#keunggulan" style={{ color: '#4B5563', fontWeight: 600, fontSize: '0.88rem', textDecoration: 'none' }}>
               Keunggulan
             </a>
-            <Link href="/dashboard" style={{ color: '#166534', fontWeight: 700, fontSize: '0.88rem', textDecoration: 'none' }}>
-              Dashboard
-            </Link>
           </nav>
 
-          {/* Auth Action Buttons */}
+
+          {/* Auth Action Button */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Link
               href="/login"
-              className="nav-pill-login"
-              style={{ padding: '7px 16px', fontSize: '0.82rem' }}
-            >
-              Login
-            </Link>
-            <Link
-              href="/register"
               className="nav-pill-join"
-              style={{ padding: '7px 16px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              style={{ padding: '7px 18px', fontSize: '0.84rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
             >
-              <span>Sign Up</span>
+              <span>Login</span>
               <ArrowRight size={14} />
             </Link>
           </div>
+
         </div>
       </header>
 
@@ -228,9 +220,10 @@ export default function HomePage() {
               }}
             >
               <LogIn size={19} strokeWidth={2.2} />
-              <span>Masuk Portal (Login)</span>
+              <span>Masuk Dashboard</span>
             </Link>
           </div>
+
 
           {/* ===================== HERO DASHBOARD SHOWCASE CARD (DESKTOP) ===================== */}
           <div className="showcase-desktop" style={{

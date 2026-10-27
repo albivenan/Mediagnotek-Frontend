@@ -203,15 +203,16 @@ export default function AiAnalisaPage() {
     symptoms: string;
   } | null>(null);
 
-  // Current Active Chat Messages
+  // Current Active Chat Messages (Gunakan timestamp statis default untuk mencegah server/client hydration mismatch)
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'msg-init-1',
       sender: 'ai',
       text: 'Halo! Saya adalah **MediagnoTek AI Medical & Clinical Assistant** v2.4.\n\nSaya siap membantu Anda dalam:\n- **Konsultasi & Tanya Jawab Medis Umum** (gejala penyakit, keluhan fisik, penanganan awal).\n- **Estimasi Diagnosa Klinis & Kode Standar ICD-10**.\n- **Informasi Obat, Dosis Lazim, & Skrining Interaksi**.\n- **Analisis Lampiran Berkas** (Foto Rontgen Thorax, Hasil Lab Darah, EKG, dsb).\n\nAda yang bisa saya bantu terkait kesehatan, klinis, atau farmasi hari ini?',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      timestamp: '08:00'
     }
   ]);
+
 
   // Beta Limit State: Maksimal 6 request per akun
   const MAX_BETA_REQUESTS = 6;
@@ -239,8 +240,12 @@ export default function AiAnalisaPage() {
       if (savedCount >= MAX_BETA_REQUESTS) {
         setQuotaExceeded(true);
       }
+      // Update timestamp pesan pembuka pada sisi client agar sesuai waktu saat ini tanpa merusak hidrasi SSR
+      setMessages(prev => prev.map(m => m.id === 'msg-init-1' ? { ...m, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) } : m));
     }
   }, []);
+
+
 
   const [inputQuery, setInputQuery] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -1162,9 +1167,10 @@ export default function AiAnalisaPage() {
                       {renderFormattedMedicalText(msg.text)}
                     </div>
 
-                    <div style={{ fontSize: '0.68rem', color: '#6B7280', marginTop: '6px', textAlign: 'right' }}>
+                    <div suppressHydrationWarning style={{ fontSize: '0.68rem', color: '#6B7280', marginTop: '6px', textAlign: 'right' }}>
                       {msg.timestamp}
                     </div>
+
                   </div>
                 </div>
               ))}

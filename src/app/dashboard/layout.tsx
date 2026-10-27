@@ -25,7 +25,10 @@ import {
   Wallet,
   Building2,
   User,
-  HelpCircle
+  HelpCircle,
+  X,
+  ShieldCheck,
+  Info
 } from 'lucide-react';
 import { apiGetCurrentUser } from '@/lib/api';
 
@@ -38,6 +41,25 @@ export default function DashboardLayout({
   const router = useRouter();
   // Sidebar status: default open di desktop, persisten via localStorage
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Popup Pemberitahuan Mode Beta (Muncul pertama kali load dashboard, tidak bisa hilang sendiri, tutup via tombol silang)
+  const [showBetaModal, setShowBetaModal] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const hasSeenModal = sessionStorage.getItem('mediagnotek_beta_modal_seen');
+      if (!hasSeenModal) {
+        setShowBetaModal(true);
+      }
+    }
+  }, []);
+
+  const handleCloseBetaModal = () => {
+    setShowBetaModal(false);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('mediagnotek_beta_modal_seen', 'true');
+    }
+  };
 
   // Sync sidebar state dari localStorage saat mount
   useEffect(() => {
@@ -517,32 +539,31 @@ export default function DashboardLayout({
             zIndex: 30
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {/* Toggle Button: Muncul di mobile / tablet layar < 1024px */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {/* Toolbar Button: Toggle Collapse/Expand Sidebar Menu */}
             <button
-              className="md-hidden-desktop"
               suppressHydrationWarning
               onClick={handleToggleSidebar}
-              title={sidebarOpen ? "Tutup Sidebar Menu" : "Buka Sidebar Menu"}
+              title={sidebarOpen ? "Tutup Sidebar Menu (Sembunyikan)" : "Buka Sidebar Menu (Tampilkan)"}
               style={{
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
                 padding: '7px 12px',
                 borderRadius: '10px',
                 border: '1.8px solid #1E1E1E',
-                backgroundColor: '#FEF3D6',
+                backgroundColor: sidebarOpen ? '#FEF3D6' : '#FFFFFF',
                 color: '#18181B',
                 fontWeight: 700,
                 fontSize: '0.82rem',
                 cursor: 'pointer',
-                boxShadow: '2px 2px 0px #1E1E1E'
+                boxShadow: '1.5px 1.5px 0px #1E1E1E',
+                transition: 'all 0.15s ease'
               }}
             >
               {sidebarOpen ? <PanelLeftClose size={17} strokeWidth={2.2} /> : <PanelLeft size={17} strokeWidth={2.2} />}
-              <span>Menu</span>
+              <span>{sidebarOpen ? 'Tutup Menu' : 'Menu'}</span>
             </button>
-
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span className="header-breadcrumb-prefix" style={{ fontSize: '0.88rem', color: '#6B7280', fontWeight: 500 }}>Dashboard /</span>
@@ -567,6 +588,8 @@ export default function DashboardLayout({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+
+
             <div
               className="header-badge-status"
               title="Shared Beta Active: Semua akun terdaftar berbagi akses ke database operasional Apotek Sehat Farma"
@@ -589,6 +612,7 @@ export default function DashboardLayout({
           </div>
         </header>
 
+
         {/* Dynamic Page Content */}
         <main
           className="dashboard-main-content"
@@ -604,6 +628,156 @@ export default function DashboardLayout({
           {children}
         </main>
       </div>
+
+      {/* ===================== POPUP PEMBERITAHUAN MODE BETA ===================== */}
+      {showBetaModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 99999,
+            backgroundColor: 'rgba(0, 0, 0, 0.72)',
+            backdropFilter: 'blur(5px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px'
+          }}
+        >
+          <div
+            className="neo-card"
+            style={{
+              position: 'relative',
+              backgroundColor: '#FFFFFF',
+              width: '92vw',
+              maxWidth: '860px',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              borderRadius: '20px',
+              border: '3px solid #1E1E1E',
+              boxShadow: '10px 10px 0px #1E1E1E',
+              padding: '36px',
+              animation: 'fadeIn 0.25s ease-out'
+            }}
+          >
+            {/* Header Modal */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '20px' }}>
+              <div
+                style={{
+                  width: '56px',
+                  height: '56px',
+                  borderRadius: '16px',
+                  backgroundColor: '#FEF3D6',
+                  border: '2.2px solid #1E1E1E',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '3px 3px 0px #1E1E1E'
+                }}
+              >
+                <AlertTriangle size={32} color="#D97706" strokeWidth={2.4} />
+              </div>
+              <div>
+                <span
+                  style={{
+                    display: 'inline-block',
+                    backgroundColor: '#DBEAFE',
+                    color: '#1E40AF',
+                    border: '1.2px solid #1E1E1E',
+                    borderRadius: '6px',
+                    padding: '2px 8px',
+                    fontSize: '0.75rem',
+                    fontWeight: 800,
+                    marginBottom: '4px'
+                  }}
+                >
+                  PENGUMUMAN PENTING SISTEM
+                </span>
+                <h2 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#18181B', margin: 0, letterSpacing: '-0.5px' }}>
+                  MediagnoTek Masih dalam Mode Beta
+                </h2>
+              </div>
+            </div>
+
+            {/* Isi Pengumuman */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', fontSize: '1rem', color: '#374151', lineHeight: 1.65 }}>
+              <p style={{ margin: 0 }}>
+                Selamat datang di platform <strong>MediagnoTek</strong> (Sistem Informasi Manajemen Apotek & Asisten Klinis AI). Mohon perhatikan beberapa poin penting selama tahap pengujian publik ini:
+              </p>
+
+              {/* Point 1: Data Bersama */}
+              <div
+                style={{
+                  padding: '16px 20px',
+                  borderRadius: '14px',
+                  border: '2px solid #1E1E1E',
+                  backgroundColor: '#FEF9C3',
+                  boxShadow: '3px 3px 0px #1E1E1E',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '14px'
+                }}
+              >
+                <div style={{ marginTop: '2px' }}>
+                  <Users size={24} color="#854D0E" strokeWidth={2.4} />
+                </div>
+                <div>
+                  <h4 style={{ margin: '0 0 4px 0', fontSize: '1.05rem', fontWeight: 900, color: '#713F12' }}>
+                    Semua Data Dapat Diakses Bersama (Shared Environment)
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.92rem', color: '#854D0E' }}>
+                    Seluruh pengguna akun yang login berbagi akses ke basis data operasional yang sama (daftar pasien, stok obat, riwayat resep, dan kasir) guna memudahkan simulasi alur kerja multi-apoteker.
+                  </p>
+                </div>
+              </div>
+
+              {/* Point 2: Keamanan Data Login (Bold sesuai permintaan) */}
+              <div
+                style={{
+                  padding: '18px 20px',
+                  borderRadius: '14px',
+                  border: '2px solid #1E1E1E',
+                  backgroundColor: '#DCFCE7',
+                  boxShadow: '3px 3px 0px #1E1E1E',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '14px'
+                }}
+              >
+                <div style={{ marginTop: '2px' }}>
+                  <ShieldCheck size={26} color="#166534" strokeWidth={2.5} />
+                </div>
+                <div>
+                  <h4 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', fontWeight: 900, color: '#14532D' }}>
+                    <strong>DATA REGISTER DAN LOGIN TETAP AMAN</strong>
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.95rem', color: '#166534' }}>
+                    <strong>Meskipun data operasional apotek bersifat bersama, seluruh kredensial akun, password, dan informasi pendaftaran faskes Anda dienkripsi serta tersimpan secara aman dalam database privat dan tidak dapat diakses atau disalahgunakan oleh pengguna lain.</strong>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Modal Action */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px', paddingTop: '18px', borderTop: '2px solid #1E1E1E' }}>
+              <button
+                onClick={handleCloseBetaModal}
+                className="neo-btn-primary"
+                style={{
+                  padding: '12px 28px',
+                  fontSize: '0.95rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <span>Saya Mengerti & Lanjutkan</span>
+                <X size={18} strokeWidth={2.6} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -183,26 +183,28 @@ export default function RegisterPage() {
         gap: '16px',
         zIndex: 10
       }}>
-        {/* Back Button */}
-        <div>
-          <Link href="/" style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '7px 14px',
-            borderRadius: '10px',
-            border: '1.8px solid #1E1E1E',
-            backgroundColor: '#FFFFFF',
-            color: '#18181B',
-            fontWeight: 700,
-            fontSize: '0.84rem',
-            textDecoration: 'none',
-            boxShadow: '1.5px 2px 0px #1E1E1E'
-          }}>
-            <ArrowLeft size={15} strokeWidth={2.4} />
-            Kembali ke Beranda
-          </Link>
-        </div>
+      {/* Back Button (Fixed on screen) */}
+      <div style={{ position: 'fixed', top: '20px', left: '24px', zIndex: 100 }}>
+        <Link href="/" style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '8px 16px',
+          borderRadius: '12px',
+          border: '1.8px solid #1E1E1E',
+          backgroundColor: '#FFFFFF',
+          color: '#18181B',
+          fontWeight: 700,
+          fontSize: '0.84rem',
+          textDecoration: 'none',
+          boxShadow: '2px 2px 0px #1E1E1E',
+          transition: 'all 0.15s ease'
+        }}>
+          <ArrowLeft size={16} strokeWidth={2.4} />
+          Kembali ke Beranda
+        </Link>
+      </div>
+
 
         {/* Main Registration Card */}
         <div className="neo-card" style={{

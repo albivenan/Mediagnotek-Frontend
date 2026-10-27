@@ -252,37 +252,39 @@ export default function LoginPage() {
         zIndex: 10,
         transition: 'max-width 0.2s ease'
       }}>
-        {/* Top Back Navigation */}
-        <div>
-          <button
-            onClick={() => {
-              if (step === 'company_setup') {
-                setStep('google_input');
-              } else if (step === 'google_input') {
-                setStep('login');
-              } else {
-                router.push('/');
-              }
-            }}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '7px 14px',
-              borderRadius: '10px',
-              border: '1.8px solid #1E1E1E',
-              backgroundColor: '#FFFFFF',
-              color: '#18181B',
-              fontWeight: 700,
-              fontSize: '0.84rem',
-              cursor: 'pointer',
-              boxShadow: '1.5px 2px 0px #1E1E1E'
-            }}
-          >
-            <ArrowLeft size={15} strokeWidth={2.4} />
-            <span>
-              {step === 'company_setup'
-                ? 'Ganti Akun Google'
+      {/* Top Back Navigation (Fixed on screen) */}
+      <div style={{ position: 'fixed', top: '20px', left: '24px', zIndex: 100 }}>
+        <button
+          onClick={() => {
+            if (step === 'company_setup') {
+              setStep('google_input');
+            } else if (step === 'google_input') {
+              setStep('login');
+            } else {
+              router.push('/');
+            }
+          }}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 16px',
+            borderRadius: '12px',
+            border: '1.8px solid #1E1E1E',
+            backgroundColor: '#FFFFFF',
+            color: '#18181B',
+            fontWeight: 700,
+            fontSize: '0.84rem',
+            cursor: 'pointer',
+            boxShadow: '2px 2px 0px #1E1E1E',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          <ArrowLeft size={16} strokeWidth={2.4} />
+          <span>
+            {step === 'company_setup'
+              ? 'Ganti Akun Google'
+
                 : step === 'google_input'
                 ? 'Kembali ke Pilihan Login'
                 : 'Kembali ke Beranda'}

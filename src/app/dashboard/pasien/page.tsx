@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Users,
   Search,
@@ -10,10 +10,20 @@ import {
   Phone,
   Calendar,
   HeartPulse,
-  Pill,
-  Clock,
+  Eye,
+  Pencil,
+  Trash2,
+  ArrowLeft,
   X,
-  Check
+  Check,
+  Clock,
+  ShieldAlert,
+  UserCheck,
+  CreditCard,
+  Activity,
+  Stethoscope,
+  Filter,
+  RefreshCw
 } from 'lucide-react';
 import { Patient } from '@/lib/api';
 
@@ -28,7 +38,11 @@ const INITIAL_PATIENTS: Patient[] = [
     alamat: 'Jl. Merdeka No. 45, Bandung',
     alergi_obat: ['Amoxicillin', 'Penisilin'],
     catatan_medis: 'Pasien penderita Hipertensi tingkat 1, rutin kontrol bulanan.',
-    riwayat_penyakit: ['Hipertensi', 'Dislipidemia']
+    riwayat_penyakit: ['Hipertensi', 'Dislipidemia'],
+    waktu_kunjungan: '2026-10-27 10:15',
+    penyakit_diderita: 'Hipertensi Primer & Tengkuk Tegang',
+    status_pembelian: 'Lunas',
+    keterangan_pembelian: 'Lunas via QRIS / Kasir Apotek'
   },
   {
     id: 2,
@@ -40,7 +54,11 @@ const INITIAL_PATIENTS: Patient[] = [
     alamat: 'Jl. Dago Asri No. 12, Bandung',
     alergi_obat: ['Aspirin'],
     catatan_medis: 'Ibu hamil trimester 2. Hindari obat golongan NSAID berisiko.',
-    riwayat_penyakit: ['Gastritis Kronis']
+    riwayat_penyakit: ['Gastritis Kronis'],
+    waktu_kunjungan: '2026-10-27 11:45',
+    penyakit_diderita: 'Dispepsia & Mual Muntah Kehamilan',
+    status_pembelian: 'Belum Lunas',
+    keterangan_pembelian: 'Sisa tagihan resep Rp 68.000 (Tenggat pembayaran 30 Okt 2026)'
   },
   {
     id: 3,
@@ -52,7 +70,11 @@ const INITIAL_PATIENTS: Patient[] = [
     alamat: 'Komplek Antapani Indah Blok B4, Bandung',
     alergi_obat: [],
     catatan_medis: 'Diabetes Melitus tipe 2. Menggunakan Metformin teratur.',
-    riwayat_penyakit: ['Diabetes Melitus Tipe 2']
+    riwayat_penyakit: ['Diabetes Melitus Tipe 2'],
+    waktu_kunjungan: '2026-10-26 15:30',
+    penyakit_diderita: 'Diabetes Melitus Tipe 2 (Kontrol Rutin)',
+    status_pembelian: 'Lunas',
+    keterangan_pembelian: 'Lunas Tunai'
   },
   {
     id: 4,
@@ -64,15 +86,36 @@ const INITIAL_PATIENTS: Patient[] = [
     alamat: 'Jl. Cihampelas No. 102, Bandung',
     alergi_obat: ['Sulfa'],
     catatan_medis: 'Asma bronchial ringan saat terpapar alergen dingin.',
-    riwayat_penyakit: ['Asma']
+    riwayat_penyakit: ['Asma'],
+    waktu_kunjungan: '2026-09-25 09:20',
+    penyakit_diderita: 'Eksaserbasi Asma Akut Ringan',
+    status_pembelian: 'Belum Lunas',
+    keterangan_pembelian: 'Kekurangan bayar inhaler Rp 45.000 (Menunggu klaim asuransi faskes)'
   }
 ];
 
 export default function PasienPage() {
   const [patients, setPatients] = useState<Patient[]>(INITIAL_PATIENTS);
   const [search, setSearch] = useState('');
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(INITIAL_PATIENTS[0]);
-  const [showAddModal, setShowAddModal] = useState(false);
+  
+  // Default filter bulan ke bulan saat ini (YYYY-MM, misal: '2026-10')
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
+
+  const [currentView, setCurrentView] = useState<'list' | 'detail' | 'edit' | 'add'>('list');
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+
+  // Notification Toast State
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'danger' } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'danger' = 'success') => {
+    setNotification({ message, type });
+    setTimeout(() => {
+      setNotification(null);
+    }, 3500);
+  };
 
   // Form State
   const [formData, setFormData] = useState({
@@ -84,39 +127,61 @@ export default function PasienPage() {
     alamat: '',
     alergi_obat_raw: '',
     riwayat_penyakit_raw: '',
-    catatan_medis: ''
+    catatan_medis: '',
+    waktu_kunjungan: '',
+    penyakit_diderita: '',
+    status_pembelian: 'Lunas' as 'Lunas' | 'Belum Lunas',
+    keterangan_pembelian: ''
   });
 
-  const filteredPatients = patients.filter((p) =>
-    p.nama.toLowerCase().includes(search.toLowerCase()) ||
-    p.nik.includes(search) ||
-    p.telepon.includes(search)
-  );
+  // Load from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('mediagnotek_patients_data');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setPatients(parsed);
+          }
+        }
+      } catch (e) {
+        console.warn('Gagal membaca data pasien dari storage:', e);
+      }
+    }
+  }, []);
 
-  const handleAddPatient = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.nama) return;
+  // Save to localStorage helper
+  const updatePatientsList = (newList: Patient[]) => {
+    setPatients(newList);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('mediagnotek_patients_data', JSON.stringify(newList));
+    }
+  };
 
-    const newPatient: Patient = {
-      id: Date.now(),
-      nama: formData.nama,
-      nik: formData.nik || '-',
-      tanggal_lahir: formData.tanggal_lahir || '1990-01-01',
-      jenis_kelamin: formData.jenis_kelamin,
-      telepon: formData.telepon || '-',
-      alamat: formData.alamat || '-',
-      alergi_obat: formData.alergi_obat_raw
-        ? formData.alergi_obat_raw.split(',').map((s) => s.trim()).filter(Boolean)
-        : [],
-      riwayat_penyakit: formData.riwayat_penyakit_raw
-        ? formData.riwayat_penyakit_raw.split(',').map((s) => s.trim()).filter(Boolean)
-        : [],
-      catatan_medis: formData.catatan_medis
-    };
+  // Filter pencarian teks dan filter bulan kunjungan (default bulan saat ini)
+  const filteredPatients = patients.filter((p) => {
+    // Filter pencarian
+    const matchesSearch =
+      p.nama.toLowerCase().includes(search.toLowerCase()) ||
+      p.nik.includes(search) ||
+      p.telepon.includes(search) ||
+      p.alamat.toLowerCase().includes(search.toLowerCase()) ||
+      (p.penyakit_diderita && p.penyakit_diderita.toLowerCase().includes(search.toLowerCase()));
 
-    setPatients([newPatient, ...patients]);
-    setSelectedPatient(newPatient);
-    setShowAddModal(false);
+    // Filter bulan kunjungan
+    if (!matchesSearch) return false;
+    if (!selectedMonth) return true; // jika filter di-reset ke Semua Bulan
+
+    const visitTime = p.waktu_kunjungan || '';
+    return visitTime.startsWith(selectedMonth);
+  });
+
+  // Navigasi ke Halaman Tambah Pasien Baru (render halaman baru)
+  const handleOpenAddPage = () => {
+    const now = new Date();
+    const formattedNow = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    
     setFormData({
       nama: '',
       nik: '',
@@ -126,128 +191,476 @@ export default function PasienPage() {
       alamat: '',
       alergi_obat_raw: '',
       riwayat_penyakit_raw: '',
-      catatan_medis: ''
+      catatan_medis: '',
+      waktu_kunjungan: formattedNow,
+      penyakit_diderita: '',
+      status_pembelian: 'Lunas',
+      keterangan_pembelian: 'Lunas Tunai / QRIS Kasir'
     });
+    setCurrentView('add');
+  };
+
+  // Navigasi ke Halaman Edit Pasien (render halaman baru)
+  const handleOpenEditPage = (p: Patient) => {
+    setSelectedPatient(p);
+    setFormData({
+      nama: p.nama,
+      nik: p.nik === '-' ? '' : p.nik,
+      tanggal_lahir: p.tanggal_lahir,
+      jenis_kelamin: p.jenis_kelamin as 'L' | 'P',
+      telepon: p.telepon === '-' ? '' : p.telepon,
+      alamat: p.alamat === '-' ? '' : p.alamat,
+      alergi_obat_raw: (p.alergi_obat || []).join(', '),
+      riwayat_penyakit_raw: (p.riwayat_penyakit || []).join(', '),
+      catatan_medis: p.catatan_medis || '',
+      waktu_kunjungan: p.waktu_kunjungan || '2026-10-27 10:00',
+      penyakit_diderita: p.penyakit_diderita || '',
+      status_pembelian: p.status_pembelian || 'Lunas',
+      keterangan_pembelian: p.keterangan_pembelian || ''
+    });
+    setCurrentView('edit');
+  };
+
+  // Simpan Tambah Pasien Baru (dari Halaman Tambah Pasien)
+  const handleSaveNewPatient = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.nama.trim()) return;
+
+    const alergiList = formData.alergi_obat_raw
+      ? formData.alergi_obat_raw.split(',').map((s) => s.trim()).filter(Boolean)
+      : [];
+
+    const riwayatList = formData.riwayat_penyakit_raw
+      ? formData.riwayat_penyakit_raw.split(',').map((s) => s.trim()).filter(Boolean)
+      : [];
+
+    const newPatient: Patient = {
+      id: Date.now(),
+      nama: formData.nama.trim(),
+      nik: formData.nik.trim() || '-',
+      tanggal_lahir: formData.tanggal_lahir || '1990-01-01',
+      jenis_kelamin: formData.jenis_kelamin,
+      telepon: formData.telepon.trim() || '-',
+      alamat: formData.alamat.trim() || '-',
+      alergi_obat: alergiList,
+      riwayat_penyakit: riwayatList,
+      catatan_medis: formData.catatan_medis.trim(),
+      waktu_kunjungan: formData.waktu_kunjungan.trim() || '2026-10-27 10:00',
+      penyakit_diderita: formData.penyakit_diderita.trim() || 'Pemeriksaan Rutin Apotek',
+      status_pembelian: formData.status_pembelian,
+      keterangan_pembelian: formData.keterangan_pembelian.trim() || (formData.status_pembelian === 'Lunas' ? 'Lunas' : 'Belum Lunas')
+    };
+
+    updatePatientsList([newPatient, ...patients]);
+    setSelectedPatient(newPatient);
+    setCurrentView('detail');
+    showToast(`Data pasien "${newPatient.nama}" berhasil disimpan!`, 'success');
+  };
+
+  // Simpan Update Pasien (dari Halaman Edit)
+  const handleSaveEditPatient = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPatient || !formData.nama.trim()) return;
+
+    const alergiList = formData.alergi_obat_raw
+      ? formData.alergi_obat_raw.split(',').map((s) => s.trim()).filter(Boolean)
+      : [];
+
+    const riwayatList = formData.riwayat_penyakit_raw
+      ? formData.riwayat_penyakit_raw.split(',').map((s) => s.trim()).filter(Boolean)
+      : [];
+
+    const updatedPatient: Patient = {
+      ...selectedPatient,
+      nama: formData.nama.trim(),
+      nik: formData.nik.trim() || '-',
+      tanggal_lahir: formData.tanggal_lahir || '1990-01-01',
+      jenis_kelamin: formData.jenis_kelamin,
+      telepon: formData.telepon.trim() || '-',
+      alamat: formData.alamat.trim() || '-',
+      alergi_obat: alergiList,
+      riwayat_penyakit: riwayatList,
+      catatan_medis: formData.catatan_medis.trim(),
+      waktu_kunjungan: formData.waktu_kunjungan.trim() || selectedPatient.waktu_kunjungan || '2026-10-27 10:00',
+      penyakit_diderita: formData.penyakit_diderita.trim() || selectedPatient.penyakit_diderita || '-',
+      status_pembelian: formData.status_pembelian,
+      keterangan_pembelian: formData.keterangan_pembelian.trim()
+    };
+
+    const updatedList = patients.map((item) =>
+      item.id === selectedPatient.id ? updatedPatient : item
+    );
+
+    updatePatientsList(updatedList);
+    setSelectedPatient(updatedPatient);
+    setCurrentView('detail');
+    showToast(`Perubahan data pasien "${updatedPatient.nama}" berhasil disimpan!`, 'success');
+  };
+
+  // Hapus Pasien dengan Notifikasi
+  const handleDeletePatient = (patient: Patient) => {
+    if (window.confirm(`Hapus data pasien "${patient.nama}" dari basis data apotek?`)) {
+      const remaining = patients.filter((item) => item.id !== patient.id);
+      updatePatientsList(remaining);
+      setSelectedPatient(null);
+      setCurrentView('list');
+      showToast(`Data pasien "${patient.nama}" berhasil dihapus dari sistem!`, 'danger');
+    }
+  };
+
+  // Tampilkan Halaman Detail Pasien
+  const handleViewDetail = (patient: Patient) => {
+    setSelectedPatient(patient);
+    setCurrentView('detail');
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: '#18181B', letterSpacing: '-0.5px', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Users size={28} strokeWidth={2.2} style={{ color: '#18181B' }} />
-            Buku Induk & Rekam Pasien Apotek
-          </h1>
-          <p style={{ color: '#52525B', fontSize: '0.95rem' }}>
-            Database pasien apotek untuk skrining alergi obat, riwayat penebusan resep, dan konseling farmasi.
-          </p>
-        </div>
-
-        <button
-          onClick={() => setShowAddModal(true)}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '22px', position: 'relative' }}>
+      {/* Toast Notifikasi Tersimpan / Terhapus */}
+      {notification && (
+        <div
           style={{
+            position: 'fixed',
+            top: '28px',
+            right: '28px',
+            zIndex: 9999,
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
-            backgroundColor: '#FEF3D6',
-            border: '2px solid #1E1E1E',
-            padding: '10px 18px',
+            gap: '12px',
+            padding: '14px 20px',
             borderRadius: '12px',
-            fontWeight: 700,
-            fontSize: '0.9rem',
-            cursor: 'pointer',
-            boxShadow: '2.5px 2.5px 0px #1E1E1E'
+            border: '2px solid #1E1E1E',
+            backgroundColor: notification.type === 'success' ? '#DCFCE7' : '#FEE2E2',
+            color: notification.type === 'success' ? '#166534' : '#991B1B',
+            boxShadow: '4px 4px 0px #1E1E1E',
+            fontWeight: 800,
+            fontSize: '0.92rem',
+            animation: 'fadeIn 0.2s ease-in-out'
           }}
         >
-          <Plus size={18} strokeWidth={2.5} />
-          Tambah Pasien Baru
-        </button>
-      </div>
+          {notification.type === 'success' ? (
+            <Check size={20} strokeWidth={2.6} style={{ color: '#166534' }} />
+          ) : (
+            <AlertCircle size={20} strokeWidth={2.6} style={{ color: '#991B1B' }} />
+          )}
+          <span>{notification.message}</span>
+          <button
+            onClick={() => setNotification(null)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'inherit',
+              padding: '2px',
+              display: 'flex',
+              alignItems: 'center',
+              marginLeft: '6px'
+            }}
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
 
-      {/* Grid Content: Daftar Pasien & Detail Pasien */}
-      <div className="responsive-split-grid">
-        {/* Kolom Kiri: Search & List Pasien */}
-        <div className="neo-card" style={{ padding: '20px', backgroundColor: '#FFFFFF', boxShadow: '2.5px 3px 0px #1E1E1E' }}>
-          <div style={{ position: 'relative', marginBottom: '16px' }}>
-            <Search size={18} style={{ position: 'absolute', left: '12px', top: '12px', color: '#6B7280' }} />
-            <input
-              type="text"
-              placeholder="Cari pasien (Nama, NIK, No HP)..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="form-input-neo"
-              style={{ paddingLeft: '38px', width: '100%' }}
-            />
+      {/* ===================== VIEW 1: TABEL UTAMA PASIEN ===================== */}
+      {currentView === 'list' && (
+        <>
+          {/* Header & Action Button */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+            <div>
+              <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: '#18181B', letterSpacing: '-0.5px', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Users size={28} strokeWidth={2.2} style={{ color: '#18181B' }} />
+                Buku Induk & Rekam Pasien Apotek
+              </h1>
+              <p style={{ color: '#52525B', fontSize: '0.95rem' }}>
+                Database pasien apotek untuk skrining alergi obat, riwayat penebusan resep, dan konseling farmasi terpadu.
+              </p>
+            </div>
+
+            <button
+              onClick={handleOpenAddPage}
+              className="neo-btn-primary"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 18px',
+                fontSize: '0.9rem'
+              }}
+            >
+              <Plus size={18} strokeWidth={2.5} />
+              <span>Tambah Pasien Baru</span>
+            </button>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '560px', overflowY: 'auto', paddingRight: '4px' }}>
-            {filteredPatients.map((p) => {
-              const isSelected = selectedPatient?.id === p.id;
-              const hasAllergy = p.alergi_obat.length > 0;
+          {/* Quick Filter & Month Filter Bar */}
+          <div className="neo-card" style={{ padding: '16px 20px', backgroundColor: '#FFFFFF', boxShadow: '2.5px 3px 0px #1E1E1E' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+              {/* Search Bar */}
+              <div style={{ position: 'relative', flex: 1, minWidth: '260px' }}>
+                <Search size={18} style={{ position: 'absolute', left: '14px', top: '12px', color: '#6B7280' }} />
+                <input
+                  type="text"
+                  placeholder="Cari pasien (Nama, NIK, No Telepon, Keluhan, Alamat)..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="form-input-neo"
+                  style={{ paddingLeft: '40px', width: '100%', fontSize: '0.88rem' }}
+                />
+              </div>
 
-              return (
-                <div
-                  key={p.id}
-                  onClick={() => setSelectedPatient(p)}
+              {/* Filter Bulan Kunjungan (Default: Bulan Saat Ini) */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.84rem', fontWeight: 700, color: '#374151' }}>
+                  <Filter size={16} />
+                  <span>Bulan Kunjungan:</span>
+                </div>
+                <input
+                  type="month"
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="form-input-neo"
                   style={{
-                    padding: '14px',
-                    borderRadius: '12px',
-                    border: isSelected ? '2px solid #1E1E1E' : '1.5px solid #E5E7EB',
-                    backgroundColor: isSelected ? '#FEF3D6' : '#FFFFFF',
-                    boxShadow: isSelected ? '2px 2px 0px #1E1E1E' : 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease'
+                    padding: '6px 12px',
+                    fontSize: '0.84rem',
+                    fontWeight: 700,
+                    height: '38px',
+                    backgroundColor: '#FAF8F4'
                   }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                      <div style={{ fontWeight: 800, fontSize: '1rem', color: '#18181B' }}>
-                        {p.nama} <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#6B7280' }}>({p.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan'})</span>
-                      </div>
-                      <div style={{ fontSize: '0.8rem', color: '#6B7280', marginTop: '2px' }}>
-                        NIK: {p.nik} • {p.telepon}
-                      </div>
-                    </div>
+                />
+                {selectedMonth && (
+                  <button
+                    onClick={() => setSelectedMonth('')}
+                    title="Tampilkan Semua Bulan"
+                    className="neo-btn-secondary"
+                    style={{ padding: '6px 10px', fontSize: '0.78rem', height: '38px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    <RefreshCw size={12} />
+                    <span>Semua</span>
+                  </button>
+                )}
+              </div>
 
-                    {hasAllergy && (
-                      <span
-                        title={`Alergi: ${p.alergi_obat.join(', ')}`}
+              {/* Total Badge */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.82rem', color: '#6B7280', fontWeight: 700 }}>
+                <span style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  backgroundColor: '#FEF3D6',
+                  border: '1.2px solid #1E1E1E',
+                  color: '#18181B'
+                }}>
+                  {selectedMonth ? `Bulan ${selectedMonth}: ` : 'Total: '}
+                  <strong>{filteredPatients.length} Pasien</strong>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Tabel Utama Pasien Bersebelahan dengan Nomor & Aksi */}
+          <div className="neo-card" style={{ padding: '0px', backgroundColor: '#FFFFFF', overflow: 'hidden', boxShadow: '3px 3.5px 0px #1E1E1E' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.86rem' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#FAF8F4', borderBottom: '2px solid #1E1E1E' }}>
+                    <th style={{ padding: '14px 16px', fontWeight: 800, color: '#18181B', width: '60px', textAlign: 'center' }}>No</th>
+                    <th style={{ padding: '14px 16px', fontWeight: 800, color: '#18181B' }}>Nama Pasien</th>
+                    <th style={{ padding: '14px 16px', fontWeight: 800, color: '#18181B' }}>NIK & Gender</th>
+                    <th style={{ padding: '14px 16px', fontWeight: 800, color: '#18181B' }}>No Telepon</th>
+                    <th style={{ padding: '14px 16px', fontWeight: 800, color: '#18181B' }}>Alamat</th>
+                    <th style={{ padding: '14px 16px', fontWeight: 800, color: '#18181B' }}>Waktu Kunjungan</th>
+                    <th style={{ padding: '14px 16px', fontWeight: 800, color: '#18181B', textAlign: 'center', width: '110px' }}>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredPatients.map((p, idx) => {
+                    return (
+                      <tr
+                        key={p.id}
                         style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          backgroundColor: '#FEE2E2',
-                          color: '#991B1B',
-                          border: '1.2px solid #DC2626',
-                          fontSize: '0.7rem',
-                          fontWeight: 700,
-                          padding: '2px 6px',
-                          borderRadius: '6px'
+                          borderBottom: '1.5px solid #F3F4F6',
+                          backgroundColor: idx % 2 === 0 ? '#FFFFFF' : '#FDFCF9',
+                          transition: 'background 0.15s ease'
                         }}
                       >
-                        <AlertCircle size={12} />
-                        Alergi Obat
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+                        {/* 1. Nomor Urut */}
+                        <td style={{ padding: '14px 16px', textAlign: 'center', fontWeight: 800, color: '#18181B' }}>
+                          <span style={{
+                            display: 'inline-block',
+                            width: '26px',
+                            height: '26px',
+                            lineHeight: '24px',
+                            borderRadius: '6px',
+                            backgroundColor: '#FEF3D6',
+                            border: '1.2px solid #1E1E1E',
+                            fontSize: '0.78rem'
+                          }}>
+                            {idx + 1}
+                          </span>
+                        </td>
 
-            {filteredPatients.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '30px', color: '#6B7280', fontSize: '0.9rem' }}>
-                Tidak ada data pasien yang sesuai.
-              </div>
-            )}
+                        {/* 2. Nama Pasien */}
+                        <td style={{ padding: '14px 16px' }}>
+                          <div style={{ fontWeight: 800, fontSize: '0.94rem', color: '#18181B' }}>
+                            {p.nama}
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: '2px' }}>
+                            Lahir: {p.tanggal_lahir}
+                          </div>
+                        </td>
+
+                        {/* 3. NIK & Gender */}
+                        <td style={{ padding: '14px 16px' }}>
+                          <div style={{ fontWeight: 600, color: '#374151' }}>{p.nik}</div>
+                          <span style={{
+                            display: 'inline-block',
+                            marginTop: '3px',
+                            padding: '1px 7px',
+                            borderRadius: '4px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            backgroundColor: p.jenis_kelamin === 'L' ? '#DBEAFE' : '#FCE7F3',
+                            color: p.jenis_kelamin === 'L' ? '#1E40AF' : '#BE185D',
+                            border: '1px solid #1E1E1E'
+                          }}>
+                            {p.jenis_kelamin === 'L' ? 'Laki-Laki' : 'Perempuan'}
+                          </span>
+                        </td>
+
+                        {/* 4. Telepon */}
+                        <td style={{ padding: '14px 16px', color: '#374151', fontWeight: 600 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <Phone size={13} style={{ color: '#6B7280' }} />
+                            <span>{p.telepon}</span>
+                          </div>
+                        </td>
+
+                        {/* 5. Alamat */}
+                        <td style={{ padding: '14px 16px', maxWidth: '240px', color: '#4B5563', lineHeight: 1.4 }}>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                            {p.alamat}
+                          </span>
+                        </td>
+
+                        {/* 6. Waktu Kunjungan */}
+                        <td style={{ padding: '14px 16px' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: '#F3F4F6', border: '1.2px solid #1E1E1E', padding: '4px 10px', borderRadius: '7px', fontSize: '0.78rem', fontWeight: 700, color: '#1F2937' }}>
+                            <Clock size={13} style={{ color: '#4B5563' }} />
+                            <span>{p.waktu_kunjungan || '2026-10-27 10:00'}</span>
+                          </div>
+                        </td>
+
+                        {/* 7. Aksi (Hanya Detail) */}
+                        <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                          <button
+                            onClick={() => handleViewDetail(p)}
+                            title="Lihat Detail & Rekam Medis Pasien"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '7px 14px',
+                              borderRadius: '8px',
+                              border: '1.2px solid #1E1E1E',
+                              backgroundColor: '#E0E7FF',
+                              color: '#3730A3',
+                              fontWeight: 800,
+                              fontSize: '0.78rem',
+                              cursor: 'pointer',
+                              boxShadow: '1.5px 1.5px 0px #1E1E1E',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            <Eye size={14} strokeWidth={2.4} />
+                            <span>Detail</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+
+                  {filteredPatients.length === 0 && (
+                    <tr>
+                      <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: '#6B7280' }}>
+                        Tidak ada data pasien yang ditemukan. Coba ubah kata kunci pencarian.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        </>
+      )}
 
-        {/* Kolom Kanan: Detail Pasien Terpilih */}
-        {selectedPatient ? (
-          <div className="neo-card" style={{ padding: '24px', backgroundColor: '#FFFFFF', boxShadow: '2.5px 3px 0px #1E1E1E' }}>
-            {/* Header Profil */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1.8px solid #1E1E1E', paddingBottom: '16px', marginBottom: '20px' }}>
+      {/* ===================== VIEW 2: HALAMAN DETAIL PASIEN ===================== */}
+      {currentView === 'detail' && selectedPatient && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Header Navigasi Kembali */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
+            <button
+              onClick={() => setCurrentView('list')}
+              className="neo-btn-secondary"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                fontSize: '0.86rem',
+                fontWeight: 700
+              }}
+            >
+              <ArrowLeft size={16} strokeWidth={2.4} />
+              <span>Kembali ke Daftar Pasien</span>
+            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                onClick={() => handleOpenEditPage(selectedPatient)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 16px',
+                  borderRadius: '10px',
+                  border: '1.8px solid #1E1E1E',
+                  backgroundColor: '#FEF3D6',
+                  color: '#18181B',
+                  fontWeight: 800,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  boxShadow: '1.5px 1.5px 0px #1E1E1E'
+                }}
+              >
+                <Pencil size={15} strokeWidth={2.2} />
+                <span>Edit Pasien</span>
+              </button>
+              <button
+                onClick={() => handleDeletePatient(selectedPatient)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 16px',
+                  borderRadius: '10px',
+                  border: '1.8px solid #1E1E1E',
+                  backgroundColor: '#FEE2E2',
+                  color: '#991B1B',
+                  fontWeight: 800,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  boxShadow: '1.5px 1.5px 0px #1E1E1E'
+                }}
+              >
+                <Trash2 size={15} strokeWidth={2.2} />
+                <span>Hapus Pasien</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Kartu Profil Utama Pasien */}
+          <div className="neo-card" style={{ padding: '26px', backgroundColor: '#FFFFFF', boxShadow: '3px 4px 0px #1E1E1E' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1.8px solid #1E1E1E', paddingBottom: '18px', marginBottom: '22px' }}>
               <div>
                 <span style={{
                   display: 'inline-block',
@@ -255,201 +668,303 @@ export default function PasienPage() {
                   border: '1.2px solid #1E1E1E',
                   color: '#3730A3',
                   fontSize: '0.72rem',
-                  fontWeight: 700,
-                  padding: '2px 8px',
+                  fontWeight: 800,
+                  padding: '3px 9px',
                   borderRadius: '6px',
-                  marginBottom: '6px'
+                  marginBottom: '8px'
                 }}>
-                  ID PASIEN #{selectedPatient.id}
+                  REKAM MEDIS PASIEN #{selectedPatient.id}
                 </span>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#18181B' }}>
+                <h2 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#18181B', margin: 0 }}>
                   {selectedPatient.nama}
                 </h2>
-                <div style={{ display: 'flex', gap: '14px', marginTop: '4px', color: '#4B5563', fontSize: '0.85rem' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Calendar size={14} /> Lahir: {selectedPatient.tanggal_lahir}
+                <div style={{ display: 'flex', gap: '16px', marginTop: '6px', color: '#4B5563', fontSize: '0.88rem', flexWrap: 'wrap' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Calendar size={15} /> Tanggal Lahir: <strong>{selectedPatient.tanggal_lahir}</strong>
                   </span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Phone size={14} /> {selectedPatient.telepon}
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <UserCheck size={15} /> Gender: <strong>{selectedPatient.jenis_kelamin === 'L' ? 'Laki-Laki' : 'Perempuan'}</strong>
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Phone size={15} /> Kontak: <strong>{selectedPatient.telepon}</strong>
                   </span>
                 </div>
               </div>
 
               <div style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: '12px',
+                width: '50px',
+                height: '50px',
+                borderRadius: '14px',
                 backgroundColor: '#FEF3D6',
                 border: '1.8px solid #1E1E1E',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '1.5px 1.5px 0px #1E1E1E'
+                boxShadow: '2px 2px 0px #1E1E1E'
               }}>
-                <HeartPulse size={22} color="#1E1E1E" />
+                <HeartPulse size={26} color="#1E1E1E" />
               </div>
             </div>
 
-            {/* Warning Alergi Khusus Apoteker */}
+            {/* 1. Baris Informasi Kunjungan & Status Pembelian Obat */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+              {/* Kartu Informasi Waktu Kunjungan & Keluhan Utama */}
+              <div style={{
+                backgroundColor: '#EFF6FF',
+                border: '1.8px solid #1E1E1E',
+                borderRadius: '12px',
+                padding: '16px 18px',
+                boxShadow: '2px 2px 0px #1E1E1E'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, color: '#1E40AF', fontSize: '0.92rem', marginBottom: '8px' }}>
+                  <Clock size={18} />
+                  <span>Informasi Kunjungan & Keluhan</span>
+                </div>
+                <div style={{ fontSize: '0.88rem', color: '#1F2937', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div>
+                    <span style={{ color: '#4B5563', fontWeight: 600 }}>Waktu Kunjungan:</span>{' '}
+                    <strong style={{ color: '#1E3A8A' }}>{selectedPatient.waktu_kunjungan || '2026-10-27 10:00'}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#4B5563', fontWeight: 600 }}>Penyakit yang Diderita:</span>{' '}
+                    <span style={{
+                      display: 'inline-block',
+                      backgroundColor: '#FEF3D6',
+                      border: '1px solid #1E1E1E',
+                      color: '#92400E',
+                      padding: '2px 8px',
+                      borderRadius: '5px',
+                      fontWeight: 800,
+                      fontSize: '0.82rem'
+                    }}>
+                      {selectedPatient.penyakit_diderita || 'Pemeriksaan Rutin / Keluhan Umum'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Kartu Status Pembelian Obat & Keterangan */}
+              <div style={{
+                backgroundColor: selectedPatient.status_pembelian === 'Belum Lunas' ? '#FFFBEB' : '#F0FDF4',
+                border: selectedPatient.status_pembelian === 'Belum Lunas' ? '1.8px solid #D97706' : '1.8px solid #16A34A',
+                borderRadius: '12px',
+                padding: '16px 18px',
+                boxShadow: '2px 2px 0px #1E1E1E'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, color: selectedPatient.status_pembelian === 'Belum Lunas' ? '#92400E' : '#166534', fontSize: '0.92rem' }}>
+                    <CreditCard size={18} />
+                    <span>Status Pembelian Obat</span>
+                  </div>
+                  <span style={{
+                    padding: '3px 10px',
+                    borderRadius: '6px',
+                    fontSize: '0.78rem',
+                    fontWeight: 900,
+                    border: '1.2px solid #1E1E1E',
+                    backgroundColor: selectedPatient.status_pembelian === 'Belum Lunas' ? '#FEE2E2' : '#DCFCE7',
+                    color: selectedPatient.status_pembelian === 'Belum Lunas' ? '#991B1B' : '#166534'
+                  }}>
+                    {selectedPatient.status_pembelian === 'Belum Lunas' ? '⚠️ BELUM LUNAS' : '✓ LUNAS'}
+                  </span>
+                </div>
+
+                <div style={{ fontSize: '0.86rem', color: '#374151', lineHeight: 1.5 }}>
+                  {selectedPatient.status_pembelian === 'Belum Lunas' ? (
+                    <div style={{
+                      backgroundColor: '#FFFFFF',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1px dashed #DC2626',
+                      marginTop: '4px'
+                    }}>
+                      <strong style={{ color: '#DC2626', display: 'block', fontSize: '0.78rem', textTransform: 'uppercase' }}>Keterangan Penagihan:</strong>
+                      <span style={{ color: '#1F2937', fontWeight: 600 }}>
+                        {selectedPatient.keterangan_pembelian || 'Menunggu konfirmasi pelunasan kasir.'}
+                      </span>
+                    </div>
+                  ) : (
+                    <div style={{ color: '#166534', fontWeight: 600, marginTop: '4px' }}>
+                      Keterangan: {selectedPatient.keterangan_pembelian || 'Semua tagihan resep & non-resep telah dibayarkan penuh.'}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Peringatan Alergi Khusus Apoteker */}
             <div style={{
               backgroundColor: selectedPatient.alergi_obat.length > 0 ? '#FEF2F2' : '#F0FDF4',
               border: selectedPatient.alergi_obat.length > 0 ? '1.8px solid #DC2626' : '1.8px solid #16A34A',
               borderRadius: '12px',
-              padding: '14px 16px',
+              padding: '16px 18px',
               marginBottom: '20px',
               boxShadow: '2px 2px 0px #1E1E1E'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, color: selectedPatient.alergi_obat.length > 0 ? '#991B1B' : '#166534', fontSize: '0.9rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, color: selectedPatient.alergi_obat.length > 0 ? '#991B1B' : '#166534', fontSize: '0.92rem' }}>
                 <AlertCircle size={18} />
                 Peringatan Alergi Obat Pasien
               </div>
-              <div style={{ marginTop: '6px', fontSize: '0.88rem' }}>
+              <div style={{ marginTop: '8px' }}>
                 {selectedPatient.alergi_obat.length > 0 ? (
-                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                     {selectedPatient.alergi_obat.map((a, i) => (
-                      <span key={i} style={{ backgroundColor: '#EF4444', color: '#FFFFFF', padding: '3px 10px', borderRadius: '6px', fontWeight: 700, fontSize: '0.8rem' }}>
+                      <span key={i} style={{ backgroundColor: '#EF4444', color: '#FFFFFF', padding: '4px 12px', borderRadius: '6px', fontWeight: 700, fontSize: '0.82rem' }}>
                         ⚠️ {a}
                       </span>
                     ))}
                   </div>
                 ) : (
-                  <span style={{ color: '#166534', fontWeight: 600 }}>Pasien tidak memiliki riwayat alergi obat yang tercatat.</span>
+                  <span style={{ color: '#166534', fontWeight: 600, fontSize: '0.88rem' }}>
+                    Pasien tidak memiliki riwayat alergi obat yang tercatat.
+                  </span>
                 )}
               </div>
             </div>
 
-            {/* Riwayat Penyakit & Catatan */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-              <div style={{ padding: '14px', borderRadius: '10px', backgroundColor: '#FAF8F4', border: '1.5px solid #1E1E1E' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', marginBottom: '6px' }}>
-                  Riwayat Penyakit Kronis
+            {/* 3. Penyakit di Derita, Riwayat Penyakit & Alamat Lengkap */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+              <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: '#FAF8F4', border: '1.5px solid #1E1E1E' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#6B7280', textTransform: 'uppercase', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Activity size={14} /> Riwayat Penyakit Kronis & Terdahulu
                 </div>
                 {selectedPatient.riwayat_penyakit && selectedPatient.riwayat_penyakit.length > 0 ? (
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                     {selectedPatient.riwayat_penyakit.map((p, idx) => (
-                      <span key={idx} style={{ backgroundColor: '#DBEAFE', color: '#1E40AF', padding: '2px 8px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 700 }}>
+                      <span key={idx} style={{ backgroundColor: '#DBEAFE', color: '#1E40AF', padding: '4px 10px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 700, border: '1px solid #1E1E1E' }}>
                         {p}
                       </span>
                     ))}
                   </div>
                 ) : (
-                  <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>Tidak ada riwayat kronis</span>
+                  <span style={{ fontSize: '0.88rem', color: '#6B7280' }}>Tidak ada riwayat penyakit kronis tercatat.</span>
                 )}
               </div>
 
-              <div style={{ padding: '14px', borderRadius: '10px', backgroundColor: '#FAF8F4', border: '1.5px solid #1E1E1E' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', marginBottom: '6px' }}>
-                  Alamat Lengkap
+              <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: '#FAF8F4', border: '1.5px solid #1E1E1E' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#6B7280', textTransform: 'uppercase', marginBottom: '8px' }}>
+                  Alamat Lengkap & NIK
                 </div>
-                <div style={{ fontSize: '0.85rem', color: '#1F2937', lineHeight: 1.4 }}>
-                  {selectedPatient.alamat}
+                <div style={{ fontSize: '0.88rem', color: '#1F2937', lineHeight: 1.5 }}>
+                  <div><strong>NIK:</strong> {selectedPatient.nik}</div>
+                  <div style={{ marginTop: '4px' }}><strong>Alamat:</strong> {selectedPatient.alamat}</div>
                 </div>
               </div>
             </div>
 
-            {/* Catatan Medis & Edukasi Farmasi */}
-            <div style={{ padding: '14px', borderRadius: '10px', backgroundColor: '#F8FAFC', border: '1.5px solid #1E1E1E', marginBottom: '22px' }}>
-              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#4B5563', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <FileText size={15} /> Catatan Khusus Apoteker:
+            {/* Catatan Khusus Apoteker */}
+            <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: '#F8FAFC', border: '1.5px solid #1E1E1E', marginBottom: '24px' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#4B5563', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <FileText size={16} /> Catatan Khusus Apoteker & Kondisi Klinis:
               </div>
-              <p style={{ fontSize: '0.86rem', color: '#1F2937', margin: 0, lineHeight: 1.5 }}>
+              <p style={{ fontSize: '0.9rem', color: '#1F2937', margin: 0, lineHeight: 1.6 }}>
                 {selectedPatient.catatan_medis || 'Belum ada catatan khusus untuk pasien ini.'}
               </p>
             </div>
 
             {/* Riwayat Penebusan Obat Terakhir */}
             <div>
-              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#18181B', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Clock size={16} /> Riwayat Penebusan Obat Terakhir (Farmasi)
+              <div style={{ fontSize: '0.94rem', fontWeight: 800, color: '#18181B', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Clock size={16} /> Riwayat Penebusan Obat Terakhir (Farmasi & Resep)
               </div>
-              <div style={{ border: '1.5px solid #1E1E1E', borderRadius: '10px', overflow: 'hidden' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
+              <div style={{ border: '1.8px solid #1E1E1E', borderRadius: '12px', overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.86rem' }}>
                   <thead>
-                    <tr style={{ backgroundColor: '#FAF8F4', borderBottom: '1.5px solid #1E1E1E' }}>
-                      <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700 }}>Tanggal</th>
-                      <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700 }}>Nama Obat / Resep</th>
-                      <th style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 700 }}>Jml</th>
-                      <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700 }}>Signa (Aturan Pakai)</th>
+                    <tr style={{ backgroundColor: '#FAF8F4', borderBottom: '1.8px solid #1E1E1E' }}>
+                      <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 800 }}>Tanggal</th>
+                      <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 800 }}>Nama Obat / Resep</th>
+                      <th style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 800 }}>Kuantitas</th>
+                      <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 800 }}>Signa (Aturan Pakai)</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr style={{ borderBottom: '1px solid #E5E7EB' }}>
-                      <td style={{ padding: '10px 12px' }}>2026-10-18</td>
-                      <td style={{ padding: '10px 12px', fontWeight: 700 }}>Amlodipine Besylate 10mg</td>
-                      <td style={{ padding: '10px 12px', textAlign: 'center' }}>30 tab</td>
-                      <td style={{ padding: '10px 12px', color: '#4B5563' }}>1 x 1 tab malam hari sesudah makan</td>
+                      <td style={{ padding: '12px 14px', fontWeight: 600 }}>2026-10-18</td>
+                      <td style={{ padding: '12px 14px', fontWeight: 800 }}>Amlodipine Besylate 10mg</td>
+                      <td style={{ padding: '12px 14px', textAlign: 'center', fontWeight: 700 }}>30 tab</td>
+                      <td style={{ padding: '12px 14px', color: '#4B5563' }}>1 x 1 tab malam hari sesudah makan</td>
                     </tr>
                     <tr>
-                      <td style={{ padding: '10px 12px' }}>2026-09-20</td>
-                      <td style={{ padding: '10px 12px', fontWeight: 700 }}>Metformin HCl 500mg</td>
-                      <td style={{ padding: '10px 12px', textAlign: 'center' }}>60 tab</td>
-                      <td style={{ padding: '10px 12px', color: '#4B5563' }}>2 x 1 tab bersama makan</td>
+                      <td style={{ padding: '12px 14px', fontWeight: 600 }}>2026-09-20</td>
+                      <td style={{ padding: '12px 14px', fontWeight: 800 }}>Metformin HCl 500mg</td>
+                      <td style={{ padding: '12px 14px', textAlign: 'center', fontWeight: 700 }}>60 tab</td>
+                      <td style={{ padding: '12px 14px', color: '#4B5563' }}>2 x 1 tab bersama makan</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
             </div>
           </div>
-        ) : (
-          <div className="neo-card" style={{ padding: '40px', backgroundColor: '#FFFFFF', textAlign: 'center', color: '#6B7280' }}>
-            Pilih pasien dari daftar sebelah kiri untuk melihat rekam medis apotek.
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Modal Tambah Pasien */}
-      {showAddModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 100,
-          padding: '20px'
-        }}>
-          <div className="neo-card" style={{
-            backgroundColor: '#FFFFFF',
-            width: '100%',
-            maxWidth: '560px',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            padding: '26px',
-            boxShadow: '4px 4px 0px #1E1E1E'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', borderBottom: '1.8px solid #1E1E1E', paddingBottom: '12px' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>
-                Tambah Pasien Baru
+      {/* ===================== VIEW 3: HALAMAN EDIT PASIEN ===================== */}
+      {currentView === 'edit' && selectedPatient && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Header Navigasi Halaman Edit */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
+            <button
+              onClick={() => setCurrentView('detail')}
+              className="neo-btn-secondary"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                fontSize: '0.86rem',
+                fontWeight: 700
+              }}
+            >
+              <ArrowLeft size={16} strokeWidth={2.4} />
+              <span>Kembali ke Detail Pasien</span>
+            </button>
+
+            <span style={{
+              display: 'inline-block',
+              backgroundColor: '#FEF3D6',
+              border: '1.2px solid #1E1E1E',
+              color: '#92400E',
+              fontSize: '0.78rem',
+              fontWeight: 800,
+              padding: '5px 12px',
+              borderRadius: '8px'
+            }}>
+              Mode Edit: #{selectedPatient.id} - {selectedPatient.nama}
+            </span>
+          </div>
+
+          {/* Form Card Halaman Edit */}
+          <div className="neo-card" style={{ padding: '28px', backgroundColor: '#FFFFFF', boxShadow: '3px 4px 0px #1E1E1E' }}>
+            <div style={{ borderBottom: '1.8px solid #1E1E1E', paddingBottom: '16px', marginBottom: '22px' }}>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#18181B', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Pencil size={24} strokeWidth={2.4} />
+                <span>Edit Informasi Pasien</span>
               </h2>
-              <button
-                onClick={() => setShowAddModal(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
-              >
-                <X size={20} />
-              </button>
+              <p style={{ color: '#6B7280', fontSize: '0.88rem', marginTop: '6px', marginBottom: 0 }}>
+                Perbarui profil pasien, riwayat alergi obat, dan catatan penting untuk keamanan peresepan obat di apotek.
+              </p>
             </div>
 
-            <form onSubmit={handleAddPatient} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '4px' }}>
-                  Nama Lengkap Pasien *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Contoh: Budi Santoso"
-                  value={formData.nama}
-                  onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
-                  className="form-input-neo"
-                  style={{ width: '100%' }}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <form onSubmit={handleSaveEditPatient} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '4px' }}>
-                    NIK (KTP)
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
+                    Nama Lengkap Pasien *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: Budi Santoso"
+                    value={formData.nama}
+                    onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
+                    className="form-input-neo"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
+                    Nomor Induk Kependudukan (NIK)
                   </label>
                   <input
                     type="text"
@@ -460,25 +975,26 @@ export default function PasienPage() {
                     style={{ width: '100%' }}
                   />
                 </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '4px' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
                     Jenis Kelamin
                   </label>
                   <select
                     value={formData.jenis_kelamin}
                     onChange={(e) => setFormData({ ...formData, jenis_kelamin: e.target.value as 'L' | 'P' })}
                     className="form-input-neo"
-                    style={{ width: '100%' }}
+                    style={{ width: '100%', height: '44px' }}
                   >
-                    <option value="L">Laki-laki</option>
-                    <option value="P">Perempuan</option>
+                    <option value="L">Laki-laki (L)</option>
+                    <option value="P">Perempuan (P)</option>
                   </select>
                 </div>
-              </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '4px' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
                     Tanggal Lahir
                   </label>
                   <input
@@ -489,13 +1005,14 @@ export default function PasienPage() {
                     style={{ width: '100%' }}
                   />
                 </div>
+
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '4px' }}>
-                    Nomor WhatsApp / HP
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
+                    No Telepon / WhatsApp
                   </label>
                   <input
                     type="tel"
-                    placeholder="08xxxxxxxx"
+                    placeholder="0812xxxx"
                     value={formData.telepon}
                     onChange={(e) => setFormData({ ...formData, telepon: e.target.value })}
                     className="form-input-neo"
@@ -504,41 +1021,107 @@ export default function PasienPage() {
                 </div>
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '4px', color: '#DC2626' }}>
-                  ⚠️ Riwayat Alergi Obat (Pisahkan dengan koma)
-                </label>
-                <input
-                  type="text"
-                  placeholder="Contoh: Amoxicillin, Penisilin, Sulfa"
-                  value={formData.alergi_obat_raw}
-                  onChange={(e) => setFormData({ ...formData, alergi_obat_raw: e.target.value })}
-                  className="form-input-neo"
-                  style={{ width: '100%', borderColor: '#DC2626' }}
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#B91C1C' }}>
+                    ⚠️ Peringatan Alergi Obat (Pisahkan dengan koma)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Amoxicillin, Aspirin, Sulfa"
+                    value={formData.alergi_obat_raw}
+                    onChange={(e) => setFormData({ ...formData, alergi_obat_raw: e.target.value })}
+                    className="form-input-neo"
+                    style={{ width: '100%', borderColor: '#FCA5A5' }}
+                  />
+                  <small style={{ color: '#6B7280', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                    Data alergi obat akan menjadi trigger skrining interaksi & kontraindikasi di kasir.
+                  </small>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#92400E' }}>
+                    Riwayat Penyakit Kronis (Pisahkan dengan koma)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Hipertensi, Diabetes Melitus, Asma"
+                    value={formData.riwayat_penyakit_raw}
+                    onChange={(e) => setFormData({ ...formData, riwayat_penyakit_raw: e.target.value })}
+                    className="form-input-neo"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#1E40AF' }}>
+                    Waktu Kunjungan Pasien
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="YYYY-MM-DD HH:mm (Contoh: 2026-10-27 10:15)"
+                    value={formData.waktu_kunjungan}
+                    onChange={(e) => setFormData({ ...formData, waktu_kunjungan: e.target.value })}
+                    className="form-input-neo"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#1E40AF' }}>
+                    Penyakit yang Diderita (Keluhan / Diagnosis Utama)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Hipertensi Primer, Sakit Kepala, Dispepsia"
+                    value={formData.penyakit_diderita}
+                    onChange={(e) => setFormData({ ...formData, penyakit_diderita: e.target.value })}
+                    className="form-input-neo"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
+                    Status Pembelian Obat
+                  </label>
+                  <select
+                    value={formData.status_pembelian}
+                    onChange={(e) => setFormData({ ...formData, status_pembelian: e.target.value as 'Lunas' | 'Belum Lunas' })}
+                    className="form-input-neo"
+                    style={{ width: '100%', height: '44px' }}
+                  >
+                    <option value="Lunas">Lunas (Selesai Pembayaran)</option>
+                    <option value="Belum Lunas">Belum Lunas (Ada Tagihan / Menunggu Pembayaran)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
+                    Keterangan Pembelian Obat {formData.status_pembelian === 'Belum Lunas' && <span style={{ color: '#DC2626' }}>*</span>}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Sisa tagihan Rp 45.000 (Tenggat 30 Okt 2026) / Lunas Kasir"
+                    value={formData.keterangan_pembelian}
+                    onChange={(e) => setFormData({ ...formData, keterangan_pembelian: e.target.value })}
+                    className="form-input-neo"
+                    style={{ width: '100%', borderColor: formData.status_pembelian === 'Belum Lunas' ? '#FCA5A5' : undefined }}
+                  />
+                </div>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '4px' }}>
-                  Riwayat Penyakit Kronis (Pisahkan dengan koma)
-                </label>
-                <input
-                  type="text"
-                  placeholder="Contoh: Hipertensi, Diabetes Melitus, Asma"
-                  value={formData.riwayat_penyakit_raw}
-                  onChange={(e) => setFormData({ ...formData, riwayat_penyakit_raw: e.target.value })}
-                  className="form-input-neo"
-                  style={{ width: '100%' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
                   Alamat Lengkap
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="Jl. / RT / RW / Kelurahan / Kota"
+                  placeholder="Jl. / RT / RW / Kelurahan / Kecamatan / Kota"
                   value={formData.alamat}
                   onChange={(e) => setFormData({ ...formData, alamat: e.target.value })}
                   className="form-input-neo"
@@ -547,12 +1130,12 @@ export default function PasienPage() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '4px' }}>
-                  Catatan Tambahan Apoteker
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
+                  Catatan Klinis & Rekomendasi Farmasi
                 </label>
                 <textarea
-                  rows={2}
-                  placeholder="Kondisi khusus, hamil/menyusui, toleransi dosis, dsb."
+                  rows={3}
+                  placeholder="Instruksi penggunaan obat, kondisi khusus (hamil/menyusui), toleransi dosis, dsb."
                   value={formData.catatan_medis}
                   onChange={(e) => setFormData({ ...formData, catatan_medis: e.target.value })}
                   className="form-input-neo"
@@ -560,34 +1143,290 @@ export default function PasienPage() {
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '10px', paddingTop: '16px', borderTop: '1.5px solid #E5E7EB' }}>
                 <button
                   type="button"
-                  onClick={() => setShowAddModal(false)}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: '10px',
-                    border: '1.5px solid #1E1E1E',
-                    background: '#FFFFFF',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
+                  onClick={() => setCurrentView('detail')}
+                  className="neo-btn-secondary"
+                  style={{ padding: '10px 20px', fontSize: '0.88rem' }}
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  style={{
-                    padding: '8px 20px',
-                    borderRadius: '10px',
-                    border: '1.8px solid #1E1E1E',
-                    backgroundColor: '#FEF3D6',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    boxShadow: '2px 2px 0px #1E1E1E'
-                  }}
+                  className="neo-btn-primary"
+                  style={{ padding: '10px 24px', fontSize: '0.88rem' }}
                 >
-                  Simpan Pasien
+                  Simpan Perubahan Data
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== VIEW 4: HALAMAN TAMBAH PASIEN BARU ===================== */}
+      {currentView === 'add' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Header Navigasi Halaman Tambah */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
+            <button
+              onClick={() => setCurrentView('list')}
+              className="neo-btn-secondary"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                fontSize: '0.86rem',
+                fontWeight: 700
+              }}
+            >
+              <ArrowLeft size={16} strokeWidth={2.4} />
+              <span>Kembali ke Daftar Pasien</span>
+            </button>
+
+            <span style={{
+              display: 'inline-block',
+              backgroundColor: '#DCFCE7',
+              border: '1.2px solid #1E1E1E',
+              color: '#166534',
+              fontSize: '0.78rem',
+              fontWeight: 800,
+              padding: '5px 12px',
+              borderRadius: '8px'
+            }}>
+              Registrasi Pasien Baru
+            </span>
+          </div>
+
+          {/* Form Card Halaman Tambah Pasien */}
+          <div className="neo-card" style={{ padding: '28px', backgroundColor: '#FFFFFF', boxShadow: '3px 4px 0px #1E1E1E' }}>
+            <div style={{ borderBottom: '1.8px solid #1E1E1E', paddingBottom: '16px', marginBottom: '22px' }}>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#18181B', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Plus size={24} strokeWidth={2.4} />
+                <span>Pendaftaran Pasien Baru Apotek</span>
+              </h2>
+              <p style={{ color: '#6B7280', fontSize: '0.88rem', marginTop: '6px', marginBottom: 0 }}>
+                Lengkapi identitas pasien, riwayat alergi obat, riwayat penyakit kronis, dan status pembayaran resep untuk rekam medis farmasi.
+              </p>
+            </div>
+
+            <form onSubmit={handleSaveNewPatient} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
+                    Nama Lengkap Pasien *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: Budi Santoso"
+                    value={formData.nama}
+                    onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
+                    className="form-input-neo"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
+                    Nomor Induk Kependudukan (NIK)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="16 digit NIK"
+                    value={formData.nik}
+                    onChange={(e) => setFormData({ ...formData, nik: e.target.value })}
+                    className="form-input-neo"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
+                    Jenis Kelamin
+                  </label>
+                  <select
+                    value={formData.jenis_kelamin}
+                    onChange={(e) => setFormData({ ...formData, jenis_kelamin: e.target.value as 'L' | 'P' })}
+                    className="form-input-neo"
+                    style={{ width: '100%', height: '44px' }}
+                  >
+                    <option value="L">Laki-laki (L)</option>
+                    <option value="P">Perempuan (P)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
+                    Tanggal Lahir
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.tanggal_lahir}
+                    onChange={(e) => setFormData({ ...formData, tanggal_lahir: e.target.value })}
+                    className="form-input-neo"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
+                    No Telepon / WhatsApp
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="0812xxxx"
+                    value={formData.telepon}
+                    onChange={(e) => setFormData({ ...formData, telepon: e.target.value })}
+                    className="form-input-neo"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#B91C1C' }}>
+                    ⚠️ Peringatan Alergi Obat (Pisahkan dengan koma)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Amoxicillin, Aspirin, Sulfa"
+                    value={formData.alergi_obat_raw}
+                    onChange={(e) => setFormData({ ...formData, alergi_obat_raw: e.target.value })}
+                    className="form-input-neo"
+                    style={{ width: '100%', borderColor: '#FCA5A5' }}
+                  />
+                  <small style={{ color: '#6B7280', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                    Data alergi obat akan menjadi trigger skrining interaksi & kontraindikasi di kasir.
+                  </small>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#92400E' }}>
+                    Riwayat Penyakit Kronis (Pisahkan dengan koma)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Hipertensi, Diabetes Melitus, Asma"
+                    value={formData.riwayat_penyakit_raw}
+                    onChange={(e) => setFormData({ ...formData, riwayat_penyakit_raw: e.target.value })}
+                    className="form-input-neo"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#1E40AF' }}>
+                    Waktu Kunjungan Pasien
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="YYYY-MM-DD HH:mm (Contoh: 2026-10-27 10:15)"
+                    value={formData.waktu_kunjungan}
+                    onChange={(e) => setFormData({ ...formData, waktu_kunjungan: e.target.value })}
+                    className="form-input-neo"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#1E40AF' }}>
+                    Penyakit yang Diderita (Keluhan / Diagnosis Utama)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Hipertensi Primer, Sakit Kepala, Dispepsia"
+                    value={formData.penyakit_diderita}
+                    onChange={(e) => setFormData({ ...formData, penyakit_diderita: e.target.value })}
+                    className="form-input-neo"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
+                    Status Pembelian Obat
+                  </label>
+                  <select
+                    value={formData.status_pembelian}
+                    onChange={(e) => setFormData({ ...formData, status_pembelian: e.target.value as 'Lunas' | 'Belum Lunas' })}
+                    className="form-input-neo"
+                    style={{ width: '100%', height: '44px' }}
+                  >
+                    <option value="Lunas">Lunas (Selesai Pembayaran)</option>
+                    <option value="Belum Lunas">Belum Lunas (Ada Tagihan / Menunggu Pembayaran)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
+                    Keterangan Pembelian Obat {formData.status_pembelian === 'Belum Lunas' && <span style={{ color: '#DC2626' }}>*</span>}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Sisa tagihan Rp 45.000 (Tenggat 30 Okt 2026) / Lunas Kasir"
+                    value={formData.keterangan_pembelian}
+                    onChange={(e) => setFormData({ ...formData, keterangan_pembelian: e.target.value })}
+                    className="form-input-neo"
+                    style={{ width: '100%', borderColor: formData.status_pembelian === 'Belum Lunas' ? '#FCA5A5' : undefined }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
+                  Alamat Lengkap
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Jl. / RT / RW / Kelurahan / Kecamatan / Kota"
+                  value={formData.alamat}
+                  onChange={(e) => setFormData({ ...formData, alamat: e.target.value })}
+                  className="form-input-neo"
+                  style={{ width: '100%', resize: 'none' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
+                  Catatan Klinis & Rekomendasi Farmasi
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Instruksi penggunaan obat, kondisi khusus (hamil/menyusui), toleransi dosis, dsb."
+                  value={formData.catatan_medis}
+                  onChange={(e) => setFormData({ ...formData, catatan_medis: e.target.value })}
+                  className="form-input-neo"
+                  style={{ width: '100%', resize: 'none' }}
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '10px', paddingTop: '16px', borderTop: '1.5px solid #E5E7EB' }}>
+                <button
+                  type="button"
+                  onClick={() => setCurrentView('list')}
+                  className="neo-btn-secondary"
+                  style={{ padding: '10px 20px', fontSize: '0.88rem' }}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="neo-btn-primary"
+                  style={{ padding: '10px 24px', fontSize: '0.88rem' }}
+                >
+                  Simpan Pasien Baru
                 </button>
               </div>
             </form>

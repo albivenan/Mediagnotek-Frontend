@@ -70,6 +70,10 @@ export interface Patient {
   alergi_obat: string[];
   catatan_medis?: string;
   riwayat_penyakit?: string[];
+  waktu_kunjungan?: string; // misal: '2026-10-27 14:30'
+  penyakit_diderita?: string; // Diagnosis / keluhan saat ini, misal: 'Hipertensi Primer, Sakit Kepala'
+  status_pembelian?: 'Lunas' | 'Belum Lunas';
+  keterangan_pembelian?: string; // misal: 'Sisa tagihan Rp 45.000 (Tenggat 30 Okt 2026)'
 }
 
 export interface MedicineStock {
