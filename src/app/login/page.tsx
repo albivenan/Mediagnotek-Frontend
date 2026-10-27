@@ -93,7 +93,8 @@ export default function LoginPage() {
           alamat_lengkap: alamatLengkap,
           kota: kota,
           provinsi: provinsi
-        }
+        },
+        created_at: new Date().toISOString()
       }));
     }
   };

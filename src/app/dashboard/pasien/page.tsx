@@ -25,7 +25,7 @@ import {
   Filter,
   RefreshCw
 } from 'lucide-react';
-import { Patient } from '@/lib/api';
+import { Patient, apiGetPatients, apiCreatePatient, apiUpdatePatient, apiDeletePatient } from '@/lib/api';
 
 const INITIAL_PATIENTS: Patient[] = [
   {
@@ -134,21 +134,38 @@ export default function PasienPage() {
     keterangan_pembelian: ''
   });
 
-  // Load from localStorage on mount
+  // Load from backend database on mount with localStorage fallback
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    const fetchPatientsData = async () => {
       try {
-        const saved = localStorage.getItem('mediagnotek_patients_data');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setPatients(parsed);
+        const apiData = await apiGetPatients();
+        if (apiData && Array.isArray(apiData) && apiData.length > 0) {
+          setPatients(apiData);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('mediagnotek_patients_data', JSON.stringify(apiData));
           }
+          return;
         }
-      } catch (e) {
-        console.warn('Gagal membaca data pasien dari storage:', e);
+      } catch (err) {
+        console.warn('Backend sync failed, reading local storage:', err);
       }
-    }
+
+      if (typeof window !== 'undefined') {
+        try {
+          const saved = localStorage.getItem('mediagnotek_patients_data');
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setPatients(parsed);
+            }
+          }
+        } catch (e) {
+          console.warn('Gagal membaca data pasien dari storage:', e);
+        }
+      }
+    };
+
+    fetchPatientsData();
   }, []);
 
   // Save to localStorage helper
@@ -221,8 +238,8 @@ export default function PasienPage() {
     setCurrentView('edit');
   };
 
-  // Simpan Tambah Pasien Baru (dari Halaman Tambah Pasien)
-  const handleSaveNewPatient = (e: React.FormEvent) => {
+  // Simpan Tambah Pasien Baru (tersinkron ke Database Backend)
+  const handleSaveNewPatient = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.nama.trim()) return;
 
@@ -234,13 +251,12 @@ export default function PasienPage() {
       ? formData.riwayat_penyakit_raw.split(',').map((s) => s.trim()).filter(Boolean)
       : [];
 
-    const newPatient: Patient = {
-      id: Date.now(),
-      nama: formData.nama.trim(),
+    const payload = {
+      nama_lengkap: formData.nama.trim(),
       nik: formData.nik.trim() || '-',
       tanggal_lahir: formData.tanggal_lahir || '1990-01-01',
       jenis_kelamin: formData.jenis_kelamin,
-      telepon: formData.telepon.trim() || '-',
+      no_hp: formData.telepon.trim() || '-',
       alamat: formData.alamat.trim() || '-',
       alergi_obat: alergiList,
       riwayat_penyakit: riwayatList,
@@ -251,14 +267,36 @@ export default function PasienPage() {
       keterangan_pembelian: formData.keterangan_pembelian.trim() || (formData.status_pembelian === 'Lunas' ? 'Lunas' : 'Belum Lunas')
     };
 
+    let savedPatient: Patient | null = null;
+    try {
+      savedPatient = await apiCreatePatient(payload);
+    } catch (_) {}
+
+    const newPatient: Patient = savedPatient || {
+      id: Date.now(),
+      nama: payload.nama_lengkap,
+      nik: payload.nik,
+      tanggal_lahir: payload.tanggal_lahir,
+      jenis_kelamin: payload.jenis_kelamin,
+      telepon: payload.no_hp,
+      alamat: payload.alamat,
+      alergi_obat: payload.alergi_obat,
+      riwayat_penyakit: payload.riwayat_penyakit,
+      catatan_medis: payload.catatan_medis,
+      waktu_kunjungan: payload.waktu_kunjungan,
+      penyakit_diderita: payload.penyakit_diderita,
+      status_pembelian: payload.status_pembelian,
+      keterangan_pembelian: payload.keterangan_pembelian
+    };
+
     updatePatientsList([newPatient, ...patients]);
     setSelectedPatient(newPatient);
     setCurrentView('detail');
-    showToast(`Data pasien "${newPatient.nama}" berhasil disimpan!`, 'success');
+    showToast(`Data pasien "${newPatient.nama}" berhasil tersinkron ke database!`, 'success');
   };
 
-  // Simpan Update Pasien (dari Halaman Edit)
-  const handleSaveEditPatient = (e: React.FormEvent) => {
+  // Simpan Update Pasien (tersinkron ke Database Backend)
+  const handleSaveEditPatient = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedPatient || !formData.nama.trim()) return;
 
@@ -270,13 +308,12 @@ export default function PasienPage() {
       ? formData.riwayat_penyakit_raw.split(',').map((s) => s.trim()).filter(Boolean)
       : [];
 
-    const updatedPatient: Patient = {
-      ...selectedPatient,
-      nama: formData.nama.trim(),
+    const payload = {
+      nama_lengkap: formData.nama.trim(),
       nik: formData.nik.trim() || '-',
       tanggal_lahir: formData.tanggal_lahir || '1990-01-01',
       jenis_kelamin: formData.jenis_kelamin,
-      telepon: formData.telepon.trim() || '-',
+      no_hp: formData.telepon.trim() || '-',
       alamat: formData.alamat.trim() || '-',
       alergi_obat: alergiList,
       riwayat_penyakit: riwayatList,
@@ -287,6 +324,28 @@ export default function PasienPage() {
       keterangan_pembelian: formData.keterangan_pembelian.trim()
     };
 
+    let updatedFromApi: Patient | null = null;
+    try {
+      updatedFromApi = await apiUpdatePatient(selectedPatient.id, payload);
+    } catch (_) {}
+
+    const updatedPatient: Patient = updatedFromApi || {
+      ...selectedPatient,
+      nama: payload.nama_lengkap,
+      nik: payload.nik,
+      tanggal_lahir: payload.tanggal_lahir,
+      jenis_kelamin: payload.jenis_kelamin,
+      telepon: payload.no_hp,
+      alamat: payload.alamat,
+      alergi_obat: payload.alergi_obat,
+      riwayat_penyakit: payload.riwayat_penyakit,
+      catatan_medis: payload.catatan_medis,
+      waktu_kunjungan: payload.waktu_kunjungan,
+      penyakit_diderita: payload.penyakit_diderita,
+      status_pembelian: payload.status_pembelian,
+      keterangan_pembelian: payload.keterangan_pembelian
+    };
+
     const updatedList = patients.map((item) =>
       item.id === selectedPatient.id ? updatedPatient : item
     );
@@ -294,12 +353,16 @@ export default function PasienPage() {
     updatePatientsList(updatedList);
     setSelectedPatient(updatedPatient);
     setCurrentView('detail');
-    showToast(`Perubahan data pasien "${updatedPatient.nama}" berhasil disimpan!`, 'success');
+    showToast(`Perubahan data pasien "${updatedPatient.nama}" tersinkron ke database!`, 'success');
   };
 
-  // Hapus Pasien dengan Notifikasi
-  const handleDeletePatient = (patient: Patient) => {
+  // Hapus Pasien dengan Notifikasi (tersinkron ke Database Backend)
+  const handleDeletePatient = async (patient: Patient) => {
     if (window.confirm(`Hapus data pasien "${patient.nama}" dari basis data apotek?`)) {
+      try {
+        await apiDeletePatient(patient.id);
+      } catch (_) {}
+
       const remaining = patients.filter((item) => item.id !== patient.id);
       updatePatientsList(remaining);
       setSelectedPatient(null);

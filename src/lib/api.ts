@@ -375,3 +375,122 @@ export async function apiSendAiChatMessage(payload: AIChatPayload): Promise<AICh
   return null;
 }
 
+// ==================== PATIENTS API (DATABASE SYNC) ====================
+export async function apiGetPatients(search?: string): Promise<Patient[] | null> {
+  try {
+    const query = new URLSearchParams();
+    if (search) query.append('search', search);
+    const res = await fetch(`${API_BASE_URL}/patients?${query.toString()}`);
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (error) {
+    console.warn('Backend GET /patients unreachable, falling back to local:', error);
+  }
+  return null;
+}
+
+export async function apiCreatePatient(payload: any): Promise<Patient | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/patients`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (error) {
+    console.warn('Backend POST /patients unreachable:', error);
+  }
+  return null;
+}
+
+export async function apiUpdatePatient(patientId: number, payload: any): Promise<Patient | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/patients/${patientId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (error) {
+    console.warn(`Backend PUT /patients/${patientId} unreachable:`, error);
+  }
+  return null;
+}
+
+export async function apiDeletePatient(patientId: number): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/patients/${patientId}`, {
+      method: 'DELETE',
+    });
+    return res.ok;
+  } catch (error) {
+    console.warn(`Backend DELETE /patients/${patientId} unreachable:`, error);
+    return false;
+  }
+}
+
+// ==================== BATCH STOCKS API (DATABASE SYNC) ====================
+export async function apiGetStocks(search?: string): Promise<MedicineStock[] | null> {
+  try {
+    const query = new URLSearchParams();
+    if (search) query.append('search', search);
+    const res = await fetch(`${API_BASE_URL}/batches?${query.toString()}`);
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (error) {
+    console.warn('Backend GET /batches unreachable, falling back to local:', error);
+  }
+  return null;
+}
+
+export async function apiCreateStock(payload: any): Promise<MedicineStock | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/batches`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (error) {
+    console.warn('Backend POST /batches unreachable:', error);
+  }
+  return null;
+}
+
+export async function apiUpdateStock(batchId: number, payload: any): Promise<MedicineStock | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/batches/${batchId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (error) {
+    console.warn(`Backend PUT /batches/${batchId} unreachable:`, error);
+  }
+  return null;
+}
+
+export async function apiDeleteStock(batchId: number): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/batches/${batchId}`, {
+      method: 'DELETE',
+    });
+    return res.ok;
+  } catch (error) {
+    console.warn(`Backend DELETE /batches/${batchId} unreachable:`, error);
+    return false;
+  }
+}
+
+

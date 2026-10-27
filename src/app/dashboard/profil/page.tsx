@@ -125,12 +125,15 @@ export default function ProfilePage() {
         } catch (_) {}
       }
 
-      const finalProfile = loadedProfile || DEFAULT_PROFILE;
+      const finalProfile = loadedProfile || { ...DEFAULT_PROFILE };
       if (userObj?.name && finalProfile.faskes_profile) {
         finalProfile.faskes_profile.penanggung_jawab = userObj.name;
       }
       if (userObj?.email) {
         finalProfile.email = userObj.email;
+      }
+      if (!finalProfile.created_at || isNaN(new Date(finalProfile.created_at).getTime())) {
+        finalProfile.created_at = userObj?.login_time || DEFAULT_PROFILE.created_at || new Date().toISOString();
       }
 
       setProfileData(finalProfile);
@@ -538,7 +541,21 @@ export default function ProfilePage() {
               <div style={{ padding: '14px', backgroundColor: '#FAF8F4', borderRadius: '12px', border: '1.2px solid #E5E7EB' }}>
                 <span style={{ fontSize: '0.75rem', color: '#6B7280', fontWeight: 700, display: 'block' }}>TANGGAL TERDAFTAR DI SISTEM</span>
                 <span style={{ fontSize: '0.94rem', fontWeight: 800, color: '#18181B' }}>
-                  {new Date(profileData.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  {(() => {
+                    const rawDate = profileData.created_at;
+                    const d = rawDate ? new Date(rawDate) : new Date('2026-01-15T08:30:00');
+                    const validDate = isNaN(d.getTime()) ? new Date('2026-01-15T08:30:00') : d;
+                    return validDate.toLocaleDateString('id-ID', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric'
+                    }) + ' pukul ' + validDate.toLocaleTimeString('id-ID', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                      hour12: false
+                    }).replace(/\./g, ':') + ' WIB';
+                  })()}
                 </span>
               </div>
 
