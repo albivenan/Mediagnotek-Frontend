@@ -627,6 +627,58 @@ export default function DashboardLayout({
         >
           {children}
         </main>
+
+        {/* Dashboard Unified Neo-Brutalist Footer */}
+        <footer
+          style={{
+            backgroundColor: '#FFFFFF',
+            borderTop: '1.8px solid #1E1E1E',
+            padding: '16px 28px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+            fontSize: '0.82rem',
+            color: '#4B5563',
+            marginTop: 'auto'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <img
+              src="/logo-mediagnotek.png"
+              alt="MediagnoTek Logo"
+              style={{
+                width: '22px',
+                height: '22px',
+                objectFit: 'contain'
+              }}
+            />
+            <strong style={{ color: '#18181B', fontWeight: 800 }}>MediagnoTek Pharmacy OS</strong>
+            <span style={{ color: '#9CA3AF' }}>—</span>
+            <span>Versi Beta 1.0</span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              padding: '2px 8px',
+              borderRadius: '6px',
+              backgroundColor: '#FEF3D6',
+              border: '1px solid #1E1E1E',
+              color: '#92400E',
+              fontWeight: 700,
+              fontSize: '0.75rem'
+            }}>
+              ● Faskes: {faskesName || 'Apotek Sehat Farma'}
+            </span>
+            <span style={{ color: '#6B7280' }}>
+              Hak Cipta © {new Date().getFullYear()} MediagnoTek. All Rights Reserved.
+            </span>
+          </div>
+        </footer>
       </div>
 
       {/* ===================== POPUP PEMBERITAHUAN MODE BETA ===================== */}

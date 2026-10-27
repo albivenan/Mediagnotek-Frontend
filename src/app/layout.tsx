@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'MediagnoTek - Sistem Cerdas Berbasis Deep Learning & AI dengan Panduan Klinis untuk Faskes',
-  description: 'MediagnoTek adalah sistem cerdas berbasis deep learning dan kecerdasan buatan (AI) dengan panduan klinis terstandarisasi untuk fasilitas kesehatan (faskes).',
+  title: 'MediagnoTek - Sistem Cerdas Berbasis Kecerdasan Buatan & AI dengan Panduan Klinis untuk Faskes',
+  description: 'MediagnoTek adalah sistem cerdas berbasis kecerdasan buatan (AI) dengan panduan klinis terstandarisasi untuk fasilitas kesehatan (faskes).',
   icons: {
     icon: [
       { url: '/logo-mediagnotek.png', type: 'image/png' },

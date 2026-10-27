@@ -146,7 +146,7 @@ export default function HomePage() {
               VERSI BETA 1.0
             </span>
             <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#18181B' }}>
-              Sistem Cerdas Berbasis Deep Learning & AI Klinis
+              Sistem Cerdas Faskes dengan Bantuan AI Klinis
             </span>
           </div>
 
@@ -160,7 +160,7 @@ export default function HomePage() {
             maxWidth: '960px',
             margin: '0 auto 18px auto'
           }}>
-            Sistem Cerdas Berbasis Deep Learning & AI dengan Panduan Klinis untuk Fasilitas Kesehatan
+            Sistem Cerdas Berbasis <i><u>Artificial Intelligence</u></i> (AI) dengan Panduan Klinis untuk Fasilitas Kesehatan
           </h1>
 
           {/* Subtitle */}
@@ -171,7 +171,7 @@ export default function HomePage() {
             maxWidth: '780px',
             margin: '0 auto 30px auto'
           }}>
-            <strong>MediagnoTek</strong> adalah sistem cerdas berbasis deep learning dan kecerdasan buatan (AI) yang dirancang dengan panduan klinis terstandarisasi untuk fasilitas kesehatan (faskes) termasuk administrasi data keuangan dan pasien.
+            <strong>MediagnoTek</strong> adalah sistem cerdas berbasis kecerdasan buatan (AI) yang dirancang dengan panduan klinis terstandarisasi untuk fasilitas kesehatan (faskes) termasuk administrasi data keuangan dan pasien.
           </p>
 
           {/* Action CTA Buttons */}
@@ -1033,47 +1033,39 @@ export default function HomePage() {
           flexWrap: 'wrap',
           gap: '20px'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{
-              width: '30px',
-              height: '30px',
-              borderRadius: '8px',
-              backgroundColor: '#FEF3D6',
-              border: '1.5px solid #1E1E1E',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '1px 1px 0px #1E1E1E'
-            }}>
-              <span style={{ fontSize: '0.82rem', fontWeight: 900 }}>M</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <img
+              src="/logo-mediagnotek.png"
+              alt="MediagnoTek Logo"
+              style={{
+                width: '34px',
+                height: '34px',
+                objectFit: 'contain',
+                flexShrink: 0
+              }}
+            />
+            <div>
+              <span style={{ fontWeight: 900, fontSize: '0.98rem', color: '#18181B', letterSpacing: '-0.3px', display: 'block', lineHeight: 1.2 }}>
+                MediagnoTek
+              </span>
+              <span style={{ color: '#6B7280', fontSize: '0.78rem' }}>
+                Sistem Operasional Apotek & AI Klinis — Hak Cipta © {new Date().getFullYear()}
+              </span>
             </div>
-            <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#18181B' }}>
-              MediagnoTek Pharmacy OS
-            </span>
-            <span style={{ color: '#9CA3AF', fontSize: '0.82rem' }}>— Hak Cipta © {new Date().getFullYear()}</span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
-            <Link href="/dashboard/kasir" style={{ color: '#4B5563', fontSize: '0.86rem', textDecoration: 'none', fontWeight: 600 }}>
-              Kasir Resep
-            </Link>
-            <Link href="/dashboard/stok" style={{ color: '#4B5563', fontSize: '0.86rem', textDecoration: 'none', fontWeight: 600 }}>
-              Stok FEFO
-            </Link>
-            <Link href="/dashboard/pasien" style={{ color: '#4B5563', fontSize: '0.86rem', textDecoration: 'none', fontWeight: 600 }}>
-              Buku Pasien
-            </Link>
-            <Link href="/dashboard/ai-analisa" style={{ color: '#4B5563', fontSize: '0.86rem', textDecoration: 'none', fontWeight: 600 }}>
-              Asisten AI
-            </Link>
-            <Link href="/dashboard/penyakit" style={{ color: '#4B5563', fontSize: '0.86rem', textDecoration: 'none', fontWeight: 600 }}>
-              Katalog Penyakit
-            </Link>
-            <Link href="/dashboard/keuangan" style={{ color: '#4B5563', fontSize: '0.86rem', textDecoration: 'none', fontWeight: 600 }}>
-              Keuangan
-            </Link>
-            <Link href="/dashboard" style={{ color: '#18181B', fontSize: '0.86rem', textDecoration: 'none', fontWeight: 800 }}>
-              Dashboard →
+          <div style={{ display: 'flex', alignItems: 'center', gap: '22px', flexWrap: 'wrap' }}>
+            <a href="#fitur" style={{ color: '#4B5563', fontSize: '0.86rem', textDecoration: 'none', fontWeight: 600 }}>
+              Fitur Utama
+            </a>
+            <a href="#alur" style={{ color: '#4B5563', fontSize: '0.86rem', textDecoration: 'none', fontWeight: 600 }}>
+              Alur Pelayanan
+            </a>
+            <a href="#keunggulan" style={{ color: '#4B5563', fontSize: '0.86rem', textDecoration: 'none', fontWeight: 600 }}>
+              Keunggulan
+            </a>
+            <Link href="/login" style={{ color: '#18181B', fontSize: '0.86rem', textDecoration: 'none', fontWeight: 800 }}>
+              Masuk Akun →
             </Link>
           </div>
         </div>
