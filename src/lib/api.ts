@@ -1,6 +1,4 @@
-// API Client Helper for MediagnoTek FastAPI Backend
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://mediagnotek-backend.vercel.app/api/v1';
 
 export interface Disease {
   id: number;
@@ -253,7 +251,7 @@ export async function apiLogin(email: string, password: string) {
     return { success: true, ...data };
   } catch (error: any) {
     console.error('Backend Login API error:', error);
-    return { success: false, error: 'Tidak dapat terhubung ke server backend (port 8001).' };
+    return { success: false, error: 'Tidak dapat terhubung ke server backend. Pastikan server aktif dan koneksi internet stabil.' };
   }
 }
 
@@ -284,7 +282,7 @@ export async function apiRegister(payload: {
     return { success: true, ...data };
   } catch (error: any) {
     console.error('Backend Register API error:', error);
-    return { success: false, error: 'Tidak dapat terhubung ke server backend (port 8001).' };
+    return { success: false, error: 'Tidak dapat terhubung ke server backend. Pastikan server aktif dan koneksi internet stabil.' };
   }
 }
 

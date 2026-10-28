@@ -28,7 +28,8 @@ import {
   HelpCircle,
   X,
   ShieldCheck,
-  Info
+  Info,
+  Activity
 } from 'lucide-react';
 import { apiGetCurrentUser } from '@/lib/api';
 
@@ -233,6 +234,7 @@ export default function DashboardLayout({
       title: 'Klinis & Konseling AI',
       items: [
         { label: 'Asisten AI Apoteker', href: '/dashboard/ai-analisa', icon: Bot },
+        { label: 'Atlas Anatomi 3D', href: '/dashboard/anatomi', icon: Activity, badge: 'Three.js', badgeColor: '#38BDF8' },
         { label: 'Katalog Penyakit', href: '/dashboard/penyakit', icon: Dna },
       ]
     },
