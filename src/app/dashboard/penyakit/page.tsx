@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Dna, Search, Database, RefreshCw, CheckCircle2, ChevronLeft, ChevronRight, Loader2, Pill } from 'lucide-react';
+import Link from 'next/link';
+import { Dna, Search, Database, RefreshCw, CheckCircle2, ChevronLeft, ChevronRight, Loader2, Pill, ArrowRight } from 'lucide-react';
 import { getDiseases, getDiseaseDetail, Disease } from '@/lib/api';
 
 const mockDiseases: Disease[] = [
@@ -219,13 +220,27 @@ export default function NamaPenyakitPage() {
                 </p>
               </div>
 
-              <button
-                onClick={() => handleViewDetail(disease)}
+              <Link
+                href={`/dashboard/penyakit/${disease.id}`}
                 className="neo-btn-secondary"
-                style={{ width: '100%', padding: '10px', fontSize: '0.88rem', marginTop: '12px', borderRadius: '12px' }}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  fontSize: '0.88rem',
+                  marginTop: '12px',
+                  borderRadius: '12px',
+                  textDecoration: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  fontWeight: 800,
+                  boxSizing: 'border-box'
+                }}
               >
-                Lihat Rincian Patologi & Terapi →
-              </button>
+                <span>Lihat Rincian Patologi & Terapi</span>
+                <ArrowRight size={15} />
+              </Link>
             </div>
           ))}
         </div>

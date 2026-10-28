@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Pill, Search, Database, RefreshCw, CheckCircle2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Pill, Search, Database, RefreshCw, CheckCircle2, ChevronLeft, ChevronRight, Loader2, ArrowRight } from 'lucide-react';
 import { getDrugs, getDrugDetail, Drug } from '@/lib/api';
 
 const mockDrugs: Drug[] = [
@@ -263,13 +265,27 @@ export default function KatalogObatPage() {
                 )}
               </div>
 
-              <button
-                onClick={() => handleViewDetail(drug)}
+              <Link
+                href={`/dashboard/obat/${drug.id}`}
                 className="neo-btn-secondary"
-                style={{ width: '100%', padding: '10px', fontSize: '0.88rem', marginTop: '12px', borderRadius: '12px' }}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  fontSize: '0.88rem',
+                  marginTop: '12px',
+                  borderRadius: '12px',
+                  textDecoration: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  fontWeight: 800,
+                  boxSizing: 'border-box'
+                }}
               >
-                Lihat Detail & Indikasi Medis →
-              </button>
+                <span>Lihat Detail Farmakologi</span>
+                <ArrowRight size={15} />
+              </Link>
             </div>
           ))}
         </div>
