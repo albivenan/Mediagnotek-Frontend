@@ -28,6 +28,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { apiGetTransactions } from '@/lib/api';
+import { getFaskesProfileSync } from '@/lib/pharmacy-store';
 
 interface FinancialRecord {
   id: string;
@@ -283,8 +284,24 @@ export default function KeuanganPage() {
       return;
     }
 
+    const currentProfile = getFaskesProfileSync();
+    const fp = currentProfile.faskes_profile;
+    const rawFaskesName = fp?.nama_faskes?.trim() || 'Fasilitas Kesehatan';
+    const cleanFaskesFile = rawFaskesName.replace(/[^a-zA-Z0-9_-]/g, '_');
     const todayStr = new Date().toISOString().slice(0, 10);
-    const filename = `Laporan_Keuangan_Apotek_Mediagnotek_${todayStr}.xls`;
+    const filename = `Laporan_Keuangan_${cleanFaskesFile}_${todayStr}.xls`;
+
+    const faskesLegal = [
+      fp?.nomor_izin_operasional ? `SIA/SIPA: ${fp.nomor_izin_operasional}` : '',
+      fp?.penanggung_jawab ? `PJ/APA: ${fp.penanggung_jawab}` : '',
+      fp?.nomor_telepon ? `Telp: ${fp.nomor_telepon}` : ''
+    ].filter(Boolean).join(' • ');
+
+    const faskesAddress = [
+      fp?.alamat_lengkap,
+      fp?.kota,
+      fp?.provinsi
+    ].filter(Boolean).join(', ');
 
     // Buat format XML/HTML Spreadsheet yang langsung dikenali Excel sebagai spreadsheet asli berkolom & ber-style
     const excelContent = `
@@ -349,8 +366,16 @@ export default function KeuanganPage() {
       <body>
         <table>
           <tr>
-            <td colspan="11" class="title-header">LAPORAN KEUANGAN & PROFIT APOTEK MEDIAGNOTEK</td>
+            <td colspan="11" class="title-header">LAPORAN KEUANGAN & PROFIT ${rawFaskesName.toUpperCase()}</td>
           </tr>
+          ${faskesLegal ? `
+          <tr>
+            <td colspan="11" class="sub-header">${faskesLegal}</td>
+          </tr>` : ''}
+          ${faskesAddress ? `
+          <tr>
+            <td colspan="11" class="sub-header">${faskesAddress}</td>
+          </tr>` : ''}
           <tr>
             <td colspan="11" class="sub-header">Tanggal Ekspor: ${new Date().toLocaleString('id-ID')} | Total Transaksi: ${filteredRecords.length} Nota</td>
           </tr>
