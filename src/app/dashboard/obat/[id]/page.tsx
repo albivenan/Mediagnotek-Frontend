@@ -199,12 +199,12 @@ export default function DetailObatPage() {
               backgroundColor: '#FAF8F4',
               border: '1.6px solid #1E1E1E',
               borderRadius: '12px',
-              padding: '18px 20px',
-              lineHeight: 1.65,
-              fontSize: '0.94rem',
-              color: '#334155'
+              padding: '20px 24px',
+              lineHeight: 1.7,
+              fontSize: '1.04rem',
+              color: '#1E293B'
             }}>
-              <strong style={{ display: 'block', fontSize: '0.86rem', color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+              <strong style={{ display: 'block', fontSize: '0.90rem', color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
                 Deskripsi Farmakologi Klinis:
               </strong>
               {drug.deskripsi || 'Tidak tersedia deskripsi naratif untuk sediaan obat ini.'}
@@ -218,15 +218,15 @@ export default function DetailObatPage() {
               backgroundColor: '#FFFFFF',
               border: '1.8px solid #1E1E1E',
               borderRadius: '14px',
-              padding: '22px',
+              padding: '24px',
               boxShadow: '3px 4px 0px #1E1E1E',
               display: 'flex',
               flexDirection: 'column',
-              gap: '12px'
+              gap: '14px'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#15803D' }}>
-                <FileText size={20} strokeWidth={2.4} />
-                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#0F172A' }}>
+                <FileText size={22} strokeWidth={2.4} />
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: '#0F172A' }}>
                   Panduan Dosis & Pemakaian
                 </h3>
               </div>
@@ -234,10 +234,10 @@ export default function DetailObatPage() {
                 backgroundColor: '#DCFCE7',
                 border: '1.4px solid #1E1E1E',
                 borderRadius: '10px',
-                padding: '14px 16px',
+                padding: '16px 18px',
                 color: '#14532D',
-                fontSize: '0.90rem',
-                lineHeight: 1.65,
+                fontSize: '0.98rem',
+                lineHeight: 1.7,
                 fontWeight: 600
               }}>
                 {drug.dosis || drug.dosis_standar || 'Dosis harus disesuaikan berdasarkan resep dan instruksi spesifik dokter yang merawat.'}
@@ -249,15 +249,15 @@ export default function DetailObatPage() {
               backgroundColor: '#FFFFFF',
               border: '1.8px solid #1E1E1E',
               borderRadius: '14px',
-              padding: '22px',
+              padding: '24px',
               boxShadow: '3px 4px 0px #1E1E1E',
               display: 'flex',
               flexDirection: 'column',
-              gap: '12px'
+              gap: '14px'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#DC2626' }}>
-                <ShieldAlert size={20} strokeWidth={2.4} />
-                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#0F172A' }}>
+                <ShieldAlert size={22} strokeWidth={2.4} />
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: '#0F172A' }}>
                   Peringatan & Kontraindikasi
                 </h3>
               </div>
@@ -265,10 +265,10 @@ export default function DetailObatPage() {
                 backgroundColor: '#FEE2E2',
                 border: '1.4px solid #1E1E1E',
                 borderRadius: '10px',
-                padding: '14px 16px',
+                padding: '16px 18px',
                 color: '#7F1D1D',
-                fontSize: '0.90rem',
-                lineHeight: 1.65,
+                fontSize: '0.98rem',
+                lineHeight: 1.7,
                 fontWeight: 600
               }}>
                 {drug.peringatan || 'Perhatikan riwayat hipersensitivitas, gangguan fungsi hati/ginjal, dan kehamilan sebelum penggunaan obat.'}
@@ -282,15 +282,15 @@ export default function DetailObatPage() {
               backgroundColor: '#FFFFFF',
               border: '1.8px solid #1E1E1E',
               borderRadius: '14px',
-              padding: '22px',
+              padding: '24px',
               boxShadow: '3px 4px 0px #1E1E1E',
               display: 'flex',
               flexDirection: 'column',
-              gap: '10px'
+              gap: '12px'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#D97706' }}>
-                <AlertCircle size={20} strokeWidth={2.4} />
-                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#0F172A' }}>
+                <AlertCircle size={22} strokeWidth={2.4} />
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: '#0F172A' }}>
                   Efek Samping Yang Mungkin Terjadi
                 </h3>
               </div>
@@ -298,10 +298,10 @@ export default function DetailObatPage() {
                 backgroundColor: '#FEF3C7',
                 border: '1.4px solid #1E1E1E',
                 borderRadius: '10px',
-                padding: '14px 16px',
+                padding: '16px 18px',
                 color: '#78350F',
-                fontSize: '0.90rem',
-                lineHeight: 1.65
+                fontSize: '0.98rem',
+                lineHeight: 1.7
               }}>
                 {drug.efek_samping}
               </div>

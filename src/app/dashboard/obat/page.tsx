@@ -223,10 +223,10 @@ export default function KatalogObatPage() {
             >
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', gap: '8px', flexWrap: 'wrap' }}>
-                  <span className="tag-yellow" style={{ fontSize: '0.78rem' }}>
-                    {drug.merek_dagang || drug.kategori || 'Obat Medis'}
+                  <span className="tag-yellow" style={{ fontSize: '0.80rem', fontWeight: 800 }}>
+                    {drug.kategori || (drug.merek_dagang && drug.merek_dagang !== drug.nama ? `Merek: ${drug.merek_dagang}` : 'Sediaan Farmasi')}
                   </span>
-                  <span className="tag-cyan" style={{ fontSize: '0.78rem' }}>
+                  <span className="tag-cyan" style={{ fontSize: '0.78rem', fontWeight: 800 }}>
                     ID: #{drug.id}
                   </span>
                 </div>
