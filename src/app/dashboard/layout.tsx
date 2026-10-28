@@ -29,7 +29,8 @@ import {
   X,
   ShieldCheck,
   Info,
-  Activity
+  Activity,
+  Newspaper
 } from 'lucide-react';
 import { apiGetCurrentUser } from '@/lib/api';
 
@@ -246,8 +247,9 @@ export default function DashboardLayout({
       ]
     },
     {
-      title: 'Bantuan & SOP',
+      title: 'Bantuan & Informasi',
       items: [
+        { label: 'Warta & Berita RI', href: '/dashboard/berita', icon: Newspaper, badge: 'Live', badgeColor: '#10B981' },
         { label: 'Petunjuk & Alur', href: '/dashboard/petunjuk', icon: HelpCircle },
       ]
     }
