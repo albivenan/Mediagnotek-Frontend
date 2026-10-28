@@ -12,7 +12,10 @@ import {
   Filter,
   AlertCircle,
   Share2,
-  Bookmark
+  Bookmark,
+  ChevronLeft,
+  ChevronRight,
+  User
 } from 'lucide-react';
 
 interface Article {
@@ -30,12 +33,12 @@ interface Article {
 }
 
 const CATEGORIES = [
-  { id: 'all', label: 'Semua Berita' },
-  { id: 'health', label: 'Kesehatan & Medis' },
-  { id: 'science', label: 'Sains & Farmasi' },
-  { id: 'technology', label: 'Teknologi' },
-  { id: 'general', label: 'Umum & Nasional' },
-  { id: 'business', label: 'Bisnis & Ekonomi' }
+  { id: 'all', label: 'Semua Warta Medis' },
+  { id: 'pharmacy', label: 'Obat & Farmasi' },
+  { id: 'disease', label: 'Penyakit & Epidemi' },
+  { id: 'hospital', label: 'Rumah Sakit & Klinis' },
+  { id: 'policy', label: 'Kemenkes & BPJS' },
+  { id: 'tech', label: 'Teknologi Medis' }
 ];
 
 export default function BeritaPage() {
@@ -45,15 +48,19 @@ export default function BeritaPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [activeSearch, setActiveSearch] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalResults, setTotalResults] = useState<number>(0);
+  const pageSize = 10;
 
-  const fetchNews = async (cat: string, query: string) => {
+  const fetchNews = async (cat: string, query: string, pageNum: number = 1) => {
     setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams();
       if (cat && cat !== 'all') params.append('category', cat);
       if (query.trim()) params.append('q', query.trim());
+      params.append('page', pageNum.toString());
+      params.append('pageSize', pageSize.toString());
 
       const res = await fetch(`/api/news?${params.toString()}`);
       const data = await res.json();
@@ -68,7 +75,9 @@ export default function BeritaPage() {
       );
 
       setArticles(validArticles);
-      setTotalResults(validArticles.length);
+      // NewsAPI membatasi developer free tier hingga 100 berita total
+      const totalCount = Math.min(data.totalResults || 0, 100);
+      setTotalResults(totalCount);
     } catch (err: any) {
       setError(err.message || 'Gagal memuat berita. Periksa koneksi internet Anda.');
     } finally {
@@ -77,8 +86,16 @@ export default function BeritaPage() {
   };
 
   useEffect(() => {
-    fetchNews(selectedCategory, activeSearch);
+    setCurrentPage(1);
+    fetchNews(selectedCategory, activeSearch, 1);
   }, [selectedCategory, activeSearch]);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1) return;
+    setCurrentPage(newPage);
+    fetchNews(selectedCategory, activeSearch, newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,14 +140,14 @@ export default function BeritaPage() {
             borderRadius: '8px',
             marginBottom: '8px'
           }}>
-            <Globe size={14} /> LIVE NEWS STREAM • INDONESIA NEWSAPI
+            <Globe size={14} /> LIVE NEWS STREAM • INDONESIA HEALTH & MEDICAL NEWSAPI
           </span>
           <h1 style={{ fontSize: '1.85rem', fontWeight: 900, color: '#18181B', letterSpacing: '-0.5px', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Newspaper size={28} strokeWidth={2.4} color="#18181B" />
-            Warta & Kabar Terkini Indonesia
+            Warta Kesehatan & Medis Indonesia
           </h1>
           <p style={{ color: '#52525B', fontSize: '0.92rem', marginTop: '4px' }}>
-            Portal sindikasi berita nasional, kabar kesehatan medis, teknologi kefarmasian, dan kebijakan regulasi terkini.
+            Portal sindikasi berita eksklusif seputar dunia kesehatan, kebijakan Kemenkes & BPJS, perkembangan farmasi obat, dan riset medis terkini di Indonesia.
           </p>
         </div>
 
@@ -424,18 +441,25 @@ export default function BeritaPage() {
                 gap: '12px'
               }}>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#64748B', fontSize: '0.72rem', fontWeight: 700, marginBottom: '8px' }}>
-                    <Clock size={12} />
-                    <span>{formatDate(item.publishedAt)}</span>
-                    {item.author && <span>• Oleh {item.author.slice(0, 24)}</span>}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#64748B', fontSize: '0.78rem', fontWeight: 700 }}>
+                      <Clock size={14} />
+                      <span>{formatDate(item.publishedAt)}</span>
+                    </div>
+                    {item.author && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#334155', fontSize: '0.80rem', fontWeight: 700 }}>
+                        <User size={14} color="#0284C7" />
+                        <span>Penulis: <strong style={{ color: '#0F172A' }}>{item.author.length > 38 ? item.author.slice(0, 38) + '...' : item.author}</strong></span>
+                      </div>
+                    )}
                   </div>
 
                   <h3 style={{
-                    margin: '0 0 8px 0',
-                    fontSize: '0.98rem',
+                    margin: '0 0 10px 0',
+                    fontSize: '1.08rem',
                     fontWeight: 900,
                     color: '#0F172A',
-                    lineHeight: 1.45,
+                    lineHeight: 1.5,
                     display: '-webkit-box',
                     WebkitLineClamp: 3,
                     WebkitBoxOrient: 'vertical',
@@ -446,9 +470,9 @@ export default function BeritaPage() {
 
                   <p style={{
                     margin: 0,
-                    fontSize: '0.84rem',
+                    fontSize: '0.92rem',
                     color: '#475569',
-                    lineHeight: 1.6,
+                    lineHeight: 1.65,
                     display: '-webkit-box',
                     WebkitLineClamp: 3,
                     WebkitBoxOrient: 'vertical',
@@ -461,7 +485,7 @@ export default function BeritaPage() {
                 {/* Footer Kartu Berita */}
                 <div style={{
                   borderTop: '1.2px dashed #E2E8F0',
-                  paddingTop: '12px',
+                  paddingTop: '14px',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center'
@@ -475,7 +499,7 @@ export default function BeritaPage() {
                       alignItems: 'center',
                       gap: '6px',
                       color: '#0284C7',
-                      fontSize: '0.80rem',
+                      fontSize: '0.86rem',
                       fontWeight: 800,
                       textDecoration: 'none'
                     }}
@@ -514,6 +538,103 @@ export default function BeritaPage() {
               </div>
             </article>
           ))}
+        </div>
+      )}
+
+      {/* Pagination Controls (10 Berita per Halaman) */}
+      {!loading && !error && articles.length > 0 && (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px',
+          padding: '16px 20px',
+          backgroundColor: '#FFFFFF',
+          border: '1.8px solid #1E1E1E',
+          borderRadius: '12px',
+          boxShadow: '3px 3px 0px #1E1E1E',
+          marginTop: '8px'
+        }}>
+          <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>
+            Halaman <strong style={{ color: '#0F172A' }}>{currentPage}</strong> dari{' '}
+            <strong style={{ color: '#0F172A' }}>{Math.max(1, Math.ceil(totalResults / pageSize))}</strong>{' '}
+            (Menampilkan {articles.length} dari {totalResults} warta)
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage <= 1 || loading}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 14px',
+                borderRadius: '8px',
+                border: '1.6px solid #1E1E1E',
+                backgroundColor: currentPage <= 1 ? '#F1F5F9' : '#FFFFFF',
+                color: currentPage <= 1 ? '#94A3B8' : '#0F172A',
+                fontSize: '0.80rem',
+                fontWeight: 800,
+                cursor: currentPage <= 1 ? 'not-allowed' : 'pointer',
+                boxShadow: currentPage <= 1 ? 'none' : '1.5px 1.5px 0px #1E1E1E',
+                transition: 'all 0.1s ease'
+              }}
+            >
+              <ChevronLeft size={16} />
+              Sebelumnya
+            </button>
+
+            {/* Quick Page Indicator */}
+            {Array.from({ length: Math.min(5, Math.ceil(totalResults / pageSize)) }, (_, i) => i + 1).map((pageNum) => {
+              const isCurrent = pageNum === currentPage;
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => handlePageChange(pageNum)}
+                  disabled={loading}
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '8px',
+                    border: '1.6px solid #1E1E1E',
+                    backgroundColor: isCurrent ? '#0284C7' : '#FFFFFF',
+                    color: isCurrent ? '#FFFFFF' : '#0F172A',
+                    fontSize: '0.82rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    boxShadow: isCurrent ? '1.5px 1.5px 0px #1E1E1E' : 'none'
+                  }}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage >= Math.ceil(totalResults / pageSize) || loading}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 14px',
+                borderRadius: '8px',
+                border: '1.6px solid #1E1E1E',
+                backgroundColor: currentPage >= Math.ceil(totalResults / pageSize) ? '#F1F5F9' : '#FFFFFF',
+                color: currentPage >= Math.ceil(totalResults / pageSize) ? '#94A3B8' : '#0F172A',
+                fontSize: '0.80rem',
+                fontWeight: 800,
+                cursor: currentPage >= Math.ceil(totalResults / pageSize) ? 'not-allowed' : 'pointer',
+                boxShadow: currentPage >= Math.ceil(totalResults / pageSize) ? 'none' : '1.5px 1.5px 0px #1E1E1E',
+                transition: 'all 0.1s ease'
+              }}
+            >
+              Selanjutnya
+              <ChevronRight size={16} />
+            </button>
+          </div>
         </div>
       )}
     </div>

@@ -6,28 +6,37 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const category = searchParams.get('category') || 'all';
   const q = searchParams.get('q') || '';
+  const page = parseInt(searchParams.get('page') || '1', 10);
+  const pageSize = parseInt(searchParams.get('pageSize') || '10', 10);
   const apiKey = 'dc373b88c40444a192572152a8ce1680';
 
-  // Pemetaan kata kunci pencarian berita Indonesia berdasarkan kategori
-  let queryKeyword = 'indonesia';
-  if (category === 'health') {
-    queryKeyword = 'kesehatan OR medis OR dokter OR rumah sakit OR obat OR bpjs';
-  } else if (category === 'science') {
-    queryKeyword = 'sains OR farmasi OR riset OR teknologi kesehatan';
-  } else if (category === 'technology') {
-    queryKeyword = 'teknologi OR digital OR ai OR startup';
-  } else if (category === 'business') {
-    queryKeyword = 'bisnis OR ekonomi OR pasar OR finansial';
-  } else if (category === 'general') {
-    queryKeyword = 'indonesia OR nasional OR masyarakat';
+  // Filter Khusus: Seluruh berita WAJIB seputar kesehatan, medis, obat, atau farmasi di Indonesia
+  const healthBaseScope = '(kesehatan OR medis OR dokter OR "rumah sakit" OR obat OR farmasi OR bpjs OR kemenkes OR apotek OR vaksin OR penyakit OR epidemiologi)';
+  
+  let subQuery = '';
+  if (category === 'pharmacy') {
+    subQuery = '(obat OR farmasi OR apotek OR "industri farmasi" OR "uji klinis" OR suplemen OR vaksin OR bpom)';
+  } else if (category === 'disease') {
+    subQuery = '(penyakit OR virus OR infeksi OR kanker OR jantung OR diabetes OR stroke OR gejala OR diagnosa)';
+  } else if (category === 'hospital') {
+    subQuery = '("rumah sakit" OR puskesmas OR faskes OR dokter OR perawat OR igd OR rawat OR operasi)';
+  } else if (category === 'policy') {
+    subQuery = '(kemenkes OR bpjs OR "menteri kesehatan" OR regulasi OR "kebijakan kesehatan" OR "iuran bpjs")';
+  } else if (category === 'tech') {
+    subQuery = '("teknologi kesehatan" OR "health tech" OR telemedicine OR "ai medis" OR inovasi OR bioteknologi)';
   }
 
-  // Jika pengguna memasukkan kata kunci pencarian spesifik
+  let finalQuery = healthBaseScope;
+  if (subQuery) {
+    finalQuery = `${healthBaseScope} AND ${subQuery}`;
+  }
+
+  // Jika ada kata kunci pencarian dari pengguna, gabungkan dengan cakupan kesehatan
   if (q.trim()) {
-    queryKeyword = `(${queryKeyword}) AND (${q.trim()})`;
+    finalQuery = `(${finalQuery}) AND (${q.trim()})`;
   }
 
-  const apiUrl = `https://newsapi.org/v2/everything?q=${encodeURIComponent(queryKeyword)}&language=id&sortBy=publishedAt&pageSize=40&apiKey=${apiKey}`;
+  const apiUrl = `https://newsapi.org/v2/everything?q=${encodeURIComponent(finalQuery)}&searchIn=title,description&language=id&sortBy=publishedAt&pageSize=${pageSize}&page=${page}&apiKey=${apiKey}`;
 
   try {
     const res = await fetch(apiUrl, {
