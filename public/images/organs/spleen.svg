@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+    <defs>
+      <linearGradient id="bgGradSp" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#FAF5FF" />
+        <stop offset="100%" stop-color="#F3E8FF" />
+      </linearGradient>
+      <linearGradient id="splGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#C084FC" />
+        <stop offset="70%" stop-color="#9333EA" />
+        <stop offset="100%" stop-color="#6B21A8" />
+      </linearGradient>
+    </defs>
+    <rect width="400" height="400" rx="24" fill="url(#bgGradSp)" />
+    <path d="M130 200 L185 200 M135 215 L180 215" stroke="#EF4444" stroke-width="8" stroke-linecap="round" />
+    <path d="M130 185 L180 185 M135 170 L175 170" stroke="#3B82F6" stroke-width="8" stroke-linecap="round" />
+    <path d="M170 120 C240 100 290 140 280 210 C270 280 220 300 170 280 C130 260 180 230 180 200 C180 170 140 140 170 120 Z" fill="url(#splGrad)" stroke="#581C87" stroke-width="5" />
+    <text x="200" y="380" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" font-weight="800" fill="#6B21A8">LIMPA (LIEN / SPLEEN)</text>
+  </svg>

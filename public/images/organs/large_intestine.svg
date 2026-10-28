@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+    <defs>
+      <linearGradient id="bgGradLi" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#FFFBEB" />
+        <stop offset="100%" stop-color="#FEF3C7" />
+      </linearGradient>
+      <linearGradient id="colGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#F59E0B" />
+        <stop offset="100%" stop-color="#D97706" />
+      </linearGradient>
+    </defs>
+    <rect width="400" height="400" rx="24" fill="url(#bgGradLi)" />
+    <path d="M120 300 L120 150 C120 120 150 110 200 110 C250 110 280 120 280 150 L280 300 Q280 330 240 330 L200 330 L200 360" fill="none" stroke="url(#colGrad)" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M120 310 Q100 330 90 350" fill="none" stroke="#B45309" stroke-width="10" stroke-linecap="round" />
+    <circle cx="120" cy="200" r="6" fill="#FEF3C7" />
+    <circle cx="120" cy="250" r="6" fill="#FEF3C7" />
+    <circle cx="170" cy="110" r="6" fill="#FEF3C7" />
+    <circle cx="230" cy="110" r="6" fill="#FEF3C7" />
+    <circle cx="280" cy="200" r="6" fill="#FEF3C7" />
+    <circle cx="280" cy="250" r="6" fill="#FEF3C7" />
+    <text x="200" y="388" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" font-weight="800" fill="#B45309">USUS BESAR &amp; APENDIKS (COLON)</text>
+  </svg>

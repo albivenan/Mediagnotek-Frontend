@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+    <defs>
+      <linearGradient id="bgGradH" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#FEF2F2" />
+        <stop offset="100%" stop-color="#FEE2E2" />
+      </linearGradient>
+      <linearGradient id="heartGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#F87171" />
+        <stop offset="60%" stop-color="#EF4444" />
+        <stop offset="100%" stop-color="#B91C1C" />
+      </linearGradient>
+      <linearGradient id="aortaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#EF4444" />
+        <stop offset="100%" stop-color="#991B1B" />
+      </linearGradient>
+    </defs>
+    <rect width="400" height="400" rx="24" fill="url(#bgGradH)" />
+    <path d="M150 90 L150 170 M150 250 L150 310" stroke="#3B82F6" stroke-width="24" stroke-linecap="round" />
+    <path d="M180 180 Q180 90 220 90 Q250 90 250 160" fill="none" stroke="url(#aortaGrad)" stroke-width="28" stroke-linecap="round" />
+    <path d="M205 90 L205 60 M225 90 L225 60 M240 95 L245 65" stroke="url(#aortaGrad)" stroke-width="8" stroke-linecap="round" />
+    <path d="M190 160 Q210 140 270 145" fill="none" stroke="#6366F1" stroke-width="20" stroke-linecap="round" />
+    <path d="M150 170 C120 170 110 220 140 270 C170 320 200 350 240 350 C260 350 300 290 290 220 C280 170 220 160 190 180 Z" fill="url(#heartGrad)" stroke="#991B1B" stroke-width="5" />
+    <path d="M210 185 Q215 250 240 345" fill="none" stroke="#7F1D1D" stroke-width="4" stroke-dasharray="4,4" />
+    <text x="200" y="385" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" font-weight="800" fill="#991B1B">JANTUNG (COR)</text>
+  </svg>

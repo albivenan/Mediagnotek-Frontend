@@ -38,7 +38,7 @@ import {
 interface OrganData {
   id: string;
   name: string;
-  system: 'Saraf' | 'Kardiovaskular' | 'Respirasi' | 'Pencernaan' | 'Ekskresi' | 'Muskuloskeletal';
+  system: 'Saraf' | 'Kardiovaskular' | 'Respirasi' | 'Pencernaan' | 'Ekskresi' | 'Endokrin' | 'Imun & Limfatik' | 'Muskuloskeletal';
   description: string;
   whatIs: string;
   location: string;
@@ -68,7 +68,7 @@ const ORGANS: OrganData[] = [
     position: [0, 4.48, 0.02],
     color: 0xE879F9,
     highlightColor: '#C026D3',
-    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Brain_human_sagittal_section.svg/500px-Brain_human_sagittal_section.svg.png',
+    imageUrl: '/images/organs/brain.svg',
     commonDiseases: [
       {
         nama: 'Cephalea / Tension Headache',
@@ -115,7 +115,7 @@ const ORGANS: OrganData[] = [
     position: [0, 2.68, 0.02],
     color: 0x38BDF8,
     highlightColor: '#0284C7',
-    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Lungs_diagram_detailed.svg/500px-Lungs_diagram_detailed.svg.png',
+    imageUrl: '/images/organs/lungs.svg',
     commonDiseases: [
       {
         nama: 'Asma Bronkial',
@@ -146,7 +146,7 @@ const ORGANS: OrganData[] = [
     position: [-0.11, 2.52, 0.12],
     color: 0xEF4444,
     highlightColor: '#DC2626',
-    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Heart_diagram-en.svg/500px-Heart_diagram-en.svg.png',
+    imageUrl: '/images/organs/heart.svg',
     commonDiseases: [
       {
         nama: 'Hipertensi Primer Esensial',
@@ -177,7 +177,7 @@ const ORGANS: OrganData[] = [
     position: [0.18, 1.92, 0.08],
     color: 0xEA580C,
     highlightColor: '#C2410C',
-    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9b/Liver_Diagram.svg/500px-Liver_Diagram.svg.png',
+    imageUrl: '/images/organs/liver.svg',
     commonDiseases: [
       {
         nama: 'Fatty Liver Disease (NAFLD)',
@@ -208,7 +208,7 @@ const ORGANS: OrganData[] = [
     position: [-0.20, 1.82, 0.06],
     color: 0xF59E0B,
     highlightColor: '#D97706',
-    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Stomach_diagram.svg/500px-Stomach_diagram.svg.png',
+    imageUrl: '/images/organs/stomach.svg',
     commonDiseases: [
       {
         nama: 'GERD (Gastroesophageal Reflux Disease)',
@@ -239,7 +239,7 @@ const ORGANS: OrganData[] = [
     position: [0, 1.46, -0.18],
     color: 0x8B5CF6,
     highlightColor: '#7C3AED',
-    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/KidneyStructures.svg/500px-KidneyStructures.svg.png',
+    imageUrl: '/images/organs/kidneys.svg',
     commonDiseases: [
       {
         nama: 'Nefrolitiasis (Batu Ginjal)',
@@ -259,6 +259,316 @@ const ORGANS: OrganData[] = [
       }
     ],
     clinicalNotes: 'Wajib melakukan penyesuaian dosis obat antibiotik / NSAID berdasarkan estimasi nilai laju filtrasi glomerulus (eGFR).'
+  },
+  {
+    id: 'eyes',
+    name: 'Mata & Saraf Optik (Oculus & Nervus Opticus)',
+    system: 'Saraf',
+    description: 'Organ fotoreseptor sensorik visual yang menangkap spektrum cahaya dan mengubahnya menjadi impuls saraf ke korteks oksipital otak.',
+    whatIs: 'Mata adalah organ sensorik penglihatan kompleks yang terdiri atas kornea transparan, iris pengatur bukaan pupil, lensa kristalina pemfokus cahaya, cairan humor vitreus, serta lapisan retina yang mengandung jutaan sel fotoreseptor batang (rod) dan kerucut (cone) yang terhubung langsung ke otak melalui saraf optik (Nervus Kranialis II).',
+    location: 'Terletak berpasangan di dalam rongga tulang orbita tengkorak wajah bagian depan (cavum orbitae), dilindungi oleh kelopak mata (palpebra), kelenjar lakrimal, dan digerakkan secara presisi oleh 6 otot ekstraokular.',
+    position: [0, 4.42, 0.22],
+    color: 0x06B6D4,
+    highlightColor: '#0891B2',
+    imageUrl: '/images/organs/eyes.svg',
+    commonDiseases: [
+      {
+        nama: 'Konjungtivitis Bakterial & Alergi (Mata Merah)',
+        gejala: 'Mata merah injeksi konjungtiva, berair, gatal atau perih mengganjal, sekret belekan mukopurulen terutama saat bangun pagi.',
+        rekomendasiObat: ['Chloramphenicol 0.5% Eye Drops', 'Gentamicin Sulfate 0.3% Tetes Mata', 'Sodium Cromoglycate 2% Eye Drops', 'Carboxymethylcellulose (Artificial Tears)'],
+        penyembuhan: 'Bersihkan sekret mata dengan kasa steril hangat dari sudut dalam ke luar, teteskan obat mata secara aseptik tanpa menyentuh ujung botol ke mata, kompres dingin bila disebabkan alergi.',
+        pencegahan: 'Jangan mengucek mata dengan tangan kotor, pisahkan handuk dan bantal wajah, lepaskan lensa kontak selama mata mengalami peradangan.',
+        estimasiPemulihan: '3 hingga 7 hari terapi tetes mata rutin'
+      },
+      {
+        nama: 'Glaukoma Sudut Terbuka & Hipertensi Okuli',
+        gejala: 'Penyempitan lapang pandang tepi secara perlahan (tunnel vision), rasa pegal/nyeri di bola mata, melihat lingkaran pelangi (halo) di sekitar lampu.',
+        rekomendasiObat: ['Timolol Maleate 0.5% Eye Drops', 'Latanoprost 0.005% Eye Drops', 'Acetazolamide 250mg Tablet'],
+        penyembuhan: 'Kepatuhan penggunaan tetes mata penurun tekanan intraokular (TIO) setiap hari pada jam yang sama, serta kontrol tonometri dan funduskopi berkala ke dokter spesialis mata.',
+        pencegahan: 'Pemeriksaan tekanan bola mata rutin terutama usia > 40 tahun atau penderita diabetes/hipertensi, hindari pemakaian tetes mata steroid jangka panjang tanpa pengawasan dokter.',
+        estimasiPemulihan: 'Kontrol tekanan intraokular stabil jangka panjang'
+      }
+    ],
+    clinicalNotes: 'Tetes mata beta-blocker (Timolol) dapat diserap secara sistemik melalui duktus nasolakrimal dan dikontraindikasikan pada pasien dengan asma bronkial atau bradikardia. Tekan sudut dalam mata (oklusi pungtum) selama 1 menit pasca penetesan dan buang botol tetes mata 28 hari setelah dibuka.'
+  },
+  {
+    id: 'thyroid',
+    name: 'Kelenjar Tiroid (Glandula Thyroidea)',
+    system: 'Endokrin',
+    description: 'Kelenjar endokrin berbentuk kupu-kupu di leher depan yang memproduksi hormon tiroksin (T4) dan triiodotironin (T3) pengatur metabolisme tubuh.',
+    whatIs: 'Kelenjar tiroid adalah regulator utama kecepatan metabolisme tubuh manusia. Terdiri atas dua lobus lateral (kiri dan kanan) yang dihubungkan oleh jembatan jaringan sempit bernama isthmus. Kelenjar ini menyerap yodium dari darah untuk mensintesis hormon T3, T4, dan kalsitonin yang mengendalikan pembakaran energi, suhu tubuh, frekuensi detak jantung, serta metabolisme kalsium tulang.',
+    location: 'Terletak di bagian depan leher bawah (regio colli anterior), memeluk bagian depan dan samping trakea tepat di bawah tulang rawan tiroid (jakun / laryngeal prominence), setinggi vertebra C5–T1.',
+    position: [0, 3.38, 0.05],
+    color: 0xF43F5E,
+    highlightColor: '#E11D48',
+    imageUrl: '/images/organs/thyroid.svg',
+    commonDiseases: [
+      {
+        nama: 'Hipertiroidisme & Penyakit Graves',
+        gejala: 'Jantung berdebar cepat (takikardia/palpitasi), tangan gemetar halus (tremor), penurunan berat badan drastis meski nafsu makan meningkat, berkeringat berlebih dan tidak tahan panas.',
+        rekomendasiObat: ['Methimazole (Thiamazole / Thyrozol) 5mg / 10mg', 'Propylthiouracil (PTU) 100mg', 'Propranolol HCl 10mg / 20mg'],
+        penyembuhan: 'Konsumsi obat antitiroid secara teratur untuk menekan sintesis hormon tiroid berlebih, gunakan beta-blocker (Propranolol) untuk meredakan tremor dan berdebar, serta evaluasi kadar FT4 dan TSH setiap 4–6 minggu.',
+        pencegahan: 'Batasi konsumsi makanan/suplemen tinggi yodium berlebih, kelola stres emosional, dan wajib berhenti merokok untuk mencegah komplikasi mata menonjol (oftalmopati Graves).',
+        estimasiPemulihan: 'Eutiroid tercapai dalam 6–12 minggu; pemeliharaan 12–18 bulan'
+      },
+      {
+        nama: 'Hipotiroidisme Primer',
+        gejala: 'Mudah lelah dan mengantuk, tidak tahan dingin, kenaikan berat badan, kulit kering dan kasar, sembelit (konstipasi), detak jantung lambat.',
+        rekomendasiObat: ['Levothyroxine Sodium (Euthyrox) 50mcg / 100mcg'],
+        penyembuhan: 'Terapi sulih hormon tiroid (Levothyroxine) diminum rutin setiap pagi saat perut kosong (30–60 menit sebelum sarapan) hanya dengan air putih.',
+        pencegahan: 'Pastikan kecukupan konsumsi garam beryodium dalam diet harian dan lakukan skrining TSH pada ibu hamil serta lansia.',
+        estimasiPemulihan: 'Perbaikan gejala klinis dalam 2–4 minggu terapi hormon'
+      }
+    ],
+    clinicalNotes: 'Levothyroxine wajib diberi jeda minimal 4 jam dari obat maag (Antasida/Sukralfat), suplemen Kalsium, atau Zat Besi karena dapat mengikat obat di saluran cerna. Waspadai tanda agranulositosis (demam dan radang tenggorokan mendadak) pada pengguna PTU/Methimazole.'
+  },
+  {
+    id: 'esophagus',
+    name: 'Esofagus / Kerongkongan (Oesophagus)',
+    system: 'Pencernaan',
+    description: 'Saluran fibromuskular peristaltik sepanjang 25 cm yang menyalurkan bolus makanan dari faring menuju lambung melewati rongga mediastinum.',
+    whatIs: 'Esofagus adalah tabung berotot yang menghubungkan tenggorokan (faring) dengan lambung. Dilengkapi oleh dua katup otot cincin (sfingter esofagus atas dan bawah/LES) yang membuka saat menelan dan menutup kembali guna mencegah naiknya asam lambung ke kerongkongan.',
+    location: 'Membentang vertikal di mediastinum posterior rongga dada, berada tepat di belakang trakea dan jantung serta di depan tulang belakang, lalu menembus hiatus diafragma setinggi vertebra T10 menuju cardia lambung.',
+    position: [0, 3.05, -0.05],
+    color: 0xFB7185,
+    highlightColor: '#E11D48',
+    imageUrl: '/images/organs/esophagus.svg',
+    commonDiseases: [
+      {
+        nama: 'Esofagitis Erosif & Refluks Laringofaringeal (LPR)',
+        gejala: 'Nyeri perih saat menelan (odinofagia), sensasi mengganjal di kerongkongan (globus pharyngeus), rasa terbakar di balik tulang dada.',
+        rekomendasiObat: ['Esomeprazole 40mg', 'Pantoprazole 40mg', 'Sukralfat Suspensi 500mg/5mL', 'Natrium Alginat (Gaviscon)'],
+        penyembuhan: 'Terapi pelapis mukosa (Sukralfat) dikombinasikan dengan PPI untuk menyembuhkan erosi dinding esofagus, konsumsi makanan lunak bersuhu ruang, dan makan secara perlahan.',
+        pencegahan: 'Selalu minum obat tablet/kapsul dengan segelas penuh air putih dalam posisi tegak (mencegah pill-induced esophagitis), hindari berbaring 3 jam setelah makan.',
+        estimasiPemulihan: '4 hingga 8 minggu penyembuhan mukosa esofagus'
+      },
+      {
+        nama: 'Spasme Esofagus Difus & Disfagia Fungsional',
+        gejala: 'Nyeri dada meremas non-kardiak yang dipicu minuman terlalu dingin atau panas, kesulitan menelan makanan padat maupun cair.',
+        rekomendasiObat: ['Nifedipine 10mg', 'Isosorbide Dinitrate (ISDN) 5mg', 'Diltiazem HCl 30mg'],
+        penyembuhan: 'Konsumsi makanan dalam porsi kecil dan kunyah hingga halus, minum air hangat perlahan untuk merelaksasi otot polos esofagus.',
+        pencegahan: 'Hindari makanan/minuman dengan suhu ekstrem (es atau kuah mendidih) serta kelola stres dan kecemasan.',
+        estimasiPemulihan: 'Mereda 15–30 menit pasca relaksan otot polos'
+      }
+    ],
+    clinicalNotes: 'Edukasi pasien yang menerima resep Doxycycline, Clindamycin, Tetracycline, atau Bisphosphonate (Alendronate) agar tidak berbaring minimal 30 menit setelah minum obat guna mencegah ulserasi esofagus.'
+  },
+  {
+    id: 'spleen',
+    name: 'Limpa (Lien / Splen)',
+    system: 'Imun & Limfatik',
+    description: 'Organ limfoid terbesar tubuh yang menyaring eritrosit tua, menyimpan cadangan trombosit, dan membentuk respons imun antibodi.',
+    whatIs: 'Limpa adalah pusat pertahanan imunologis dan penyaring darah berkapasitas tinggi. Tersusun atas "pulpa merah" yang bertugas menghancurkan sel darah merah tua/rusak serta mendaur ulang zat besi hemoglobin, dan "pulpa putih" yang kaya akan sel limfosit T dan B untuk memproduksi antibodi terhadap bakteri berkapsul dalam aliran darah.',
+    location: 'Terletak di kuadran kiri atas rongga perut (hipokondrium sinistra), berada di sisi kiri-belakang (posterolateral) fundus lambung, tepat di bawah diafragma dan terlindungi oleh tulang iga ke-9 hingga ke-11 kiri.',
+    position: [-0.34, 1.88, -0.06],
+    color: 0xA855F7,
+    highlightColor: '#9333EA',
+    imageUrl: '/images/organs/spleen.svg',
+    commonDiseases: [
+      {
+        nama: 'Splenomegali Reaktif (Infeksi Tifoid / Malaria / Viral)',
+        gejala: 'Rasa penuh atau nyeri tumpul di perut kiri atas yang menjalar ke bahu kiri, mudah kenyang karena lambung terdesak, demam, dan pucat.',
+        rekomendasiObat: ['Azithromycin 500mg / Cefixime 200mg (Terapi Infeksi Tifoid)', 'Paracetamol 500mg', 'Asam Folat 1mg + Vitamin B Kompleks'],
+        penyembuhan: 'Mengobati infeksi sistemik penyebab pembesaran limpa hingga tuntas, tirah baring cukup, dan diet lunak tinggi protein untuk pemulihan hematopoietik.',
+        pencegahan: 'Wajib menghindari olahraga kontak fisik, lari berat, atau angkat beban selama limpa masih membengkak guna mencegah komplikasi pecahnya (ruptur) limpa.',
+        estimasiPemulihan: '2 hingga 4 minggu seiring sembuhnya infeksi primer'
+      },
+      {
+        nama: 'Trombositopenia Imun (ITP) & Hipersplenisme',
+        gejala: 'Bintik-bintik merah di kulit (petekie), mudah memar kebiruan (ekimosis), gusi berdarah atau mimisan akibat penghancuran trombosit di limpa.',
+        rekomendasiObat: ['Methylprednisolone 8mg / 16mg', 'Prednisone 5mg', 'Asam Traneksamat 500mg (Antifibrinolitik)'],
+        penyembuhan: 'Terapi imunosupresan kortikosteroid untuk menekan fagositosis trombosit oleh makrofag limpa serta pemantauan hitung trombosit darah tepi secara berkala.',
+        pencegahan: 'Hindari pemakaian obat pereda nyeri golongan NSAID (Aspirin, Ibuprofen, Asam Mefenamat) yang menghambat agregasi trombosit.',
+        estimasiPemulihan: 'Peningkatan trombosit dalam 1–3 minggu terapi kortikosteroid'
+      }
+    ],
+    clinicalNotes: 'Pada pasien dengan splenomegali atau trombositopenia, kontraindikasikan seluruh analgesik NSAID dan gunakan Paracetamol sebagai lini aman. Pasien pasca pengangkatan limpa (splenektomi) wajib mendapat vaksinasi Pneumokokus dan Meningokokus.'
+  },
+  {
+    id: 'pancreas',
+    name: 'Pankreas (Pancreas)',
+    system: 'Endokrin',
+    description: 'Kelenjar ganda eksokrin dan endokrin yang memproduksi enzim pencernaan (amilase, lipase, protease) serta hormon insulin dan glukagon.',
+    whatIs: 'Pankreas adalah organ kelenjar memanjang yang menjalankan dua peran vital sekaligus: (1) Fungsi Endokrin melalui Pulau-pulau Langerhans (sel alfa dan sel beta) yang melepaskan hormon Insulin dan Glukagon ke darah untuk menjaga kestabilan gula darah; dan (2) Fungsi Eksokrin yang mensekresikan getah pankreas kaya enzim pencernaan dan bikarbonat penetral asam ke usus dua belas jari (duodenum).',
+    location: 'Terletak melintang secara retroperitoneal di bagian belakang-atas rongga perut (regio epigastrium hingga hipokondrium sinistra), berada tepat di belakang lambung, memanjang dari lengkung duodenum hingga menyentuh hilus limpa.',
+    position: [-0.04, 1.62, -0.04],
+    color: 0xFBBF24,
+    highlightColor: '#D97706',
+    imageUrl: '/images/organs/pancreas.svg',
+    commonDiseases: [
+      {
+        nama: 'Diabetes Melitus Tipe 2 (Defisiensi & Resistensi Insulin)',
+        gejala: 'Sering merasa haus (polidipsia), sering BAK terutama malam hari (poliuria), cepat lapar (polifagia), kesemutan, luka sulit sembuh, gula darah puasa ≥ 126 mg/dL.',
+        rekomendasiObat: ['Metformin HCl 500mg / 850mg', 'Glimepiride 2mg / Gliclazide 80mg', 'Empagliflozin 10mg / Dapagliflozin 10mg', 'Insulin Glargine / Insulin Aspart Pen'],
+        penyembuhan: 'Terapi terpadu obat antidiabetik oral atau injeksi insulin sesuai target HbA1c (< 7%), pengaturan pola makan 3J (Jumlah, Jenis, Jadwal) rendah indeks glikemik, dan olahraga aerobik 150 menit/minggu.',
+        pencegahan: 'Batasi minuman manis kemasan dan karbohidrat sederhana, pertahankan berat badan dan lingkar pinggang ideal, serta cek gula darah rutin.',
+        estimasiPemulihan: 'Gula darah terkontrol dalam 2–4 minggu; evaluasi HbA1c tiap 3 bulan'
+      },
+      {
+        nama: 'Insufisiensi Eksokrin Pankreas & Dispepsia Pankreatik',
+        gejala: 'Perut kembung penuh setelah makan berlemak, nyeri ulu hati menembus ke punggung, tinja pucat berminyak (steatorrhea).',
+        rekomendasiObat: ['Pancreatin (Enzim Amilase + Lipase + Protease)', 'Omeprazole 20mg', 'Paracetamol 500mg'],
+        penyembuhan: 'Suplementasi enzim pencernaan pankreas yang diminum bersamaan saat makan utama, pembagian porsi makan kecil tapi sering dengan diet rendah lemak jenuh.',
+        pencegahan: 'Berhenti konsumsi alkohol dan rokok secara total, kendalikan kadar trigliserida darah, dan cegah pembentukan batu empedu.',
+        estimasiPemulihan: '1 hingga 3 minggu perbaikan absorpsi nutrisi'
+      }
+    ],
+    clinicalNotes: 'Edukasi pasien agar meminum Metformin bersama atau tepat sesudah makan untuk mencegah mual/diare, sedangkan Glimepiride diminum 15–30 menit sebelum sarapan. Kenali gejala hipoglikemia (keringat dingin, gemetar, lemas) dan siapkan larutan air gula.'
+  },
+  {
+    id: 'gallbladder',
+    name: 'Kandung Empedu (Vesica Fellea)',
+    system: 'Pencernaan',
+    description: 'Kantung berbentuk buah pir di bawah hati yang menyimpan, memekatkan, dan menyemprotkan cairan empedu ke duodenum untuk mengemulsi lemak.',
+    whatIs: 'Kandung empedu adalah reservoar fibromuskular sepanjang 7–10 cm yang menampung sekitar 30–50 mL cairan empedu produksi hati. Saat makanan berlemak masuk ke duodenum, hormon kolesistokinin (CCK) memicu kandung empedu berkontraksi menyalurkan garam empedu melalui duktus koledokus untuk memecah globul lemak.',
+    location: 'Terletak menempel pada cekungan fossa vesicae felleae di permukaan bawah (viseral) lobus kanan hati, di kuadran kanan atas rongga perut tepat di bawah lengkung iga kanan.',
+    position: [0.16, 1.75, 0.12],
+    color: 0x10B981,
+    highlightColor: '#059669',
+    imageUrl: '/images/organs/gallbladder.svg',
+    commonDiseases: [
+      {
+        nama: 'Kolelitiasis (Batu Kandung Empedu Kolesterol)',
+        gejala: 'Nyeri kolik bilier tajam di perut kanan atas atau ulu hati 30–60 menit setelah makan makanan bersantan/berlemak, menjalar ke bahu/belikat kanan, disertai mual.',
+        rekomendasiObat: ['Asam Ursodeoksikolat (UDCA / Urdahex) 250mg', 'Hyoscine-N-Butylbromide (Buscopan) 10mg', 'Ketorolac / Natrium Diklofenak 50mg'],
+        penyembuhan: 'Terapi disolusi batu kolesterol non-kalsifikasi menggunakan UDCA secara rutin, pemberian antispasmodik untuk meredakan kejang saluran bilier, dan diet ketat rendah lemak.',
+        pencegahan: 'Kurangi konsumsi gorengan, santan kental, jeroan, dan makanan cepat saji; perbanyak serat sayur-buah dan hindari diet ekstrem penurunan berat badan drastis.',
+        estimasiPemulihan: 'Kolik mereda dalam 1–4 jam; pelarutan batu mikro 6–12 bulan UDCA'
+      },
+      {
+        nama: 'Kolesistitis Akut (Radang Kandung Empedu)',
+        gejala: 'Nyeri perut kanan atas menetap > 6 jam terutama saat menarik napas dalam (Murphy sign positif), demam menggigil, mual dan muntah.',
+        rekomendasiObat: ['Cefixime 200mg / Ciprofloxacin 500mg', 'Metronidazole 500mg', 'Ondansetron 4mg', 'Paracetamol 500mg'],
+        penyembuhan: 'Istirahatkan saluran cerna dari makanan berlemak, rehidrasi cairan adekuat, dan terapi antibiotik untuk mengatasi infeksi bakteri enterik pada kandung empedu.',
+        pencegahan: 'Penanganan batu empedu sejak dini dan menjaga indeks massa tubuh ideal.',
+        estimasiPemulihan: '5 hingga 10 hari terapi antibiotik & manajemen diet'
+      }
+    ],
+    clinicalNotes: 'Asam Ursodeoksikolat (UDCA) diminum bersama makanan (terutama malam hari) untuk melarutkan batu kolesterol radiolusen. Hindari pemberian koleretik jika terdapat obstruksi total saluran empedu.'
+  },
+  {
+    id: 'small_intestine',
+    name: 'Usus Halus (Intestinum Tenue: Duodenum, Jejunum, Ileum)',
+    system: 'Pencernaan',
+    description: 'Saluran pencernaan berliku sepanjang 6 meter dengan jutaan vili mikroskopis tempat berlangsungnya 90% penyerapan nutrisi dan obat.',
+    whatIs: 'Usus halus adalah pusat pencernaan enzimatik dan absorpsi nutrisi utama tubuh yang terbagi menjadi tiga segmen: Duodenum (usus 12 jari tempat bermuaranya enzim pankreas dan empedu), Jejunum (usus kosong tempat penyerapan gula, asam amino, dan asam lemak), serta Ileum (usus penyerapan vitamin B12 dan garam empedu).',
+    location: 'Memenuhi bagian tengah dan bawah rongga abdomen (regio umbilikalis dan hipogastrium), tersusun berlipat-lipat diikat oleh mesenterium dan dikelilingi oleh bingkai usus besar.',
+    position: [0, 1.12, 0.08],
+    color: 0xFB923C,
+    highlightColor: '#EA580C',
+    imageUrl: '/images/organs/small_intestine.svg',
+    commonDiseases: [
+      {
+        nama: 'Gastroenteritis Akut & Diare Sekretorik / Infeksius',
+        gejala: 'Buang air besar cair > 3 kali sehari, perut melilit (hiperperistaltik), mual, lemas, dan risiko dehidrasi.',
+        rekomendasiObat: ['Oralit (Garam Rehidrasi Oral)', 'Zinc Sulfate 20mg', 'Attapulgite / Dioctahedral Smectite (Smecta)', 'Probiotik (Lactobacillus / L-Bio)', 'Loperamide HCl 2mg (khusus diare non-infeksius dewasa)'],
+        penyembuhan: 'Minum larutan Oralit setiap selesai BAB cair untuk mengganti elektrolit, konsumsi Zinc 20mg/hari selama 10 hari penuh untuk mempercepat regenerasi vili usus halus, serta makan makanan lunak rendah serat.',
+        pencegahan: 'Biasakan cuci tangan dengan sabun sebelum makan, konsumsi air minum dan makanan yang dimasak matang sempurna, serta jaga sanitasi peralatan makan.',
+        estimasiPemulihan: '2 hingga 5 hari dengan rehidrasi oral dan suplementasi Zinc'
+      },
+      {
+        nama: 'Ulkus Duodenum (Tukak Usus 12 Jari)',
+        gejala: 'Nyeri perih di ulu hati 2–3 jam setelah makan atau saat tengah malam (hunger pain) yang membaik sementara setelah diisi makanan, disertai kembung.',
+        rekomendasiObat: ['Lansoprazole 30mg / Omeprazole 20mg', 'Sukralfat Suspensi', 'Regimen Eradikasi H. pylori (Amoxicillin 1000mg + Clarithromycin 500mg + PPI)'],
+        penyembuhan: 'Terapi penekan asam lambung (PPI) selama 4 minggu dan penuntasan antibiotik eradikasi apabila terbukti infeksi bakteri Helicobacter pylori.',
+        pencegahan: 'Hindari konsumsi obat nyeri NSAID tanpa pelindung mukosa, hentikan merokok, dan hindari makan terlalu larut malam.',
+        estimasiPemulihan: '4 minggu penyembuhan mukosa duodenum'
+      }
+    ],
+    clinicalNotes: 'Loperamide dikontraindikasikan pada diare yang disertai demam tinggi atau tinja berdarah/berlendir (disentri) karena memperlambat pengeluaran toksin bakteri. Beri jeda 2 jam antara adsorben (Attapulgite) dengan obat oral lain.'
+  },
+  {
+    id: 'large_intestine',
+    name: 'Usus Besar & Apendiks (Intestinum Crassum / Colon)',
+    system: 'Pencernaan',
+    description: 'Bagian akhir saluran cerna sepanjang 1,5 meter yang menyerap air-elektrolit, memfermentasi serat bersama mikrobiota, dan membentuk feses.',
+    whatIs: 'Usus besar membentuk bingkai mengelilingi usus halus dan terdiri atas Sekum (dengan umbai cacing / Appendix Vermiformis), Kolon Asendens (kanan), Kolon Transversum (melintang), Kolon Desendens (kiri), Kolon Sigmoid, dan Rektum. Berperan menyerap kembali air hingga 1–1,5 liter/hari, tempat simbiosis mikrobiota penghasil vitamin K, serta mengatur defekasi.',
+    location: 'Membingkai tepi rongga perut mulai dari fossa iliaka kanan bawah (sekum & apendiks), naik ke bawah hati, melintang ke kiri di bawah lambung, turun ke panggul kiri, dan berakhir di rektum pada garis tengah belakang panggul.',
+    position: [0.24, 1.18, 0.05],
+    color: 0xD97706,
+    highlightColor: '#B45309',
+    imageUrl: '/images/organs/large_intestine.svg',
+    commonDiseases: [
+      {
+        nama: 'Irritable Bowel Syndrome (IBS) & Kolitis Spastik',
+        gejala: 'Kram perut bawah berulang yang mereda setelah BAB, perut kembung bergas, perubahan pola BAB (sembelit bergantian dengan diare).',
+        rekomendasiObat: ['Mebeverine HCl (Duspatalin) 135mg', 'Hyoscine-N-Butylbromide 10mg', 'Simethicone + Enzim Pencernaan', 'Probiotik Multi-strain'],
+        penyembuhan: 'Pemberian antispasmodik selektif otot polos kolon 20 menit sebelum makan, penerapan diet rendah FODMAP, dan relaksasi pengendalian stres (gut-brain axis).',
+        pencegahan: 'Konsumsi serat larut secara bertahap, minum air putih minimal 2 liter/hari, olahraga teratur, dan hindari pemicu gas tinggi (kol, minuman bersoda, pemanis sorbitol).',
+        estimasiPemulihan: 'Perbaikan gejala dalam 1–2 minggu terapi antispasmodik & diet'
+      },
+      {
+        nama: 'Konstipasi Fungsional & Hemoroid (Wasir)',
+        gejala: 'Sulit BAB (< 3 kali seminggu), feses keras kering, harus mengejan kuat, disertai benjolan atau darah segar menetes saat BAB.',
+        rekomendasiObat: ['Lactulose Syrup 10g/15mL', 'Bisacodyl (Dulcolax) 5mg', 'Diosmin + Hesperidin (Ardium) 500mg', 'Suppositoria / Salep Antihemoroid'],
+        penyembuhan: 'Gunakan pencahar osmotik (Lactulose) untuk melunakkan feses tanpa memicu kram, konsumsi venotonik (Diosmin-Hesperidin) untuk meredakan bengkak vena hemoroid, serta rendam duduk air hangat (sitz bath) 10–15 menit.',
+        pencegahan: 'Jangan menahan rangsangan BAB, hindari duduk terlalu lama di toilet, tingkatkan asupan buah pepaya, sayur hijau, dan air putih.',
+        estimasiPemulihan: 'Konstipasi teratasi 24–48 jam; remisi hemoroid akut 5–10 hari'
+      }
+    ],
+    clinicalNotes: 'Hindari pemakaian pencahar stimulan (Bisacodyl/Senna) terus-menerus > 7 hari. Waspadai nyeri perut kanan bawah tajam (titik McBurney) disertai demam sebagai tanda Apendisitis Akut (radang usus buntu)—kondisi ini dilarang diberi pencahar dan wajib dirujuk segera ke dokter bedah.'
+  },
+  {
+    id: 'bladder',
+    name: 'Kandung Kemih (Vesica Urinaria)',
+    system: 'Ekskresi',
+    description: 'Kantung muskular elastis (otot detrusor) di rongga panggul depan yang menampung urin dari kedua ureter sebelum dikeluarkan melalui uretra.',
+    whatIs: 'Kandung kemih adalah reservoar urin sementara yang dilapisi oleh epitel transisional (urothelium) dan dinding otot polos detrusor yang mampu meregang menampung 300–500 mL urin. Di bagian dasarnya terdapat area segitiga (trigonum vesicae) tempat bermuaranya dua ureter dari ginjal dan satu pintu keluar uretra yang dikawal oleh sfingter urinarius.',
+    location: 'Terletak di dasar rongga panggul bagian depan (cavum pelvis / regio suprapubik), berada tepat di belakang tulang kemaluan (symphysis pubis).',
+    position: [0, 0.68, 0.12],
+    color: 0x3B82F6,
+    highlightColor: '#2563EB',
+    imageUrl: '/images/organs/bladder.svg',
+    commonDiseases: [
+      {
+        nama: 'Sistitis Akut (Infeksi Kandung Kemih / ISK Bawah)',
+        gejala: 'Rasa perih dan panas saat buang air kecil (disuria), sering BAK sedikit-sedikit (anyang-anyangan / polakisuria), nyeri tekan di atas kemaluan (suprapubik), urin keruh.',
+        rekomendasiObat: ['Fosfomycin Trometamol 3g Sachet (Dosis Tunggal)', 'Cefixime 200mg / Ciprofloxacin 500mg', 'Phenazopyridine HCl (Urogetix) 100mg', 'Paracetamol 500mg'],
+        penyembuhan: 'Tuntaskan terapi antibiotik untuk mengeradikasi bakteri uropatogen (E. coli), gunakan analgesik mukosa kemih (Phenazopyridine) untuk meredakan nyeri anyang-anyangan, dan minum air putih 2,5–3 liter/hari.',
+        pencegahan: 'Jangan pernah menahan keinginan berkemih, biasakan berkemih setelah berhubungan seksual, dan jaga area urogenital tetap bersih serta kering.',
+        estimasiPemulihan: 'Gejala perih mereda dalam 24–48 jam; sembuh tuntas 3–5 hari'
+      },
+      {
+        nama: 'Overactive Bladder (OAB / Kandung Kemih Hiperaktif)',
+        gejala: 'Desakan berkemih mendadak yang sulit ditahan (urgency), frekuensi BAK > 8 kali sehari, sering terbangun malam hari untuk BAK (nokturia).',
+        rekomendasiObat: ['Solifenacin Succinate (Vesicare) 5mg', 'Mirabegron (Betmiga) 25mg / 50mg', 'Flavoxate HCl (Urispas) 200mg'],
+        penyembuhan: 'Pemberian antimuskarinik (Solifenacin) atau agonis beta-3 (Mirabegron) untuk menekan kontraksi involunter otot detrusor, dikombinasikan dengan latihan otot dasar panggul (Senam Kegel) dan bladder training.',
+        pencegahan: 'Kurangi konsumsi kafein (kopi, teh pekat), minuman berkarbonasi, dan batasi minum berlebihan 2 jam sebelum tidur malam.',
+        estimasiPemulihan: 'Frekuensi berkemih terkontrol dalam 2–4 minggu terapi'
+      }
+    ],
+    clinicalNotes: 'Edukasi pasien bahwa Phenazopyridine akan mengubah warna urin menjadi merah-jingga terang sehingga pasien tidak panik. Obat antimuskarinik (Solifenacin) memiliki efek samping antikolinergik berupa mulut kering, konstipasi, dan pandangan agak kabur.'
+  },
+  {
+    id: 'spine',
+    name: 'Tulang Belakang & Medulla Spinalis (Columna Vertebralis)',
+    system: 'Muskuloskeletal',
+    description: 'Pilar kerangka aksial 33 ruas vertebra dan cakram intervertebralis yang menopang postur tubuh sekaligus melindungi sumsum tulang belakang.',
+    whatIs: 'Tulang belakang adalah struktur biomekanik penyangga utama tubuh yang tersusun atas 7 ruas leher (Servikal), 12 ruas punggung (Torakal), 5 ruas pinggang (Lumbal), 5 ruas kelangkang (Sakral), dan 4 ruas tulang ekor (Koksigis) yang dipisahkan oleh bantalan peredam kejut (discus intervertebralis). Di dalam terowongan tengahnya berjalan Sumsum Tulang Belakang (Medulla Spinalis) beserta 31 pasang akar saraf spinalis.',
+    location: 'Membentang vertikal di garis tengah bagian belakang tubuh (dorsal/posterior) mulai dari dasar tengkorak kepala, menyusuri leher, punggung tengah, pinggang bawah, hingga bersendi dengan tulang panggul.',
+    position: [0, 2.35, -0.25],
+    color: 0x14B8A6,
+    highlightColor: '#0D9488',
+    imageUrl: '/images/organs/spine.svg',
+    commonDiseases: [
+      {
+        nama: 'Low Back Pain (LBP) Mekanik & Spasme Otot Paraspinal',
+        gejala: 'Nyeri pinggang bawah pegal atau kaku yang memberat saat membungkuk, duduk lama, atau mengangkat beban, disertai ketegangan otot samping tulang belakang.',
+        rekomendasiObat: ['Eperisone HCl (Myonal) 50mg', 'Meloxicam 15mg / Celecoxib 200mg / Natrium Diklofenak 50mg', 'Ketoprofen Gel / Krim Metil Salisilat Topikal'],
+        penyembuhan: 'Terapi kombinasi relaksan otot rangka (Eperisone) dengan antiinflamasi (NSAID), kompres hangat 15–20 menit pada pinggang, tetap aktif bergerak ringan (hindari bed rest total > 48 jam), dan peregangan fisioterapi.',
+        pencegahan: 'Saat mengangkat barang berat dari lantai, tekuk kedua lutut dan jaga punggung tetap lurus; gunakan kursi kerja dengan bantalan penyangga lengkung pinggang (lumbar support).',
+        estimasiPemulihan: '5 hingga 14 hari dengan terapi kombinasi dan koreksi ergonomi'
+      },
+      {
+        nama: 'Hernia Nukleus Pulposus (HNP / Saraf Kejepit) & Skiatika',
+        gejala: 'Nyeri tajam menjalar seperti tersengat listrik dari pinggang bawah ke bokong, paha belakang, hingga betis/kaki (sciatica), disertai kesemutan atau baal.',
+        rekomendasiObat: ['Pregabalin 75mg / Gabapentin 300mg', 'Mecobalamin (Vitamin B12 Aktif) 500mcg', 'Etoricoxib 60mg / 90mg', 'Methylprednisolone 4mg / 8mg'],
+        penyembuhan: 'Terapi spesifik nyeri saraf neuropatik (Pregabalin/Gabapentin) ditambah neurotropik pelindung selubung mielin saraf (Mecobalamin), fisioterapi traksi lumbal, latihan ekstensi punggung, dan olahraga berenang.',
+        pencegahan: 'Jaga berat badan ideal untuk mengurangi beban tekan pada cakram L4–L5 dan L5–S1, hindari gerakan memutar pinggang secara mendadak sambil menahan beban.',
+        estimasiPemulihan: '4 hingga 12 minggu terapi konservatif & rehabilitasi medik'
+      }
+    ],
+    clinicalNotes: 'Pregabalin, Gabapentin, dan Eperisone dapat menyebabkan rasa kantuk dan pusing (dizziness); wajib ingatkan pasien agar tidak mengemudi kendaraan atau mengoperasikan mesin setelah meminum obat tersebut.'
   }
 ];
 
@@ -271,11 +581,13 @@ export default function AnatomiPage() {
   const [isLoadingModel, setIsLoadingModel] = useState<boolean>(false);
   const [modelOpacity, setModelOpacity] = useState<number>(0.28);
   const [viewMode, setViewMode] = useState<'hologram' | 'solid' | 'xray'>('hologram');
+  const [displayMode, setDisplayMode] = useState<'focused' | 'system' | 'all'>('focused');
   const [hoveredOrgan, setHoveredOrgan] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [diseaseSearchTerm, setDiseaseSearchTerm] = useState<string>('');
   const [isImageModalOpen, setIsImageModalOpen] = useState<boolean>(false);
+  const [imageError, setImageError] = useState<boolean>(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -290,6 +602,11 @@ export default function AnatomiPage() {
   useEffect(() => {
     isRotatingRef.current = isRotating;
   }, [isRotating]);
+
+  // Reset status error gambar setiap kali organ terpilih berganti
+  useEffect(() => {
+    setImageError(false);
+  }, [selectedOrgan]);
 
   // Sinkronisasi material model tubuh saat viewMode atau modelOpacity berubah tanpa reload GLB
   useEffect(() => {
@@ -306,20 +623,20 @@ export default function AnatomiPage() {
             color: bodyThemeColor,
             wireframe: true,
             transparent: true,
-            opacity: 0.25
+            opacity: 0.35
           });
         } else if (isHologram) {
           child.material = new THREE.MeshPhysicalMaterial({
             color: bodyThemeColor,
             transparent: true,
             opacity: modelOpacity,
-            roughness: 0.25,
-            metalness: 0.1,
-            transmission: 0.85,
-            ior: 1.25,
-            thickness: 0.7,
+            roughness: 0.35,
+            metalness: 0.12,
+            transmission: 0.72,
+            ior: 1.32,
+            thickness: 0.85,
             emissive: bodyThemeColor,
-            emissiveIntensity: 0.2,
+            emissiveIntensity: 0.15,
             depthWrite: false
           });
         } else {
@@ -335,46 +652,62 @@ export default function AnatomiPage() {
     });
   }, [viewMode, modelOpacity, gender]);
 
-  // Efek penonjolan (highlight) organ terpilih, hover, dan filter sistem
+  // Efek visibilitas organ 3D (Individual / Sistem Aktif / Semua) & highlight
   useEffect(() => {
     Object.entries(organMeshesRef.current).forEach(([id, groupOrMesh]) => {
       const orgData = ORGANS.find((o) => o.id === id);
       const isSelected = selectedOrgan.id === id;
       const isHovered = hoveredOrgan === id;
       const matchesFilter = activeSystemFilter === 'ALL' || orgData?.system === activeSystemFilter;
+      const matchesActiveSystem = orgData?.system === selectedOrgan.system;
 
-      groupOrMesh.traverse((child) => {
-        if (child instanceof THREE.Mesh && child.material) {
-          const mat = child.material as THREE.MeshPhysicalMaterial;
-          if (mat.userData?.baseEmissiveIntensity === undefined) {
-            mat.userData = {
-              baseEmissiveIntensity: mat.emissiveIntensity ?? 0.45,
-              baseOpacity: mat.opacity ?? 1
-            };
+      // Logika penentuan apakah organ dimunculkan pada 3D:
+      // 1. 'focused': Hanya organ aktif (individual organ terpilih) yang muncul
+      // 2. 'system': Hanya organ yang berada dalam sistem aktif yang muncul
+      // 3. 'all': Seluruh organ muncul
+      let isVisible = false;
+      if (displayMode === 'focused') {
+        isVisible = isSelected;
+      } else if (displayMode === 'system') {
+        isVisible = activeSystemFilter !== 'ALL' ? matchesFilter : matchesActiveSystem;
+      } else {
+        isVisible = matchesFilter;
+      }
+
+      groupOrMesh.visible = isVisible;
+
+      if (isVisible) {
+        groupOrMesh.traverse((child) => {
+          if (child instanceof THREE.Mesh && child.material) {
+            const mat = child.material as THREE.MeshPhysicalMaterial;
+            if (mat.userData?.baseEmissiveIntensity === undefined) {
+              mat.userData = {
+                baseEmissiveIntensity: mat.emissiveIntensity ?? 0.45,
+                baseOpacity: mat.opacity ?? 1
+              };
+            }
+            if (isSelected || isHovered) {
+              mat.transparent = false;
+              mat.opacity = 1;
+              mat.emissiveIntensity = Math.min(1.25, (mat.userData.baseEmissiveIntensity as number) * (isHovered ? 1.85 : 1.45));
+            } else {
+              mat.transparent = false;
+              mat.opacity = 1;
+              mat.emissiveIntensity = mat.userData.baseEmissiveIntensity as number;
+            }
           }
-          if (!matchesFilter) {
-            mat.transparent = true;
-            mat.opacity = 0.22;
-            mat.emissiveIntensity = 0.1;
-          } else if (isHovered || isSelected) {
-            mat.transparent = false;
-            mat.opacity = 1;
-            mat.emissiveIntensity = Math.min(1.15, (mat.userData.baseEmissiveIntensity as number) * (isHovered ? 1.85 : 1.45));
-          } else {
-            mat.transparent = false;
-            mat.opacity = 1;
-            mat.emissiveIntensity = mat.userData.baseEmissiveIntensity as number;
-          }
-        }
-      });
+        });
+      }
 
       const ring = ringsRef.current[id];
-      if (ring && ring.material instanceof THREE.MeshBasicMaterial) {
-        ring.visible = matchesFilter;
-        ring.material.opacity = isSelected || isHovered ? 0.95 : 0.45;
+      if (ring) {
+        ring.visible = isVisible;
+        if (ring.material instanceof THREE.MeshBasicMaterial) {
+          ring.material.opacity = isSelected || isHovered ? 0.95 : 0.45;
+        }
       }
     });
-  }, [selectedOrgan, hoveredOrgan, activeSystemFilter]);
+  }, [selectedOrgan, hoveredOrgan, activeSystemFilter, displayMode]);
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -382,9 +715,9 @@ export default function AnatomiPage() {
     const width = container.clientWidth;
     const height = container.clientHeight;
 
-    // 1. Scene
+    // 1. Scene dengan Background Putih Bersih
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0A0F1D);
+    scene.background = new THREE.Color(0xFFFFFF);
     sceneRef.current = scene;
 
     // 2. Camera
@@ -397,29 +730,29 @@ export default function AnatomiPage() {
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2;
+    renderer.toneMappingExposure = 1.15;
     rendererRef.current = renderer;
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
 
-    // 4. Lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.35);
+    // 4. Lights (Studio Medis Putih Bersih)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.45);
     scene.add(ambientLight);
 
-    const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.9);
+    const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.75);
     dirLight1.position.set(5, 10, 8);
     scene.add(dirLight1);
 
-    const dirLight2 = new THREE.DirectionalLight(0x38BDF8, 1.2);
+    const dirLight2 = new THREE.DirectionalLight(0x0284C7, 0.75);
     dirLight2.position.set(-6, 4, -5);
     scene.add(dirLight2);
 
-    const pointLight = new THREE.PointLight(0xF59E0B, 1.1, 12);
+    const pointLight = new THREE.PointLight(0xF59E0B, 0.85, 12);
     pointLight.position.set(0, 2.5, 3.5);
     scene.add(pointLight);
 
-    // 5. Grid Ground & Pedestal (Disesuaikan tepat di telapak kaki model GLB)
-    const gridHelper = new THREE.GridHelper(10, 20, 0x0284C7, 0x1E293B);
+    // 5. Grid Ground & Pedestal (Warna Halus Medis untuk Background Putih)
+    const gridHelper = new THREE.GridHelper(10, 20, 0x0284C7, 0xE2E8F0);
     gridHelper.position.y = -4.55;
     scene.add(gridHelper);
 
@@ -910,15 +1243,6 @@ export default function AnatomiPage() {
     const liverMesh = new THREE.Mesh(liverGeo, liverMat);
     liverGroup.add(liverMesh);
 
-    // Kantung Empedu (Vesica Fellea / Gallbladder) di bawah lobus kanan hati
-    const gbGeo = new THREE.SphereGeometry(0.042, 18, 16);
-    gbGeo.scale(0.85, 1.45, 0.85);
-    const gbMesh = new THREE.Mesh(gbGeo, gallbladderMat);
-    gbMesh.position.set(0.06, -0.11, 0.04);
-    gbMesh.rotation.z = -0.35;
-    gbMesh.rotation.x = 0.25;
-    liverGroup.add(gbMesh);
-
     tagOrganGroup(liverGroup, 'liver');
     bodyGroup.add(liverGroup);
     organMeshes['liver'] = liverGroup;
@@ -1108,6 +1432,499 @@ export default function AnatomiPage() {
     tagOrganGroup(kidneyGroup, 'kidneys');
     bodyGroup.add(kidneyGroup);
     organMeshes['kidneys'] = kidneyGroup;
+
+    // -------------------------------------------------------------------------
+    // G. MATA & SARAF OPTIK (Oculus & Nervus Opticus + Chiasma Opticum)
+    // -------------------------------------------------------------------------
+    const eyesGroup = new THREE.Group();
+    eyesGroup.position.set(0, 4.42, 0.22);
+
+    const scleraMat = createOrganMaterial(0xF8FAFC, 0x38BDF8, 0.32, 0.2);
+    const irisMat = createOrganMaterial(0x06B6D4, 0x0891B2, 0.65, 0.15);
+    const pupilMat = createOrganMaterial(0x0F172A, 0x000000, 0.1, 0.1);
+    const opticNerveMat = createOrganMaterial(0xFDE047, 0xCA8A04, 0.45, 0.35);
+
+    ([-1, 1] as const).forEach((side) => {
+      const eyeSub = new THREE.Group();
+      eyeSub.position.set(side * 0.115, 0, 0);
+
+      // Bola Mata (Bulbus Oculi / Sclera)
+      const scleraGeo = new THREE.SphereGeometry(0.046, 24, 20);
+      const scleraMesh = new THREE.Mesh(scleraGeo, scleraMat);
+      eyeSub.add(scleraMesh);
+
+      // Kornea & Iris di bagian anterior
+      const irisGeo = new THREE.SphereGeometry(0.025, 20, 16);
+      irisGeo.scale(1, 1, 0.45);
+      const irisMesh = new THREE.Mesh(irisGeo, irisMat);
+      irisMesh.position.set(0, 0, 0.038);
+      eyeSub.add(irisMesh);
+
+      // Pupil di tengah iris
+      const pupilGeo = new THREE.SphereGeometry(0.012, 16, 12);
+      pupilGeo.scale(1, 1, 0.4);
+      const pupilMesh = new THREE.Mesh(pupilGeo, pupilMat);
+      pupilMesh.position.set(0, 0, 0.046);
+      eyeSub.add(pupilMesh);
+
+      // Saraf Optik (Nervus Opticus) menuju Chiasma Opticum di belakang
+      const opticCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0, 0, -0.04),
+        new THREE.Vector3(-side * 0.045, -0.005, -0.11),
+        new THREE.Vector3(-side * 0.115, -0.01, -0.18)
+      ]);
+      const opticGeo = new THREE.TubeGeometry(opticCurve, 12, 0.011, 10, false);
+      const opticMesh = new THREE.Mesh(opticGeo, opticNerveMat);
+      eyeSub.add(opticMesh);
+
+      eyesGroup.add(eyeSub);
+    });
+
+    tagOrganGroup(eyesGroup, 'eyes');
+    bodyGroup.add(eyesGroup);
+    organMeshes['eyes'] = eyesGroup;
+
+    // -------------------------------------------------------------------------
+    // H. KELENJAR TIROID (Glandula Thyroidea: Bentuk Kupu-Kupu 2 Lobus + Isthmus)
+    // -------------------------------------------------------------------------
+    const thyroidGroup = new THREE.Group();
+    thyroidGroup.position.set(0, 3.38, 0.05);
+
+    const thyroidMat = createOrganMaterial(0xF43F5E, 0x9F1239, 0.5, 0.34);
+
+    ([-1, 1] as const).forEach((side) => {
+      // Lobus Lateral Tiroid (Meruncing di kutub atas, membulat di bawah)
+      const lobeGeo = new THREE.SphereGeometry(0.048, 24, 20);
+      const pos = lobeGeo.attributes.position;
+      for (let i = 0; i < pos.count; i++) {
+        const ny = THREE.MathUtils.clamp(pos.getY(i) / 0.048, -1, 1);
+        const taper = 1 - Math.max(0, ny) * 0.38;
+        pos.setXYZ(
+          i,
+          pos.getX(i) * 0.68 * taper,
+          pos.getY(i) * 1.55,
+          pos.getZ(i) * 0.62 * taper
+        );
+      }
+      lobeGeo.computeVertexNormals();
+      const lobeMesh = new THREE.Mesh(lobeGeo, thyroidMat);
+      lobeMesh.position.set(side * 0.052, 0.01, -0.008);
+      lobeMesh.rotation.z = -side * 0.22;
+      lobeMesh.rotation.y = side * 0.35;
+      thyroidGroup.add(lobeMesh);
+    });
+
+    // Jembatan Isthmus Tiroid di bagian tengah depan trakea
+    const isthmusGeo = new THREE.CapsuleGeometry(0.018, 0.055, 10, 14);
+    isthmusGeo.rotateZ(Math.PI / 2);
+    const isthmusMesh = new THREE.Mesh(isthmusGeo, thyroidMat);
+    isthmusMesh.position.set(0, -0.015, 0.012);
+    thyroidGroup.add(isthmusMesh);
+
+    tagOrganGroup(thyroidGroup, 'thyroid');
+    bodyGroup.add(thyroidGroup);
+    organMeshes['thyroid'] = thyroidGroup;
+
+    // -------------------------------------------------------------------------
+    // I. ESOFAGUS / KERONGKONGAN (Oesophagus: Tabung Fibromuskular Faring -> Cardia)
+    // -------------------------------------------------------------------------
+    const esophagusGroup = new THREE.Group();
+    esophagusGroup.position.set(0, 3.05, -0.05);
+
+    const esophagusMat = createOrganMaterial(0xFB7185, 0x9F1239, 0.44, 0.35);
+
+    const esoCurve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(0.0, 0.52, 0.0),     // Faring bawah / Sfingter Esofagus Atas
+      new THREE.Vector3(-0.01, 0.22, -0.01), // Esofagus Servikal-Torakal atas
+      new THREE.Vector3(0.0, -0.15, -0.015), // Esofagus Torakal tengah (di belakang trakea/jantung)
+      new THREE.Vector3(-0.03, -0.58, 0.01), // Esofagus Torakal bawah
+      new THREE.Vector3(-0.10, -0.95, 0.08)  // Menembus Hiatus Diafragma ke Cardia Lambung
+    ]);
+    const esoGeo = new THREE.TubeGeometry(esoCurve, 36, 0.028, 16, false);
+    const esoMesh = new THREE.Mesh(esoGeo, esophagusMat);
+    esophagusGroup.add(esoMesh);
+
+    tagOrganGroup(esophagusGroup, 'esophagus');
+    bodyGroup.add(esophagusGroup);
+    organMeshes['esophagus'] = esophagusGroup;
+
+    // -------------------------------------------------------------------------
+    // J. LIMPA (Lien / Splen: Kubah Limfoid Posterolateral Kiri Lambung)
+    // -------------------------------------------------------------------------
+    const spleenGroup = new THREE.Group();
+    spleenGroup.position.set(-0.34, 1.88, -0.06);
+
+    const spleenMat = createOrganMaterial(0xA855F7, 0x581C87, 0.48, 0.33);
+
+    const spleenGeo = new THREE.SphereGeometry(0.105, 28, 24);
+    const spPos = spleenGeo.attributes.position;
+    for (let i = 0; i < spPos.count; i++) {
+      const nx = THREE.MathUtils.clamp(spPos.getX(i) / 0.105, -1, 1);
+      const ny = THREE.MathUtils.clamp(spPos.getY(i) / 0.105, -1, 1);
+      let x = spPos.getX(i) * 0.72;
+      const y = spPos.getY(i) * 1.32;
+      const z = spPos.getZ(i) * 0.92;
+      // Cekungan medial (gastric impression) yang menghadap fundus lambung
+      if (nx > 0) {
+        x *= 0.65;
+      } else {
+        x -= Math.cos(ny * 1.2) * 0.015;
+      }
+      spPos.setXYZ(i, x, y, z);
+    }
+    spleenGeo.computeVertexNormals();
+    const spleenMesh = new THREE.Mesh(spleenGeo, spleenMat);
+    spleenMesh.rotation.z = -0.28;
+    spleenMesh.rotation.y = 0.35;
+    spleenGroup.add(spleenMesh);
+
+    tagOrganGroup(spleenGroup, 'spleen');
+    bodyGroup.add(spleenGroup);
+    organMeshes['spleen'] = spleenGroup;
+
+    // -------------------------------------------------------------------------
+    // K. PANKREAS (Pancreas: Kaput, Kolum, Korpus & Kauda Melintang Retroperitoneal)
+    // -------------------------------------------------------------------------
+    const pancreasGroup = new THREE.Group();
+    pancreasGroup.position.set(-0.04, 1.62, -0.04);
+
+    const pancreasMat = createOrganMaterial(0xFBBF24, 0xB45309, 0.48, 0.38);
+
+    const pancCurve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(0.11, -0.05, 0.01),  // Processus Uncinatus & Kaput Pankreas (di lengkung duodenum)
+      new THREE.Vector3(0.06, 0.0, 0.02),    // Collum (Leher) Pankreas
+      new THREE.Vector3(-0.06, 0.04, 0.01),  // Corpus (Badan) Pankreas
+      new THREE.Vector3(-0.18, 0.09, -0.02), // Cauda (Ekor) Pankreas menuju hilus limpa
+      new THREE.Vector3(-0.25, 0.13, -0.04)
+    ]);
+
+    const pTubular = 32;
+    const pRadial = 18;
+    const pFrames = pancCurve.computeFrenetFrames(pTubular, false);
+    const pVertices: number[] = [];
+    const pIndices: number[] = [];
+    const pPoint = new THREE.Vector3();
+    const pNorm = new THREE.Vector3();
+
+    for (let i = 0; i <= pTubular; i++) {
+      const t = i / pTubular;
+      pancCurve.getPointAt(t, pPoint);
+      const N = pFrames.normals[i];
+      const B = pFrames.binormals[i];
+      // Kaput pankreas (t=0..0.25) tebal membulat, lalu meruncing bertahap ke ekor (t=1)
+      const baseR = (0.068 * (1 - t * 0.68)) + (t < 0.25 ? Math.sin((t / 0.25) * Math.PI) * 0.018 : 0);
+
+      for (let j = 0; j <= pRadial; j++) {
+        const ang = (j / pRadial) * Math.PI * 2;
+        const sin = Math.sin(ang);
+        const cos = -Math.cos(ang);
+        pNorm.set(
+          cos * N.x + sin * B.x,
+          cos * N.y + sin * B.y,
+          cos * N.z + sin * B.z
+        ).normalize();
+
+        // Tekstur lobular khas kelenjar pankreas
+        const lobule = 1 + Math.sin(t * 42 + ang * 6) * 0.06;
+        pVertices.push(
+          pPoint.x + pNorm.x * baseR * lobule,
+          pPoint.y + pNorm.y * baseR * 0.85 * lobule,
+          pPoint.z + pNorm.z * baseR * 0.58 * lobule
+        );
+      }
+    }
+
+    for (let j = 1; j <= pTubular; j++) {
+      for (let i = 1; i <= pRadial; i++) {
+        const a = (pRadial + 1) * (j - 1) + (i - 1);
+        const b = (pRadial + 1) * j + (i - 1);
+        const c = (pRadial + 1) * j + i;
+        const d = (pRadial + 1) * (j - 1) + i;
+        pIndices.push(a, b, d);
+        pIndices.push(b, c, d);
+      }
+    }
+
+    const pancGeo = new THREE.BufferGeometry();
+    pancGeo.setAttribute('position', new THREE.Float32BufferAttribute(pVertices, 3));
+    pancGeo.setIndex(pIndices);
+    pancGeo.computeVertexNormals();
+    const pancMesh = new THREE.Mesh(pancGeo, pancreasMat);
+    pancreasGroup.add(pancMesh);
+
+    tagOrganGroup(pancreasGroup, 'pancreas');
+    bodyGroup.add(pancreasGroup);
+    organMeshes['pancreas'] = pancreasGroup;
+
+    // -------------------------------------------------------------------------
+    // L. KANDUNG EMPEDU & SALURAN BILIER (Vesica Fellea & Ductus Choledochus)
+    // -------------------------------------------------------------------------
+    const gallbladderGroup = new THREE.Group();
+    gallbladderGroup.position.set(0.16, 1.75, 0.12);
+
+    // Kantung berbentuk buah pir (Fundus, Corpus, Infundibulum)
+    const gbSacGeo = new THREE.SphereGeometry(0.052, 24, 20);
+    const gbPos = gbSacGeo.attributes.position;
+    for (let i = 0; i < gbPos.count; i++) {
+      const ny = THREE.MathUtils.clamp(gbPos.getY(i) / 0.052, -1, 1);
+      // Bagian bawah (fundus) menggembung bulat, bagian atas (leher/collum) meruncing
+      const pearScale = 1 - Math.max(0, (ny + 0.3) / 1.3) * 0.55;
+      gbPos.setXYZ(
+        i,
+        gbPos.getX(i) * 0.82 * pearScale,
+        gbPos.getY(i) * 1.45,
+        gbPos.getZ(i) * 0.82 * pearScale
+      );
+    }
+    gbSacGeo.computeVertexNormals();
+    const gbSacMesh = new THREE.Mesh(gbSacGeo, gallbladderMat);
+    gbSacMesh.rotation.z = -0.38;
+    gbSacMesh.rotation.x = 0.22;
+    gallbladderGroup.add(gbSacMesh);
+
+    // Saluran Ductus Cysticus & Ductus Choledochus menuju Duodenum
+    const bileDuctCurve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-0.02, 0.06, -0.01),
+      new THREE.Vector3(-0.06, 0.09, -0.03),
+      new THREE.Vector3(-0.09, 0.02, -0.05),
+      new THREE.Vector3(-0.11, -0.09, -0.05)
+    ]);
+    const bileDuctGeo = new THREE.TubeGeometry(bileDuctCurve, 16, 0.01, 10, false);
+    const bileDuctMesh = new THREE.Mesh(bileDuctGeo, gallbladderMat);
+    gallbladderGroup.add(bileDuctMesh);
+
+    tagOrganGroup(gallbladderGroup, 'gallbladder');
+    bodyGroup.add(gallbladderGroup);
+    organMeshes['gallbladder'] = gallbladderGroup;
+
+    // -------------------------------------------------------------------------
+    // M. USUS HALUS (Intestinum Tenue: Lilitan Berliku Duodenum, Jejunum & Ileum)
+    // -------------------------------------------------------------------------
+    const smallIntestineGroup = new THREE.Group();
+    smallIntestineGroup.position.set(0, 1.12, 0.08);
+
+    const smallIntestineMat = createOrganMaterial(0xFB923C, 0x9A3412, 0.44, 0.34);
+
+    // Buat kurva lilitan usus halus berliku-liku (Meandering Intestinal Coils) di tengah rongga perut
+    const siPoints: THREE.Vector3[] = [];
+    const numRows = 6;
+    const ptsPerRow = 7;
+    for (let r = 0; r < numRows; r++) {
+      const yRow = 0.22 - (r / (numRows - 1)) * 0.44;
+      const rowWidth = 0.19 - Math.abs(r - 2.5) * 0.012;
+      const dir = r % 2 === 0 ? 1 : -1;
+      for (let c = 0; c < ptsPerRow; c++) {
+        const frac = c / (ptsPerRow - 1);
+        const xVal = dir * (-rowWidth + frac * 2 * rowWidth);
+        const yWave = Math.sin(frac * Math.PI * 2.5 + r) * 0.028;
+        const zWave = Math.cos(frac * Math.PI * 3 + r * 1.4) * 0.038;
+        siPoints.push(new THREE.Vector3(xVal, yRow + yWave, zWave));
+      }
+    }
+    const siCurve = new THREE.CatmullRomCurve3(siPoints, false, 'centripetal', 0.5);
+    const siGeo = new THREE.TubeGeometry(siCurve, 140, 0.034, 14, false);
+    const siMesh = new THREE.Mesh(siGeo, smallIntestineMat);
+    smallIntestineGroup.add(siMesh);
+
+    tagOrganGroup(smallIntestineGroup, 'small_intestine');
+    bodyGroup.add(smallIntestineGroup);
+    organMeshes['small_intestine'] = smallIntestineGroup;
+
+    // -------------------------------------------------------------------------
+    // N. USUS BESAR & APENDIKS (Colon Frame: Sekum, Asendens, Transversum, Desendens, Sigmoid, Rektum)
+    // -------------------------------------------------------------------------
+    const largeIntestineGroup = new THREE.Group();
+    largeIntestineGroup.position.set(0, 1.14, 0.05);
+
+    const colonMat = createOrganMaterial(0xD97706, 0x78350F, 0.44, 0.36);
+
+    const colonCurve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(0.24, -0.22, 0.01),  // Sekum (Caecum) di fossa iliaka kanan bawah
+      new THREE.Vector3(0.26, 0.02, 0.0),    // Kolon Asendens tengah
+      new THREE.Vector3(0.25, 0.25, 0.01),   // Fleksura Hepatika (di bawah hati)
+      new THREE.Vector3(0.08, 0.28, 0.04),   // Kolon Transversum kanan
+      new THREE.Vector3(-0.08, 0.29, 0.04),  // Kolon Transversum kiri
+      new THREE.Vector3(-0.25, 0.27, 0.01),  // Fleksura Lienalis (di bawah limpa)
+      new THREE.Vector3(-0.26, 0.02, -0.01), // Kolon Desendens tengah
+      new THREE.Vector3(-0.24, -0.22, 0.0),  // Kolon Iliaka kiri bawah
+      new THREE.Vector3(-0.12, -0.30, -0.02),// Kolon Sigmoid melengkung ke tengah panggul
+      new THREE.Vector3(0.0, -0.32, -0.05),  // Rektum atas
+      new THREE.Vector3(0.0, -0.45, -0.06)   // Kanal Anal / Rektum bawah
+    ]);
+
+    const cTubular = 72;
+    const cRadial = 18;
+    const cFrames = colonCurve.computeFrenetFrames(cTubular, false);
+    const cVertices: number[] = [];
+    const cIndices: number[] = [];
+    const cPt = new THREE.Vector3();
+    const cNorm = new THREE.Vector3();
+
+    for (let i = 0; i <= cTubular; i++) {
+      const t = i / cTubular;
+      colonCurve.getPointAt(t, cPt);
+      const N = cFrames.normals[i];
+      const B = cFrames.binormals[i];
+      // Gelombang kantung Haustra Coli khas usus besar (mengecil di ujung rektum bawah)
+      const haustra = 1 + Math.abs(Math.sin(t * Math.PI * 18)) * 0.24;
+      const rectTaper = t > 0.9 ? 1 - ((t - 0.9) / 0.1) * 0.35 : 1;
+      const r = 0.048 * haustra * rectTaper;
+
+      for (let j = 0; j <= cRadial; j++) {
+        const ang = (j / cRadial) * Math.PI * 2;
+        const sin = Math.sin(ang);
+        const cos = -Math.cos(ang);
+        cNorm.set(
+          cos * N.x + sin * B.x,
+          cos * N.y + sin * B.y,
+          cos * N.z + sin * B.z
+        ).normalize();
+        cVertices.push(
+          cPt.x + cNorm.x * r,
+          cPt.y + cNorm.y * r,
+          cPt.z + cNorm.z * r * 0.85
+        );
+      }
+    }
+
+    for (let j = 1; j <= cTubular; j++) {
+      for (let i = 1; i <= cRadial; i++) {
+        const a = (cRadial + 1) * (j - 1) + (i - 1);
+        const b = (cRadial + 1) * j + (i - 1);
+        const c = (cRadial + 1) * j + i;
+        const d = (cRadial + 1) * (j - 1) + i;
+        cIndices.push(a, b, d);
+        cIndices.push(b, c, d);
+      }
+    }
+
+    const colonGeo = new THREE.BufferGeometry();
+    colonGeo.setAttribute('position', new THREE.Float32BufferAttribute(cVertices, 3));
+    colonGeo.setIndex(cIndices);
+    colonGeo.computeVertexNormals();
+    const colonMesh = new THREE.Mesh(colonGeo, colonMat);
+    largeIntestineGroup.add(colonMesh);
+
+    // Umbai Cacing / Usus Buntu (Appendix Vermiformis) di bawah Sekum kanan
+    const appendixCurve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(0.24, -0.22, 0.01),
+      new THREE.Vector3(0.22, -0.29, 0.02),
+      new THREE.Vector3(0.19, -0.33, 0.01)
+    ]);
+    const appendixGeo = new THREE.TubeGeometry(appendixCurve, 12, 0.014, 10, false);
+    const appendixMesh = new THREE.Mesh(appendixGeo, colonMat);
+    largeIntestineGroup.add(appendixMesh);
+
+    tagOrganGroup(largeIntestineGroup, 'large_intestine');
+    bodyGroup.add(largeIntestineGroup);
+    organMeshes['large_intestine'] = largeIntestineGroup;
+
+    // -------------------------------------------------------------------------
+    // O. KANDUNG KEMIH (Vesica Urinaria: Kantung Detrusor + Leher Uretra di Dasar Panggul)
+    // -------------------------------------------------------------------------
+    const bladderGroup = new THREE.Group();
+    bladderGroup.position.set(0, 0.68, 0.12);
+
+    const bladderMat = createOrganMaterial(0x3B82F6, 0x1D4ED8, 0.48, 0.3);
+
+    const bladderGeo = new THREE.SphereGeometry(0.095, 28, 24);
+    const bPos = bladderGeo.attributes.position;
+    for (let i = 0; i < bPos.count; i++) {
+      const ny = THREE.MathUtils.clamp(bPos.getY(i) / 0.095, -1, 1);
+      // Bentuk tetrahedron membulat: melebar di kubah atas (apex/fundus), menyempit di leher bawah (cervix vesicae)
+      const neckTaper = ny < 0 ? 1 + ny * 0.42 : 1 - ny * 0.12;
+      bPos.setXYZ(
+        i,
+        bPos.getX(i) * 1.05 * neckTaper,
+        bPos.getY(i) * 0.95,
+        bPos.getZ(i) * 0.88 * neckTaper
+      );
+    }
+    bladderGeo.computeVertexNormals();
+    const bladderMesh = new THREE.Mesh(bladderGeo, bladderMat);
+    bladderGroup.add(bladderMesh);
+
+    // Saluran Uretra proksimal di bawah kandung kemih
+    const urethraGeo = new THREE.CylinderGeometry(0.016, 0.014, 0.08, 12);
+    const urethraMesh = new THREE.Mesh(urethraGeo, bladderMat);
+    urethraMesh.position.set(0, -0.10, -0.005);
+    bladderGroup.add(urethraMesh);
+
+    tagOrganGroup(bladderGroup, 'bladder');
+    bodyGroup.add(bladderGroup);
+    organMeshes['bladder'] = bladderGroup;
+
+    // -------------------------------------------------------------------------
+    // P. TULANG BELAKANG & MEDULLA SPINALIS (Columna Vertebralis: Kurva S 24 Ruas + Sakrum)
+    // -------------------------------------------------------------------------
+    const spineGroup = new THREE.Group();
+    spineGroup.position.set(0, 2.35, -0.25);
+
+    const vertebraMat = createOrganMaterial(0xE2E8F0, 0x0D9488, 0.38, 0.35);
+    const discMat = createOrganMaterial(0x2DD4BF, 0x0F766E, 0.52, 0.25);
+    const cordMat = createOrganMaterial(0xFDE047, 0xCA8A04, 0.48, 0.3);
+
+    // Kurva S fisiologis tulang belakang (Lordosis Servikal, Kifosis Torakal, Lordosis Lumbal, Sakrum)
+    const spinePoints: THREE.Vector3[] = [];
+    const numVertebrae = 22;
+    for (let vIdx = 0; vIdx < numVertebrae; vIdx++) {
+      const frac = vIdx / (numVertebrae - 1); // 0 (C1 atas) s/d 1 (L5/Sakrum bawah)
+      const yPos = 1.65 - frac * 3.15;
+      // Kurva S sagital (sumbu Z)
+      const zCurve = Math.sin(frac * Math.PI * 2.2) * 0.045;
+      spinePoints.push(new THREE.Vector3(0, yPos, zCurve));
+
+      // Ukuran korpus vertebra makin besar dari leher (servikal) ke pinggang (lumbal)
+      const vRadius = 0.042 + frac * 0.032;
+      const vHeight = 0.068;
+
+      const vBodyGeo = new THREE.CylinderGeometry(vRadius, vRadius * 1.04, vHeight, 16);
+      vBodyGeo.scale(1.15, 1, 0.88);
+      const vBodyMesh = new THREE.Mesh(vBodyGeo, vertebraMat);
+      vBodyMesh.position.set(0, yPos, zCurve);
+      spineGroup.add(vBodyMesh);
+
+      // Processus Spinosus (tonjolan tulang belakang ke arah punggung) & Processus Transversus
+      const spinousGeo = new THREE.BoxGeometry(0.018, 0.042, 0.055);
+      const spinousMesh = new THREE.Mesh(spinousGeo, vertebraMat);
+      spinousMesh.position.set(0, yPos - 0.01, zCurve - vRadius * 0.95);
+      spinousMesh.rotation.x = 0.35;
+      spineGroup.add(spinousMesh);
+
+      const transGeo = new THREE.BoxGeometry(vRadius * 2.9, 0.024, 0.024);
+      const transMesh = new THREE.Mesh(transGeo, vertebraMat);
+      transMesh.position.set(0, yPos, zCurve - vRadius * 0.45);
+      spineGroup.add(transMesh);
+
+      // Cakram Intervertebralis (Discus Intervertebralis) di antara ruas vertebra
+      if (vIdx < numVertebrae - 1) {
+        const discGeo = new THREE.CylinderGeometry(vRadius * 0.98, vRadius * 0.98, 0.026, 16);
+        discGeo.scale(1.12, 1, 0.85);
+        const discMesh = new THREE.Mesh(discGeo, discMat);
+        discMesh.position.set(0, yPos - 0.052, zCurve);
+        spineGroup.add(discMesh);
+      }
+    }
+
+    // Tulang Kelangkang (Os Sacrum) berbentuk perisai segitiga terbalik di dasar lumbal
+    const sacrumGeo = new THREE.ConeGeometry(0.088, 0.24, 16);
+    sacrumGeo.scale(1.3, 1, 0.55);
+    sacrumGeo.rotateX(Math.PI);
+    const sacrumMesh = new THREE.Mesh(sacrumGeo, vertebraMat);
+    sacrumMesh.position.set(0, -1.64, -0.02);
+    sacrumMesh.rotation.x = Math.PI - 0.25;
+    spineGroup.add(sacrumMesh);
+
+    // Sumsum Tulang Belakang (Medulla Spinalis) berjalan di dalam kanalis vertebralis
+    const spinalCordCurve = new THREE.CatmullRomCurve3(spinePoints);
+    const spinalCordGeo = new THREE.TubeGeometry(spinalCordCurve, 40, 0.018, 12, false);
+    const spinalCordMesh = new THREE.Mesh(spinalCordGeo, cordMat);
+    spinalCordMesh.position.set(0, 0, -0.022);
+    spineGroup.add(spinalCordMesh);
+
+    tagOrganGroup(spineGroup, 'spine');
+    bodyGroup.add(spineGroup);
+    organMeshes['spine'] = spineGroup;
 
     organMeshesRef.current = organMeshes;
 
@@ -1486,6 +2303,80 @@ export default function AnatomiPage() {
               </button>
             </div>
 
+            {/* Mode Visibilitas Organ 3D: Fokus Organ / Sistem Aktif / Semua Organ */}
+            <div style={{
+              display: 'inline-flex',
+              backgroundColor: '#F8FAFC',
+              borderRadius: '9px',
+              padding: '2px',
+              border: '1.5px solid #1E1E1E',
+              boxShadow: '1.5px 1.5px 0px #1E1E1E'
+            }}>
+              <button
+                type="button"
+                onClick={() => setDisplayMode('focused')}
+                title="Tampilkan hanya organ aktif yang sedang dipilih (Individual Organ)"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '6px 11px',
+                  borderRadius: '7px',
+                  border: 'none',
+                  backgroundColor: displayMode === 'focused' ? '#1E1E1E' : 'transparent',
+                  color: displayMode === 'focused' ? '#FFFFFF' : '#475569',
+                  fontWeight: displayMode === 'focused' ? 900 : 700,
+                  fontSize: '0.76rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.12s ease'
+                }}
+              >
+                <span>🎯 Organ Terpilih</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDisplayMode('system')}
+                title="Tampilkan organ pada jenis/sistem organ yang aktif"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '6px 11px',
+                  borderRadius: '7px',
+                  border: 'none',
+                  backgroundColor: displayMode === 'system' ? '#1E1E1E' : 'transparent',
+                  color: displayMode === 'system' ? '#FFFFFF' : '#475569',
+                  fontWeight: displayMode === 'system' ? 900 : 700,
+                  fontSize: '0.76rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.12s ease'
+                }}
+              >
+                <span>🗂️ Sistem Aktif</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDisplayMode('all')}
+                title="Tampilkan semua organ sekaligus"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '6px 11px',
+                  borderRadius: '7px',
+                  border: 'none',
+                  backgroundColor: displayMode === 'all' ? '#1E1E1E' : 'transparent',
+                  color: displayMode === 'all' ? '#FFFFFF' : '#475569',
+                  fontWeight: displayMode === 'all' ? 900 : 700,
+                  fontSize: '0.76rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.12s ease'
+                }}
+              >
+                <span>🌐 Semua Organ</span>
+              </button>
+            </div>
+
             {/* Mode Visual Hologram / X-Ray / Solid */}
             <div style={{
               display: 'inline-flex',
@@ -1727,7 +2618,7 @@ export default function AnatomiPage() {
           <span style={{ color: '#475569', fontSize: '0.80rem', fontWeight: 800, whiteSpace: 'nowrap' }}>
             FILTER LAPISAN SISTEM ORGAN:
           </span>
-          {['ALL', 'Saraf', 'Kardiovaskular', 'Respirasi', 'Pencernaan', 'Ekskresi'].map((sys) => (
+          {['ALL', 'Saraf', 'Kardiovaskular', 'Respirasi', 'Pencernaan', 'Ekskresi', 'Endokrin', 'Imun & Limfatik', 'Muskuloskeletal'].map((sys) => (
             <button
               key={sys}
               onClick={() => setActiveSystemFilter(sys)}
@@ -2040,19 +2931,21 @@ export default function AnatomiPage() {
                     outline: 'none'
                   }}
                 >
-                  {selectedOrgan.imageUrl ? (
+                  {selectedOrgan.imageUrl && !imageError ? (
                     <>
                       <img
                         src={selectedOrgan.imageUrl}
                         alt={`Anatomi 2D ${selectedOrgan.name}`}
                         loading="lazy"
+                        referrerPolicy="no-referrer"
+                        onError={() => setImageError(true)}
                         style={{
                           width: '95%',
                           height: '95%',
                           maxHeight: '250px',
                           maxWidth: '100%',
                           objectFit: 'contain',
-                          filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.12))',
+                          filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.10))',
                           transition: 'transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)'
                         }}
                         onMouseEnter={(e) => {
@@ -2084,16 +2977,21 @@ export default function AnatomiPage() {
                     </>
                   ) : (
                     <div style={{
-                      width: '110px',
-                      height: '110px',
+                      width: '120px',
+                      height: '120px',
                       borderRadius: '50%',
-                      backgroundColor: `${selectedOrgan.highlightColor}20`,
-                      border: `2px solid ${selectedOrgan.highlightColor}`,
+                      backgroundColor: `${selectedOrgan.highlightColor}15`,
+                      border: `2.5px solid ${selectedOrgan.highlightColor}`,
                       display: 'flex',
+                      flexDirection: 'column',
                       alignItems: 'center',
-                      justifyContent: 'center'
+                      justifyContent: 'center',
+                      gap: '8px'
                     }}>
-                      <Activity size={52} color={selectedOrgan.highlightColor} />
+                      <Activity size={48} color={selectedOrgan.highlightColor} />
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: selectedOrgan.highlightColor }}>
+                        {selectedOrgan.system}
+                      </span>
                     </div>
                   )}
                 </button>
@@ -2455,6 +3353,7 @@ export default function AnatomiPage() {
                 <img
                   src={selectedOrgan.imageUrl}
                   alt={`Anatomi Detail ${selectedOrgan.name}`}
+                  referrerPolicy="no-referrer"
                   style={{
                     maxWidth: '100%',
                     maxHeight: '60vh',

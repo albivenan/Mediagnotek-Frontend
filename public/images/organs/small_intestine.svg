@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+    <defs>
+      <linearGradient id="bgGradSi" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#FFF7ED" />
+        <stop offset="100%" stop-color="#FFEDD5" />
+      </linearGradient>
+    </defs>
+    <rect width="400" height="400" rx="24" fill="url(#bgGradSi)" />
+    <path d="M130 130 C180 110 240 120 270 140 C300 160 280 200 230 190 C180 180 150 220 200 230 C250 240 280 260 260 290 C240 320 170 320 140 290 C110 260 150 240 130 200 C110 160 100 145 130 130 Z" fill="#FDBA74" stroke="#EA580C" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M150 160 C190 140 230 160 240 180 M180 210 C210 200 240 220 250 250 M160 260 C190 250 220 270 230 290" fill="none" stroke="#FED7AA" stroke-width="6" stroke-linecap="round" />
+    <text x="200" y="380" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" font-weight="800" fill="#C2410C">USUS HALUS (INTESTINUM TENUE)</text>
+  </svg>

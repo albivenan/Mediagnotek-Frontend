@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+    <defs>
+      <linearGradient id="bgGradK" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#F5F3FF" />
+        <stop offset="100%" stop-color="#EDE9FE" />
+      </linearGradient>
+      <linearGradient id="kidGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#A78BFA" />
+        <stop offset="60%" stop-color="#8B5CF6" />
+        <stop offset="100%" stop-color="#6D28D9" />
+      </linearGradient>
+    </defs>
+    <rect width="400" height="400" rx="24" fill="url(#bgGradK)" />
+    <path d="M185 80 L185 340" stroke="#3B82F6" stroke-width="16" />
+    <path d="M215 80 L215 340" stroke="#EF4444" stroke-width="16" />
+    <path d="M140 220 Q170 280 185 340" fill="none" stroke="#DDD6FE" stroke-width="7" />
+    <path d="M260 230 Q230 280 215 340" fill="none" stroke="#DDD6FE" stroke-width="7" />
+    <path d="M120 140 C160 140 150 190 140 210 C130 230 160 260 120 260 C80 260 70 210 80 180 C90 150 100 140 120 140 Z" fill="url(#kidGrad)" stroke="#5B21B6" stroke-width="4" />
+    <path d="M105 140 Q120 120 135 140 Z" fill="#FBBF24" stroke="#B45309" stroke-width="3" />
+    <path d="M280 160 C240 160 250 210 260 230 C270 250 240 280 280 280 C320 280 330 230 320 200 C310 170 300 160 280 160 Z" fill="url(#kidGrad)" stroke="#5B21B6" stroke-width="4" />
+    <path d="M265 160 Q280 140 295 160 Z" fill="#FBBF24" stroke="#B45309" stroke-width="3" />
+    <text x="200" y="380" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" font-weight="800" fill="#5B21B6">GINJAL (RENALIS)</text>
+  </svg>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+    <defs>
+      <linearGradient id="bgGradSt" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#FFFBEB" />
+        <stop offset="100%" stop-color="#FEF3C7" />
+      </linearGradient>
+      <linearGradient id="stomGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#FCD34D" />
+        <stop offset="50%" stop-color="#F59E0B" />
+        <stop offset="100%" stop-color="#D97706" />
+      </linearGradient>
+    </defs>
+    <rect width="400" height="400" rx="24" fill="url(#bgGradSt)" />
+    <path d="M160 80 L160 140" stroke="#F87171" stroke-width="22" stroke-linecap="round" />
+    <path d="M260 270 Q280 270 290 290" fill="none" stroke="#F59E0B" stroke-width="20" stroke-linecap="round" />
+    <path d="M160 140 C140 90 240 90 260 140 C280 190 290 240 260 270 C230 300 170 310 130 260 C90 210 110 160 160 140 Z" fill="url(#stomGrad)" stroke="#B45309" stroke-width="5" />
+    <path d="M165 170 Q210 175 235 220" fill="none" stroke="#FEF3C7" stroke-width="3" stroke-linecap="round" opacity="0.7" />
+    <text x="200" y="380" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" font-weight="800" fill="#B45309">LAMBUNG (GASTER)</text>
+  </svg>

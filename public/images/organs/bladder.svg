@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+    <defs>
+      <linearGradient id="bgGradBl" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#EFF6FF" />
+        <stop offset="100%" stop-color="#DBEAFE" />
+      </linearGradient>
+      <linearGradient id="bladGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#60A5FA" />
+        <stop offset="70%" stop-color="#3B82F6" />
+        <stop offset="100%" stop-color="#1D4ED8" />
+      </linearGradient>
+    </defs>
+    <rect width="400" height="400" rx="24" fill="url(#bgGradBl)" />
+    <path d="M120 100 Q150 160 170 200" fill="none" stroke="#93C5FD" stroke-width="10" stroke-linecap="round" />
+    <path d="M280 100 Q250 160 230 200" fill="none" stroke="#93C5FD" stroke-width="10" stroke-linecap="round" />
+    <path d="M200 160 C260 160 280 200 260 260 C240 300 220 310 200 310 C180 310 160 300 140 260 C120 200 140 160 200 160 Z" fill="url(#bladGrad)" stroke="#1E40AF" stroke-width="5" />
+    <path d="M200 310 L200 350" stroke="#1D4ED8" stroke-width="14" stroke-linecap="round" />
+    <text x="200" y="380" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" font-weight="800" fill="#1E40AF">KANDUNG KEMIH (VESICA URINARIA)</text>
+  </svg>

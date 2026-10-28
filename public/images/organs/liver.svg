@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+    <defs>
+      <linearGradient id="bgGradLiv" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#FFF7ED" />
+        <stop offset="100%" stop-color="#FFEDD5" />
+      </linearGradient>
+      <linearGradient id="liverGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#FB923C" />
+        <stop offset="60%" stop-color="#EA580C" />
+        <stop offset="100%" stop-color="#9A3412" />
+      </linearGradient>
+    </defs>
+    <rect width="400" height="400" rx="24" fill="url(#bgGradLiv)" />
+    <path d="M180 260 C170 290 190 320 210 320 C225 320 235 290 225 260 Z" fill="#10B981" stroke="#047857" stroke-width="4" />
+    <path d="M90 200 C80 130 160 110 240 120 C310 130 340 160 320 210 C300 260 270 270 210 260 C150 250 100 250 90 200 Z" fill="url(#liverGrad)" stroke="#7C2D12" stroke-width="5" />
+    <path d="M220 125 Q215 190 210 260" fill="none" stroke="#FFEDD5" stroke-width="3" stroke-linecap="round" opacity="0.7" />
+    <text x="200" y="380" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" font-weight="800" fill="#7C2D12">HATI (HEPAR)</text>
+  </svg>

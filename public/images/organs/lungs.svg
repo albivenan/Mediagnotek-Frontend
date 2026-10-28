@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+    <defs>
+      <linearGradient id="bgGradL" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#F0F9FF" />
+        <stop offset="100%" stop-color="#E0F2FE" />
+      </linearGradient>
+      <linearGradient id="lungGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#7DD3FC" />
+        <stop offset="100%" stop-color="#0284C7" />
+      </linearGradient>
+    </defs>
+    <rect width="400" height="400" rx="24" fill="url(#bgGradL)" />
+    <path d="M190 60 L190 170 Q160 190 140 210 M210 60 L210 170 Q240 190 260 210" fill="none" stroke="#0284C7" stroke-width="14" stroke-linecap="round" />
+    <path d="M190 60 L210 60 M190 80 L210 80 M190 100 L210 100 M190 120 L210 120 M190 140 L210 140 M190 160 L210 160" stroke="#BAE6FD" stroke-width="4" stroke-linecap="round" />
+    <path d="M135 150 C120 120 100 125 90 160 C70 220 60 270 70 310 C80 330 140 330 155 300 C165 270 165 200 135 150 Z" fill="url(#lungGrad)" stroke="#0369A1" stroke-width="4" />
+    <path d="M75 220 Q120 230 160 215" fill="none" stroke="#0369A1" stroke-width="3" opacity="0.7" />
+    <path d="M70 265 Q115 275 155 260" fill="none" stroke="#0369A1" stroke-width="3" opacity="0.7" />
+    <path d="M265 150 C280 120 300 125 310 160 C330 220 340 270 330 310 C320 330 260 330 245 300 C235 285 245 265 240 240 C235 210 240 180 265 150 Z" fill="url(#lungGrad)" stroke="#0369A1" stroke-width="4" />
+    <path d="M325 230 Q285 245 245 235" fill="none" stroke="#0369A1" stroke-width="3" opacity="0.7" />
+    <text x="200" y="380" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" font-weight="800" fill="#0369A1">PARU-PARU (PULMO)</text>
+  </svg>
