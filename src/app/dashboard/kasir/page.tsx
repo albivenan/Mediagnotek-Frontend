@@ -1331,7 +1331,13 @@ export default function KasirPage() {
       {/* STYLE CSS KHUSUS MODE CETAK PRINT NOTA KASIR */}
       <style jsx global>{`
         @media print {
-          /* Sembunyikan semua elemen navigasi, sidebar, header, dan elemen background */
+          /* Bersihkan margin body dan sembunyikan semua elemen default */
+          body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+          }
+
           body * {
             visibility: hidden !important;
           }
@@ -1342,21 +1348,24 @@ export default function KasirPage() {
             visibility: visible !important;
           }
 
-          /* Tempatkan struk di bagian paling atas halaman cetak tanpa margin berlebih */
+          /* Posisikan struk tepat di tengah halaman secara simetris dan rapi */
           #printable-receipt {
-            position: absolute !important;
+            position: relative !important;
             left: 0 !important;
+            right: 0 !important;
             top: 0 !important;
-            width: 78mm !important; /* Standar lebar kertas printer termal POS 80mm/58mm */
-            max-width: 100% !important;
-            margin: 0 auto !important;
-            padding: 10px !important;
-            border: none !important;
+            width: 82mm !important; /* Standar lebar kertas printer termal POS 80mm */
+            max-width: 90% !important;
+            margin: 10mm auto !important; /* Rata tengah (center) sempurna di kertas A4 maupun thermal */
+            padding: 12px 14px !important;
+            border: 1px dashed #94A3B8 !important; /* Garis batas nota rapi saat di PDF */
+            border-radius: 8px !important;
             background: #ffffff !important;
             color: #000000 !important;
             font-size: 11px !important;
-            line-height: 1.3 !important;
+            line-height: 1.35 !important;
             box-shadow: none !important;
+            box-sizing: border-box !important;
           }
 
           .no-print {
@@ -1365,7 +1374,7 @@ export default function KasirPage() {
 
           @page {
             size: auto;
-            margin: 4mm;
+            margin: 0;
           }
         }
       `}</style>

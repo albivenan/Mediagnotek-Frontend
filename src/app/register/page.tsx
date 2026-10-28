@@ -61,13 +61,61 @@ export default function RegisterPage() {
 
   // Google SSO Handler
   const handleGoogleSignup = () => {
-    setIsLoading(true);
-    setNamaFaskes('');
-    setNomorIzin('');
-    setTelepon('');
-    setAlamatLengkap('');
-    setIsLoading(false);
-    setCurrentStep(2);
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '1084824684260-so9mg5klnd166h3i1gi6e8n28u9mugap.apps.googleusercontent.com';
+    const g = typeof window !== 'undefined' ? (window as any).google : null;
+
+    if (!g?.accounts?.oauth2) {
+      setCurrentStep(2);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const tokenClient = g.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope: 'email profile openid',
+        callback: async (tokenResponse: any) => {
+          if (tokenResponse?.error) {
+            setErrorMessage('Pendaftaran via Google dibatalkan atau terkendala.');
+            setIsLoading(false);
+            return;
+          }
+
+          try {
+            const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+              headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+            });
+            const googleUser = await userRes.json();
+
+            if (googleUser?.email) {
+              setEmail(googleUser.email.toLowerCase());
+              const autoPass = `Ggl#${Math.random().toString(36).substring(2, 10)}!`;
+              setPassword(autoPass);
+              setConfirmPassword(autoPass);
+              if (googleUser.name) {
+                setPenanggungJawab(googleUser.name);
+              }
+              if (googleUser.picture) {
+                setFotoPreview(googleUser.picture);
+              }
+            }
+
+            setIsLoading(false);
+            setCurrentStep(2);
+          } catch (e) {
+            console.error('Google register fetch error:', e);
+            setIsLoading(false);
+            setCurrentStep(2);
+          }
+        }
+      });
+
+      tokenClient.requestAccessToken({ prompt: 'select_account' });
+    } catch (err) {
+      console.warn('Google register init warning:', err);
+      setIsLoading(false);
+      setCurrentStep(2);
+    }
   };
 
   const handleNextStep = (e: React.FormEvent) => {

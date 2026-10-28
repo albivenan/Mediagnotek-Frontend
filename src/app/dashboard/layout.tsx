@@ -472,7 +472,15 @@ export default function DashboardLayout({
                 overflow: 'hidden'
               }}>
                 {userSession.avatar ? (
-                  <img src={userSession.avatar} alt="User Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img
+                    src={userSession.avatar}
+                    alt="User Avatar"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.display = 'none';
+                    }}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
                 ) : (
                   <User size={18} strokeWidth={2.2} />
                 )}

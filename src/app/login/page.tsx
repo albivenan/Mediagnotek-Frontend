@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -149,10 +149,208 @@ export default function LoginPage() {
   };
 
 
-  // 2. Click Google SSO button -> Opens Dynamic Google Account Dialog
+  // Inisialisasi Google One-Tap otomatis saat berada di halaman login
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '1084824684260-so9mg5klnd166h3i1gi6e8n28u9mugap.apps.googleusercontent.com';
+
+    const timer = setTimeout(() => {
+      const g = (window as any).google;
+      if (g?.accounts?.id && step === 'login') {
+        try {
+          g.accounts.id.initialize({
+            client_id: clientId,
+            callback: async (response: any) => {
+              if (response?.credential) {
+                try {
+                  setIsLoading(true);
+                  // Decode JWT ID Token payload secara aman
+                  const base64Url = response.credential.split('.')[1];
+                  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                  const jsonPayload = decodeURIComponent(
+                    window.atob(base64).split('').map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')
+                  );
+                  const payload = JSON.parse(jsonPayload);
+
+                  const profile: GoogleAccount = {
+                    name: payload.name || payload.email?.split('@')[0] || 'Pengguna Google',
+                    email: payload.email ? payload.email.toLowerCase() : '',
+                    avatar: payload.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(payload.name || 'User')}`
+                  };
+
+                  setActiveProfile(profile);
+                  setPenanggungJawab(profile.name);
+
+                  if (typeof window !== 'undefined') {
+                    localStorage.setItem('mediagnotek_auth_token', response.credential);
+                  }
+
+                  // Panggil backend API
+                  await apiGoogleAuth({
+                    id_token: response.credential,
+                    email: profile.email,
+                    name: profile.name,
+                    picture: profile.avatar
+                  });
+
+                  // Cek apakah faskes session sudah pernah tersimpan sebelumnya
+                  const savedFaskes = localStorage.getItem('mediagnotek_faskes_session');
+                  let existingFaskesName = '';
+                  if (savedFaskes) {
+                    try {
+                      const parsed = JSON.parse(savedFaskes);
+                      if (parsed?.faskes_profile?.nama_faskes) {
+                        existingFaskesName = parsed.faskes_profile.nama_faskes;
+                      }
+                    } catch (e) {
+                      console.warn('Error reading saved faskes:', e);
+                    }
+                  }
+
+                  if (existingFaskesName) {
+                    persistSession({
+                      name: profile.name,
+                      email: profile.email,
+                      role: 'APOTEKER',
+                      facilityName: existingFaskesName,
+                      avatar: profile.avatar
+                    });
+                    setIsLoading(false);
+                    router.push('/dashboard');
+                  } else {
+                    setIsLoading(false);
+                    setStep('company_setup');
+                  }
+                } catch (decodeErr) {
+                  console.error('Error handling Google One-Tap credential:', decodeErr);
+                  setIsLoading(false);
+                }
+              }
+            },
+            auto_select: false
+          });
+
+          g.accounts.id.prompt();
+        } catch (initErr) {
+          console.warn('Google One Tap init warning:', initErr);
+        }
+      }
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [step]);
+
+  // 2. Klik tombol "Masuk dengan Akun Google" -> Membuka Popup Resmi Google OAuth
   const handleOpenGoogleAuth = () => {
     setGoogleError('');
-    setStep('google_input');
+    setLoginError('');
+
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '1084824684260-so9mg5klnd166h3i1gi6e8n28u9mugap.apps.googleusercontent.com';
+    const g = typeof window !== 'undefined' ? (window as any).google : null;
+
+    // Jika SDK Google belum siap atau diblokir adblocker, gunakan fallback interaktif
+    if (!g?.accounts?.oauth2) {
+      setStep('google_input');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      const tokenClient = g.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope: 'email profile openid',
+        callback: async (tokenResponse: any) => {
+          if (tokenResponse?.error) {
+            console.warn('Google Auth Error:', tokenResponse);
+            setLoginError('Proses login Google dibatalkan atau mengalami kendala.');
+            setIsLoading(false);
+            return;
+          }
+
+          try {
+            // Ambil data profil resmi pengguna dari Google UserInfo API
+            const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+              headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+            });
+            const googleUser = await userRes.json();
+
+            if (!googleUser?.email) {
+              throw new Error('Gagal memverifikasi akun Google.');
+            }
+
+            const profile: GoogleAccount = {
+              name: googleUser.name || googleUser.email.split('@')[0],
+              email: googleUser.email.toLowerCase(),
+              avatar: googleUser.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(googleUser.name || 'User')}`
+            };
+
+            setActiveProfile(profile);
+            setPenanggungJawab(profile.name);
+
+            if (typeof window !== 'undefined' && tokenResponse.access_token) {
+              localStorage.setItem('mediagnotek_auth_token', tokenResponse.access_token);
+            }
+
+            // Laporkan ke backend
+            await apiGoogleAuth({
+              email: profile.email,
+              name: profile.name,
+              picture: profile.avatar
+            });
+
+            // Cek apakah faskes session sudah pernah tersimpan sebelumnya
+            const savedFaskes = typeof window !== 'undefined' ? localStorage.getItem('mediagnotek_faskes_session') : null;
+            let existingFaskesName = '';
+            if (savedFaskes) {
+              try {
+                const parsed = JSON.parse(savedFaskes);
+                if (parsed?.faskes_profile?.nama_faskes) {
+                  existingFaskesName = parsed.faskes_profile.nama_faskes;
+                }
+              } catch (e) {
+                console.warn('Error reading saved faskes:', e);
+              }
+            }
+
+            // Jika pengguna sudah memiliki faskes, langsung masuk ke dashboard
+            if (existingFaskesName) {
+              persistSession({
+                name: profile.name,
+                email: profile.email,
+                role: 'APOTEKER',
+                facilityName: existingFaskesName,
+                avatar: profile.avatar
+              });
+              setIsLoading(false);
+              router.push('/dashboard');
+              return;
+            }
+
+            // Jika belum ada data faskes, lengkapi profil perusahaan / apotek
+            setNamaPerusahaan('');
+            setNomorIzin('');
+            setTelepon('');
+            setAlamatLengkap('');
+            setKota('');
+            setProvinsi('');
+            setCompanyError('');
+            setIsLoading(false);
+            setStep('company_setup');
+          } catch (fetchErr) {
+            console.error('Error fetching Google userinfo:', fetchErr);
+            setLoginError('Gagal memuat profil Google. Silakan coba lagi.');
+            setIsLoading(false);
+          }
+        }
+      });
+
+      tokenClient.requestAccessToken({ prompt: 'select_account' });
+    } catch (err) {
+      console.error('Google OAuth init error:', err);
+      setIsLoading(false);
+      setStep('google_input');
+    }
   };
 
   // 3. Confirm Google Account details (No hardcoded credentials!)
@@ -657,6 +855,11 @@ export default function LoginPage() {
                 <img
                   src={activeProfile.avatar}
                   alt="Google Avatar"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    // Jika avatar Google gagal dimuat, sembunyikan gambar agar tidak tampak corrupt
+                    (e.currentTarget as HTMLImageElement).style.display = 'none';
+                  }}
                   style={{ width: '40px', height: '40px', borderRadius: '10px', border: '1.5px solid #1E1E1E', objectFit: 'cover' }}
                 />
               ) : (
