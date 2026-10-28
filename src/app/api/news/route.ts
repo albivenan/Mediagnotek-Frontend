@@ -4,23 +4,34 @@ export const runtime = 'nodejs';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const category = searchParams.get('category') || '';
+  const category = searchParams.get('category') || 'all';
   const q = searchParams.get('q') || '';
   const apiKey = 'dc373b88c40444a192572152a8ce1680';
 
-  let apiUrl = `https://newsapi.org/v2/top-headlines?country=id&apiKey=${apiKey}`;
-
-  if (category && category !== 'all') {
-    apiUrl += `&category=${encodeURIComponent(category)}`;
+  // Pemetaan kata kunci pencarian berita Indonesia berdasarkan kategori
+  let queryKeyword = 'indonesia';
+  if (category === 'health') {
+    queryKeyword = 'kesehatan OR medis OR dokter OR rumah sakit OR obat OR bpjs';
+  } else if (category === 'science') {
+    queryKeyword = 'sains OR farmasi OR riset OR teknologi kesehatan';
+  } else if (category === 'technology') {
+    queryKeyword = 'teknologi OR digital OR ai OR startup';
+  } else if (category === 'business') {
+    queryKeyword = 'bisnis OR ekonomi OR pasar OR finansial';
+  } else if (category === 'general') {
+    queryKeyword = 'indonesia OR nasional OR masyarakat';
   }
 
+  // Jika pengguna memasukkan kata kunci pencarian spesifik
   if (q.trim()) {
-    apiUrl += `&q=${encodeURIComponent(q.trim())}`;
+    queryKeyword = `(${queryKeyword}) AND (${q.trim()})`;
   }
+
+  const apiUrl = `https://newsapi.org/v2/everything?q=${encodeURIComponent(queryKeyword)}&language=id&sortBy=publishedAt&pageSize=40&apiKey=${apiKey}`;
 
   try {
     const res = await fetch(apiUrl, {
-      next: { revalidate: 300 }, // Cache selama 5 menit
+      next: { revalidate: 180 }, // Cache 3 menit
       headers: {
         'User-Agent': 'MediagnotekHealthPortal/1.0'
       }
