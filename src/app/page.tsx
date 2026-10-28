@@ -1,3 +1,6 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   LayoutDashboard,
@@ -25,10 +28,35 @@ import {
   ChevronRight,
   FileText,
   UserPlus,
-  LogIn
+  LogIn,
+  Activity,
+  Newspaper,
+  Globe,
+  Dna,
+  ExternalLink
 } from 'lucide-react';
 
 export default function HomePage() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userName, setUserName] = useState('');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const session = localStorage.getItem('mediagnotek_user_session');
+        if (session) {
+          const parsed = JSON.parse(session);
+          if (parsed?.name || parsed?.email) {
+            setIsLoggedIn(true);
+            setUserName(parsed.name || parsed.email.split('@')[0]);
+          }
+        }
+      } catch (e) {
+        console.warn('Failed reading session on homepage:', e);
+      }
+    }
+  }, []);
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -85,6 +113,12 @@ export default function HomePage() {
             <a href="#fitur" style={{ color: '#18181B', fontWeight: 700, fontSize: '0.88rem', textDecoration: 'none' }}>
               Fitur Utama
             </a>
+            <a href="#visual-3d" style={{ color: '#0284C7', fontWeight: 800, fontSize: '0.88rem', textDecoration: 'none' }}>
+              Atlas Anatomi 3D
+            </a>
+            <a href="#berita" style={{ color: '#15803D', fontWeight: 800, fontSize: '0.88rem', textDecoration: 'none' }}>
+              Warta & Berita
+            </a>
             <a href="#alur" style={{ color: '#4B5563', fontWeight: 600, fontSize: '0.88rem', textDecoration: 'none' }}>
               Alur Apotek
             </a>
@@ -96,14 +130,35 @@ export default function HomePage() {
 
           {/* Auth Action Button */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Link
-              href="/login"
-              className="nav-pill-join"
-              style={{ padding: '7px 18px', fontSize: '0.84rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-            >
-              <span>Login</span>
-              <ArrowRight size={14} />
-            </Link>
+            {isLoggedIn ? (
+              <Link
+                href="/dashboard"
+                className="nav-pill-join"
+                style={{
+                  padding: '7px 18px',
+                  fontSize: '0.84rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  backgroundColor: '#DCFCE7',
+                  color: '#15803D',
+                  borderColor: '#15803D'
+                }}
+              >
+                <LayoutDashboard size={15} />
+                <span>Buka Dashboard ({userName ? userName.split(' ')[0] : 'Sesi Aktif'})</span>
+                <ArrowRight size={14} />
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className="nav-pill-join"
+                style={{ padding: '7px 18px', fontSize: '0.84rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <span>Login</span>
+                <ArrowRight size={14} />
+              </Link>
+            )}
           </div>
 
         </div>
@@ -184,44 +239,88 @@ export default function HomePage() {
             marginBottom: '36px',
             width: '100%'
           }}>
-            <Link
-              href="/register"
-              className="neo-btn-primary hero-cta-btn"
-              style={{
-                padding: '13px 28px',
-                fontSize: '0.96rem',
-                fontWeight: 800,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              <UserPlus size={19} strokeWidth={2.4} />
-              <span>Daftar Akun (Sign Up)</span>
-            </Link>
+            {isLoggedIn ? (
+              <>
+                <Link
+                  href="/dashboard"
+                  className="neo-btn-primary hero-cta-btn"
+                  style={{
+                    padding: '13px 30px',
+                    fontSize: '0.98rem',
+                    fontWeight: 800,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <LayoutDashboard size={20} strokeWidth={2.4} />
+                  <span>Lanjutkan ke Dashboard Faskes</span>
+                </Link>
+                <Link
+                  href="/dashboard/anatomi"
+                  className="hero-cta-btn"
+                  style={{
+                    padding: '13px 26px',
+                    borderRadius: '9999px',
+                    border: '1.8px solid #1E1E1E',
+                    backgroundColor: '#E0F2FE',
+                    color: '#0369A1',
+                    fontSize: '0.96rem',
+                    fontWeight: 800,
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    boxShadow: '2px 2px 0px #1E1E1E',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <Activity size={19} strokeWidth={2.2} />
+                  <span>Atlas Anatomi 3D</span>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/register"
+                  className="neo-btn-primary hero-cta-btn"
+                  style={{
+                    padding: '13px 28px',
+                    fontSize: '0.96rem',
+                    fontWeight: 800,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <UserPlus size={19} strokeWidth={2.4} />
+                  <span>Daftar Akun (Sign Up)</span>
+                </Link>
 
-            <Link
-              href="/login"
-              className="hero-cta-btn"
-              style={{
-                padding: '13px 26px',
-                borderRadius: '9999px',
-                border: '1.8px solid #1E1E1E',
-                backgroundColor: '#FEF3D6',
-                color: '#18181B',
-                fontSize: '0.96rem',
-                fontWeight: 800,
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                boxShadow: '2px 2px 0px #1E1E1E',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              <LogIn size={19} strokeWidth={2.2} />
-              <span>Masuk Dashboard</span>
-            </Link>
+                <Link
+                  href="/login"
+                  className="hero-cta-btn"
+                  style={{
+                    padding: '13px 26px',
+                    borderRadius: '9999px',
+                    border: '1.8px solid #1E1E1E',
+                    backgroundColor: '#FEF3D6',
+                    color: '#18181B',
+                    fontSize: '0.96rem',
+                    fontWeight: 800,
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    boxShadow: '2px 2px 0px #1E1E1E',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <LogIn size={19} strokeWidth={2.2} />
+                  <span>Masuk Dashboard</span>
+                </Link>
+              </>
+            )}
           </div>
 
 
@@ -714,6 +813,423 @@ export default function HomePage() {
                 Eksplorasi Grafik Data <span>→</span>
               </Link>
             </div>
+
+            {/* Fitur 7: Atlas Anatomi 3D & Pemetaan Farmakologi */}
+            <div className="neo-card" style={{ padding: '26px 22px', backgroundColor: '#FFFFFF', boxShadow: '2.5px 3px 0px #1E1E1E' }}>
+              <div style={{
+                width: '46px',
+                height: '46px',
+                borderRadius: '12px',
+                backgroundColor: '#E0F2FE',
+                border: '1.8px solid #1E1E1E',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '16px',
+                boxShadow: '1.5px 2px 0px #1E1E1E'
+              }}>
+                <Activity size={22} strokeWidth={2.3} color="#0284C7" />
+              </div>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#18181B', marginBottom: '8px' }}>
+                Atlas Visualisasi Anatomi 3D
+              </h3>
+              <p style={{ color: '#52525B', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '18px' }}>
+                Visualisasi 3D organ tubuh manusia interaktif 360° berbasis Three.js WebGL, 16 organ prosedural, pemetaan lapisan sistem, dan diagnosa farmakologi presisi.
+              </p>
+              <Link href="/dashboard/anatomi" style={{ color: '#0284C7', fontWeight: 800, fontSize: '0.86rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                Jelajahi Anatomi 3D <span>→</span>
+              </Link>
+            </div>
+
+            {/* Fitur 8: Warta & Berita Kesehatan Terkini */}
+            <div className="neo-card" style={{ padding: '26px 22px', backgroundColor: '#FFFFFF', boxShadow: '2.5px 3px 0px #1E1E1E' }}>
+              <div style={{
+                width: '46px',
+                height: '46px',
+                borderRadius: '12px',
+                backgroundColor: '#DCFCE7',
+                border: '1.8px solid #1E1E1E',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '16px',
+                boxShadow: '1.5px 2px 0px #1E1E1E'
+              }}>
+                <Newspaper size={22} strokeWidth={2.3} color="#15803D" />
+              </div>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#18181B', marginBottom: '8px' }}>
+                Warta & Berita Kesehatan RI
+              </h3>
+              <p style={{ color: '#52525B', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '18px' }}>
+                Sindikasi berita medis real-time seputar kebijakan Kemenkes & BPJS, riset penyakit epidemi, obat & farmasi, serta teknologi faskes Indonesia.
+              </p>
+              <Link href="/dashboard/berita" style={{ color: '#15803D', fontWeight: 800, fontSize: '0.86rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                Baca Warta Medis <span>→</span>
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* ===================== SECTION HIGHLIGHT: VISUALISASI ANATOMI 3D ===================== */}
+        <section id="visual-3d" style={{
+          backgroundColor: '#FAF8F4',
+          borderTop: '1.8px solid #1E1E1E',
+          padding: '70px 20px 80px 20px'
+        }}>
+          <div style={{ maxWidth: '1240px', margin: '0 auto' }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 500px), 1fr))',
+              gap: '36px',
+              alignItems: 'center'
+            }}>
+              {/* Kolom Kiri: Penjelasan & Poin Fitur Anatomi 3D */}
+              <div>
+                <span className="tag-cyan" style={{ padding: '6px 16px', fontSize: '0.82rem', marginBottom: '14px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <Sparkles size={14} /> THREE.JS WEBGL 3D ANATOMICAL ENGINE
+                </span>
+                <h2 style={{
+                  fontSize: 'clamp(1.8rem, 3.5vw, 2.6rem)',
+                  fontWeight: 900,
+                  color: '#18181B',
+                  letterSpacing: '-0.8px',
+                  lineHeight: 1.2,
+                  marginTop: '10px',
+                  marginBottom: '16px'
+                }}>
+                  Atlas Anatomi Tubuh 3D & Pemetaan Farmakoterapi
+                </h2>
+                <p style={{ color: '#4B5563', fontSize: '1rem', lineHeight: 1.65, marginBottom: '24px' }}>
+                  Eksplorasi visual 16 organ tubuh manusia secara 3D interaktif 360°, lengkap dengan pemisahan lapisan sistem biologis, deskripsi patologi penyakit, dan rekomendasi terapi obat berstandar klinis.
+                </p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '28px' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                    <div style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '8px',
+                      backgroundColor: '#DCFCE7',
+                      border: '1.4px solid #1E1E1E',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      marginTop: '2px'
+                    }}>
+                      <CheckCircle2 size={16} color="#15803D" strokeWidth={2.5} />
+                    </div>
+                    <div>
+                      <strong style={{ fontSize: '0.94rem', color: '#18181B' }}>16 Organ Prosedural Beresolusi Tinggi</strong>
+                      <p style={{ margin: '2px 0 0 0', fontSize: '0.86rem', color: '#6B7280', lineHeight: 1.5 }}>
+                        Otak, Paru-paru, Jantung, Mata, Hati, Lambung, Ginjal, Tiroid, Esofagus, Limpa, Pankreas, Empedu, Usus Halus, Usus Besar, Kandung Kemih, dan Tulang Belakang.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                    <div style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '8px',
+                      backgroundColor: '#E0F2FE',
+                      border: '1.4px solid #1E1E1E',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      marginTop: '2px'
+                    }}>
+                      <CheckCircle2 size={16} color="#0369A1" strokeWidth={2.5} />
+                    </div>
+                    <div>
+                      <strong style={{ fontSize: '0.94rem', color: '#18181B' }}>Filter Lapisan Sistem & Kunci Organ Target</strong>
+                      <p style={{ margin: '2px 0 0 0', fontSize: '0.86rem', color: '#6B7280', lineHeight: 1.5 }}>
+                        Saring lapisan sistem saraf, pencernaan, respirasi, hingga kardiovaskular. Kunci organ target secara langsung dengan kontrol reset silang (✕) yang intuitif.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                    <div style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '8px',
+                      backgroundColor: '#FEF3C7',
+                      border: '1.4px solid #1E1E1E',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      marginTop: '2px'
+                    }}>
+                      <CheckCircle2 size={16} color="#B45309" strokeWidth={2.5} />
+                    </div>
+                    <div>
+                      <strong style={{ fontSize: '0.94rem', color: '#18181B' }}>Model Pria/Wanita & Mode Hologram/X-Ray</strong>
+                      <p style={{ margin: '2px 0 0 0', fontSize: '0.86rem', color: '#6B7280', lineHeight: 1.5 }}>
+                        Dukungan model 3D anatomi pria dan wanita, simulasi denyut jantung real-time, ekspansi pernapasan paru, serta mode visual Hologram Glass, X-Ray Mesh, dan Solid Body.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  <Link
+                    href="/dashboard/anatomi"
+                    className="neo-btn-primary"
+                    style={{ padding: '12px 26px', fontSize: '0.92rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                  >
+                    <Activity size={18} strokeWidth={2.4} />
+                    <span>Buka Atlas Anatomi 3D</span>
+                  </Link>
+                  <Link
+                    href="/dashboard"
+                    className="neo-btn-secondary"
+                    style={{ padding: '12px 22px', fontSize: '0.92rem', fontWeight: 800 }}
+                  >
+                    Masuk ke Dashboard
+                  </Link>
+                </div>
+              </div>
+
+              {/* Kolom Kanan: Visual Card Mockup 3D Anatomi */}
+              <div style={{
+                backgroundColor: '#FFFFFF',
+                borderRadius: '18px',
+                border: '2px solid #1E1E1E',
+                boxShadow: '4px 6px 0px #1E1E1E',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column'
+              }}>
+                {/* Mockup Header */}
+                <div style={{
+                  backgroundColor: '#FAF8F4',
+                  borderBottom: '1.8px solid #1E1E1E',
+                  padding: '12px 18px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#0284C7', display: 'inline-block' }} />
+                    <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#18181B' }}>
+                      3D WebGL Canvas • Jantung (Cor) & Kardiovaskular
+                    </span>
+                  </div>
+                  <span style={{
+                    backgroundColor: '#DCFCE7',
+                    color: '#15803D',
+                    fontSize: '0.70rem',
+                    fontWeight: 800,
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    border: '1px solid #1E1E1E'
+                  }}>
+                    ● 60 FPS Real-time
+                  </span>
+                </div>
+
+                {/* Mockup 3D Preview Frame (Hanya Gambar Jantung di dalam Bingkai) */}
+                <div style={{
+                  padding: '36px 24px',
+                  backgroundColor: '#FFFFFF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minHeight: '320px'
+                }}>
+                  <div style={{
+                    width: '180px',
+                    height: '180px',
+                    borderRadius: '28px',
+                    backgroundColor: '#FEF2F2',
+                    border: '2.5px solid #EF4444',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '4px 4px 0px #EF4444'
+                  }}>
+                    <img
+                      src="/images/organs/heart.svg"
+                      alt="3D Heart Anatomy"
+                      style={{ width: '135px', height: '135px', objectFit: 'contain' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Mockup Footer Quick Link */}
+                <div style={{
+                  padding: '12px 18px',
+                  backgroundColor: '#FAF8F4',
+                  borderTop: '1.6px solid #1E1E1E',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}>
+                  <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 700 }}>
+                    16 Organ Aktif Tersedia
+                  </span>
+                  <Link href="/dashboard/anatomi" style={{ fontSize: '0.80rem', fontWeight: 800, color: '#0284C7', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    Interaksi 360° Sekarang <ArrowRight size={13} />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ===================== SECTION HIGHLIGHT: WARTA & BERITA KESEHATAN ===================== */}
+        <section id="berita" style={{
+          backgroundColor: '#FFFFFF',
+          borderTop: '1.8px solid #1E1E1E',
+          padding: '70px 20px 80px 20px'
+        }}>
+          <div style={{ maxWidth: '1240px', margin: '0 auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '16px', marginBottom: '38px' }}>
+              <div>
+                <span className="tag-yellow" style={{ padding: '6px 16px', fontSize: '0.82rem', marginBottom: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <Globe size={14} /> KANAL BERITA & INFORMASI MEDIS TERKINI
+                </span>
+                <h2 style={{
+                  fontSize: 'clamp(1.8rem, 3.5vw, 2.5rem)',
+                  fontWeight: 900,
+                  color: '#18181B',
+                  letterSpacing: '-0.8px',
+                  lineHeight: 1.2,
+                  marginTop: '10px',
+                  marginBottom: '8px'
+                }}>
+                  Warta Kesehatan & Kebijakan Medis Indonesia
+                </h2>
+                <p style={{ color: '#6B7280', fontSize: '0.98rem', maxWidth: '640px', margin: 0 }}>
+                  Update harian seputar regulasi Kemenkes, integrasi BPJS Kesehatan, tren obat & farmasi, serta temuan riset klinis di Indonesia.
+                </p>
+              </div>
+
+              <Link
+                href="/dashboard/berita"
+                className="neo-btn-primary"
+                style={{ padding: '10px 22px', fontSize: '0.88rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+              >
+                <Newspaper size={16} />
+                <span>Lihat Semua Berita Live</span>
+                <ArrowRight size={14} />
+              </Link>
+            </div>
+
+            {/* 3 Featured News Preview Cards */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))',
+              gap: '22px'
+            }}>
+              {/* Berita 1 */}
+              <div className="neo-card" style={{
+                backgroundColor: '#FAF8F4',
+                padding: '22px',
+                borderRadius: '16px',
+                border: '1.8px solid #1E1E1E',
+                boxShadow: '3px 3px 0px #1E1E1E',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
+              }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, backgroundColor: '#E0E7FF', color: '#3730A3', padding: '3px 9px', borderRadius: '6px', border: '1px solid #1E1E1E' }}>
+                      Kemenkes & Regulasi
+                    </span>
+                    <span style={{ fontSize: '0.72rem', color: '#6B7280', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Clock size={12} /> Hari Ini
+                    </span>
+                  </div>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#18181B', marginBottom: '10px', lineHeight: 1.4 }}>
+                    Standardisasi Rekam Medis Elektronik Terintegrasi SatuSehat Kemenkes
+                  </h3>
+                  <p style={{ fontSize: '0.86rem', color: '#52525B', lineHeight: 1.55, margin: 0 }}>
+                    Kementerian Kesehatan RI mendorong percepatan implementasi rekam medis digital dan kesiapsiagaan sistem informasi seluruh apotek dan faskes nasional.
+                  </p>
+                </div>
+                <div style={{ paddingTop: '16px', marginTop: '16px', borderTop: '1px dashed #D1D5DB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#4B5563' }}>Sumber: Warta Nasional</span>
+                  <Link href="/dashboard/berita" style={{ fontSize: '0.80rem', fontWeight: 800, color: '#0284C7', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    Baca Selengkapnya →
+                  </Link>
+                </div>
+              </div>
+
+              {/* Berita 2 */}
+              <div className="neo-card" style={{
+                backgroundColor: '#FAF8F4',
+                padding: '22px',
+                borderRadius: '16px',
+                border: '1.8px solid #1E1E1E',
+                boxShadow: '3px 3px 0px #1E1E1E',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
+              }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, backgroundColor: '#DCFCE7', color: '#166534', padding: '3px 9px', borderRadius: '6px', border: '1px solid #1E1E1E' }}>
+                      Obat & Farmasi
+                    </span>
+                    <span style={{ fontSize: '0.72rem', color: '#6B7280', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Clock size={12} /> Terkini
+                    </span>
+                  </div>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#18181B', marginBottom: '10px', lineHeight: 1.4 }}>
+                    Pedoman Keamanan Interaksi Polifarmasi Pasien Geriatri di Apotek
+                  </h3>
+                  <p style={{ fontSize: '0.86rem', color: '#52525B', lineHeight: 1.55, margin: 0 }}>
+                    Ikatan Apoteker Indonesia (IAI) merilis panduan skrining interaksi obat kombinasi hipertensi dan diabetes melitus guna menekan risiko efek samping fatal.
+                  </p>
+                </div>
+                <div style={{ paddingTop: '16px', marginTop: '16px', borderTop: '1px dashed #D1D5DB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#4B5563' }}>Sumber: Farmasi Indonesia</span>
+                  <Link href="/dashboard/berita" style={{ fontSize: '0.80rem', fontWeight: 800, color: '#0284C7', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    Baca Selengkapnya →
+                  </Link>
+                </div>
+              </div>
+
+              {/* Berita 3 */}
+              <div className="neo-card" style={{
+                backgroundColor: '#FAF8F4',
+                padding: '22px',
+                borderRadius: '16px',
+                border: '1.8px solid #1E1E1E',
+                boxShadow: '3px 3px 0px #1E1E1E',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
+              }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, backgroundColor: '#FEF3C7', color: '#92400E', padding: '3px 9px', borderRadius: '6px', border: '1px solid #1E1E1E' }}>
+                      Klinis & Rumah Sakit
+                    </span>
+                    <span style={{ fontSize: '0.72rem', color: '#6B7280', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Clock size={12} /> Update
+                    </span>
+                  </div>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#18181B', marginBottom: '10px', lineHeight: 1.4 }}>
+                    Strategi Penurunan Angka Resistensi Antimikroba (AMR) Nasional
+                  </h3>
+                  <p style={{ fontSize: '0.86rem', color: '#52525B', lineHeight: 1.55, margin: 0 }}>
+                    Pengetatan peresepan antibiotik golongan tinggi dan pengawasan dispensing obat keras oleh tenaga farmasi di instalasi rawat jalan.
+                  </p>
+                </div>
+                <div style={{ paddingTop: '16px', marginTop: '16px', borderTop: '1px dashed #D1D5DB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#4B5563' }}>Sumber: Medika Pos</span>
+                  <Link href="/dashboard/berita" style={{ fontSize: '0.80rem', fontWeight: 800, color: '#0284C7', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    Baca Selengkapnya →
+                  </Link>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -999,20 +1515,33 @@ export default function HomePage() {
               Akses demo instan tanpa ribet. Pantau inventori FEFO, layani pasien dengan skrining cerdas, dan tingkatkan profit faskes Anda.
             </p>
             <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
-              <Link
-                href="/register"
-                className="neo-btn-primary"
-                style={{ padding: '13px 30px', fontSize: '0.96rem', fontWeight: 800 }}
-              >
-                Daftar Akun Faskes (Sign Up)
-              </Link>
-              <Link
-                href="/login"
-                className="neo-btn-secondary"
-                style={{ padding: '13px 28px', fontSize: '0.96rem', fontWeight: 800 }}
-              >
-                Masuk ke Akun (Login)
-              </Link>
+              {isLoggedIn ? (
+                <Link
+                  href="/dashboard"
+                  className="neo-btn-primary"
+                  style={{ padding: '13px 32px', fontSize: '0.96rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                >
+                  <LayoutDashboard size={18} />
+                  <span>Buka Dashboard Faskes</span>
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href="/register"
+                    className="neo-btn-primary"
+                    style={{ padding: '13px 30px', fontSize: '0.96rem', fontWeight: 800 }}
+                  >
+                    Daftar Akun Faskes (Sign Up)
+                  </Link>
+                  <Link
+                    href="/login"
+                    className="neo-btn-secondary"
+                    style={{ padding: '13px 28px', fontSize: '0.96rem', fontWeight: 800 }}
+                  >
+                    Masuk ke Akun (Login)
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </section>
@@ -1064,9 +1593,15 @@ export default function HomePage() {
             <a href="#keunggulan" style={{ color: '#4B5563', fontSize: '0.86rem', textDecoration: 'none', fontWeight: 600 }}>
               Keunggulan
             </a>
-            <Link href="/login" style={{ color: '#18181B', fontSize: '0.86rem', textDecoration: 'none', fontWeight: 800 }}>
-              Masuk Akun →
-            </Link>
+            {isLoggedIn ? (
+              <Link href="/dashboard" style={{ color: '#15803D', fontSize: '0.86rem', textDecoration: 'none', fontWeight: 800 }}>
+                Buka Dashboard →
+              </Link>
+            ) : (
+              <Link href="/login" style={{ color: '#18181B', fontSize: '0.86rem', textDecoration: 'none', fontWeight: 800 }}>
+                Masuk Akun →
+              </Link>
+            )}
           </div>
         </div>
       </footer>

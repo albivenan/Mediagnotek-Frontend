@@ -43,6 +43,7 @@ export default function DashboardLayout({
   const router = useRouter();
   // Sidebar status: default open di desktop, persisten via localStorage
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
 
   // Popup Pemberitahuan Mode Beta (Muncul pertama kali load dashboard, tidak bisa hilang sendiri, tutup via tombol silang)
   const [showBetaModal, setShowBetaModal] = useState(false);
@@ -173,9 +174,12 @@ export default function DashboardLayout({
 
       // 4. Strict Production Route Guard: Redirect to /login if unauthenticated
       if (!currentEmail && !currentName) {
-        router.push('/login');
+        setIsAuthChecking(true);
+        router.replace('/login');
         return;
       }
+
+      setIsAuthChecking(false);
 
       setUserSession({
         name: currentName || 'Pengguna',
@@ -256,6 +260,42 @@ export default function DashboardLayout({
   ];
 
   const allNavItems = navSections.flatMap((s) => s.items);
+
+  if (isAuthChecking) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        width: '100vw',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '14px',
+        backgroundColor: '#FAF8F4',
+        color: '#18181B'
+      }}>
+        <div style={{
+          width: '52px',
+          height: '52px',
+          borderRadius: '14px',
+          backgroundColor: '#EFF6FF',
+          border: '2px solid #1E1E1E',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '3px 3px 0px #1E1E1E'
+        }}>
+          <ShieldCheck size={28} color="#0284C7" />
+        </div>
+        <div style={{ fontSize: '1rem', fontWeight: 900, color: '#18181B' }}>
+          Memverifikasi Otorisasi Sesi Faskes...
+        </div>
+        <span style={{ fontSize: '0.82rem', color: '#64748B', fontWeight: 600 }}>
+          Mengalihkan ke halaman login jika sesi belum aktif
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div

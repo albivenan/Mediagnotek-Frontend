@@ -18,7 +18,7 @@ import {
   Coins,
   X
 } from 'lucide-react';
-import { Patient, PrescriptionItem, apiCreateTransaction } from '@/lib/api';
+import { Patient, PrescriptionItem, MedicineStock, apiCreateTransaction, apiGetPatients, apiGetStocks, apiUpdateStock } from '@/lib/api';
 
 const MOCK_PATIENTS: Patient[] = [
   {
@@ -75,6 +75,8 @@ const PACKAGING_OPTIONS = [
 ];
 
 export default function KasirPage() {
+  const [patientList, setPatientList] = useState<Patient[]>(MOCK_PATIENTS);
+  const [medicineList, setMedicineList] = useState<typeof AVAILABLE_MEDICINES>(AVAILABLE_MEDICINES);
   const [selectedPatientId, setSelectedPatientId] = useState<number | ''>(1);
   const [nonResepNamaPasien, setNonResepNamaPasien] = useState('unknown');
   const [tipeTransaksi, setTipeTransaksi] = useState<'Resep' | 'Non-Resep'>('Resep');
@@ -82,9 +84,27 @@ export default function KasirPage() {
   const [namaKasir, setNamaKasir] = useState<string>('Apoteker Jaga');
   const [showPrintModal, setShowPrintModal] = useState<boolean>(false);
   const [printData, setPrintData] = useState<any>(null);
+  const [faskesProfile, setFaskesProfile] = useState<{
+    nama: string;
+    tipe: string;
+    nomorIzin: string;
+    penanggungJawab: string;
+    telepon: string;
+    alamat: string;
+    kota: string;
+  }>({
+    nama: 'Apotek Sehat Farma',
+    tipe: 'Apotek',
+    nomorIzin: 'SIA: 442/019/SIA-DPMPTSP/2026',
+    penanggungJawab: 'apt. Sarah Safitri, S.Farm',
+    telepon: '081234567890',
+    alamat: 'Jl. Merdeka No. 45',
+    kota: 'Bandung'
+  });
 
-  // Ambil nama petugas/kasir dari sesi login saat ini
+  // Ambil data pasien, obat stok terkini, dan nama petugas dari sesi / database / localStorage
   useEffect(() => {
+    // 1. Ambil sesi nama kasir
     if (typeof window !== 'undefined') {
       try {
         const savedUser = localStorage.getItem('mediagnotek_user_session');
@@ -94,6 +114,71 @@ export default function KasirPage() {
         }
       } catch {}
     }
+
+    // 2. Load daftar pasien live (Database & localStorage fallback)
+    const loadPatients = async () => {
+      try {
+        const remotePatients = await apiGetPatients();
+        if (remotePatients && Array.isArray(remotePatients) && remotePatients.length > 0) {
+          setPatientList(remotePatients);
+          return;
+        }
+      } catch {}
+
+      if (typeof window !== 'undefined') {
+        try {
+          const savedPatients = localStorage.getItem('mediagnotek_patients_data');
+          if (savedPatients) {
+            const parsed = JSON.parse(savedPatients);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setPatientList(parsed);
+            }
+          }
+        } catch {}
+      }
+    };
+
+    // 3. Load daftar obat stok live (Database & localStorage fallback)
+    const loadStocks = async () => {
+      try {
+        const remoteStocks = await apiGetStocks();
+        if (remoteStocks && Array.isArray(remoteStocks) && remoteStocks.length > 0) {
+          const mapped = remoteStocks.map((s) => ({
+            id: s.id,
+            nama: s.nama,
+            harga: s.harga_jual || 10000,
+            satuan: s.satuan || 'Tablet',
+            stok: s.stok || 0,
+            golongan: s.golongan || 'Bebas'
+          }));
+          setMedicineList(mapped);
+          return;
+        }
+      } catch {}
+
+      if (typeof window !== 'undefined') {
+        try {
+          const savedStocks = localStorage.getItem('mediagnotek_stocks_data');
+          if (savedStocks) {
+            const parsed = JSON.parse(savedStocks);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              const mapped = parsed.map((s: any) => ({
+                id: s.id,
+                nama: s.nama,
+                harga: s.harga_jual || 10000,
+                satuan: s.satuan || 'Tablet',
+                stok: s.stok || 0,
+                golongan: s.golongan || 'Bebas'
+              }));
+              setMedicineList(mapped);
+            }
+          }
+        } catch {}
+      }
+    };
+
+    loadPatients();
+    loadStocks();
   }, []);
 
   const [cartItems, setCartItems] = useState<PrescriptionItem[]>([
@@ -110,9 +195,9 @@ export default function KasirPage() {
   const [successNotif, setSuccessNotif] = useState(false);
 
   const selectedPatient = tipeTransaksi === 'Resep'
-    ? MOCK_PATIENTS.find((p) => p.id === Number(selectedPatientId))
+    ? patientList.find((p) => p.id === Number(selectedPatientId))
     : undefined;
-  const currentSelectedMed = AVAILABLE_MEDICINES.find((m) => m.id === Number(addDrugId)) || AVAILABLE_MEDICINES[0];
+  const currentSelectedMed = medicineList.find((m) => m.id === Number(addDrugId)) || medicineList[0] || AVAILABLE_MEDICINES[0];
 
   // Skrining Alergi Obat Real-time
   const allergyConflicts = cartItems.filter((item) => {
@@ -121,7 +206,6 @@ export default function KasirPage() {
       item.drug_nama.toLowerCase().includes(al.toLowerCase())
     );
   });
-
 
   // Skrining Interaksi Obat Antar Item di Keranjang
   const checkDrugInteractions = () => {
@@ -137,14 +221,14 @@ export default function KasirPage() {
 
   const handleSelectDrugChange = (medId: number) => {
     setAddDrugId(medId);
-    const m = AVAILABLE_MEDICINES.find((item) => item.id === medId);
+    const m = medicineList.find((item) => item.id === medId);
     if (m) {
       setAddCustomPrice(String(m.harga));
     }
   };
 
   const handleAddItem = () => {
-    const med = AVAILABLE_MEDICINES.find((m) => m.id === Number(addDrugId));
+    const med = medicineList.find((m) => m.id === Number(addDrugId)) || AVAILABLE_MEDICINES.find((m) => m.id === Number(addDrugId));
     if (!med) return;
 
     // Use custom price entered, or fallback to default drug price
@@ -302,6 +386,46 @@ export default function KasirPage() {
       localStorage.setItem('mediagnotek_local_transactions', JSON.stringify(list));
     } catch {}
 
+    // 3. Potong stok obat secara otomatis di inventory dan sinkronkan
+    try {
+      if (typeof window !== 'undefined') {
+        const rawStocks = localStorage.getItem('mediagnotek_stocks_data');
+        if (rawStocks) {
+          const allStocks = JSON.parse(rawStocks);
+          if (Array.isArray(allStocks)) {
+            let modified = false;
+            cartItems.forEach((cart) => {
+              const target = allStocks.find((s: any) => s.id === cart.drug_id || s.nama.toLowerCase() === cart.drug_nama.toLowerCase());
+              if (target) {
+                target.stok = Math.max(0, (target.stok || 0) - cart.jumlah);
+                modified = true;
+                // Sync ke backend database jika ID valid
+                if (target.id && typeof target.id === 'number') {
+                  apiUpdateStock(target.id, { stok: target.stok }).catch(() => {});
+                }
+              }
+            });
+
+            if (modified) {
+              localStorage.setItem('mediagnotek_stocks_data', JSON.stringify(allStocks));
+              // Update state lokal kasir juga
+              setMedicineList((prev) =>
+                prev.map((m) => {
+                  const match = cartItems.find((c) => c.drug_id === m.id || c.drug_nama.toLowerCase() === m.nama.toLowerCase());
+                  if (match) {
+                    return { ...m, stok: Math.max(0, m.stok - match.jumlah) };
+                  }
+                  return m;
+                })
+              );
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Gagal memotong stok lokal:', e);
+    }
+
     setTimeout(() => {
       setSuccessNotif(false);
     }, 4000);
@@ -414,9 +538,9 @@ export default function KasirPage() {
                       style={{ width: '100%', cursor: 'pointer' }}
                     >
                       <option value="">-- Pembeli Umum Tanpa Rekam Medis --</option>
-                      {MOCK_PATIENTS.map((p) => (
+                      {patientList.map((p) => (
                         <option key={p.id} value={p.id}>
-                          {p.nama} ({p.telepon}) - {p.alergi_obat.length > 0 ? `⚠️ Alergi: ${p.alergi_obat.join(', ')}` : 'Aman'}
+                          {p.nama} ({p.telepon || '-'}) - {p.alergi_obat && p.alergi_obat.length > 0 ? `⚠️ Alergi: ${p.alergi_obat.join(', ')}` : 'Aman'}
                         </option>
                       ))}
                     </select>
@@ -432,7 +556,7 @@ export default function KasirPage() {
                     }}>
                       <div style={{ fontWeight: 700 }}>Alamat: {selectedPatient.alamat}</div>
                       <div style={{ marginTop: '4px', color: '#DC2626', fontWeight: 700 }}>
-                        Alergi Obat: {selectedPatient.alergi_obat.length > 0 ? selectedPatient.alergi_obat.join(', ') : 'Tidak ada catatan alergi'}
+                        Alergi Obat: {selectedPatient.alergi_obat && selectedPatient.alergi_obat.length > 0 ? selectedPatient.alergi_obat.join(', ') : 'Tidak ada catatan alergi'}
                       </div>
                     </div>
                   )}
@@ -511,7 +635,7 @@ export default function KasirPage() {
                   className="form-input-neo"
                   style={{ width: '100%', cursor: 'pointer' }}
                 >
-                  {AVAILABLE_MEDICINES.map((m) => (
+                  {medicineList.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.nama} — Acuan: Rp {m.harga.toLocaleString('id-ID')} / {m.satuan} (Sisa: {m.stok})
                     </option>

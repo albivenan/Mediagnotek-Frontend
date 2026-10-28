@@ -301,7 +301,7 @@ const ORGANS: OrganData[] = [
     position: [0, 3.38, 0.05],
     color: 0xF43F5E,
     highlightColor: '#E11D48',
-    imageUrl: '/images/organs/thyroid.svg',
+    imageUrl: '/images/organs/thyroid.jpg',
     commonDiseases: [
       {
         nama: 'Hipertiroidisme & Penyakit Graves',
@@ -332,7 +332,7 @@ const ORGANS: OrganData[] = [
     position: [0, 3.05, -0.05],
     color: 0xFB7185,
     highlightColor: '#E11D48',
-    imageUrl: '/images/organs/esophagus.svg',
+    imageUrl: '/images/organs/esophagus.jpg',
     commonDiseases: [
       {
         nama: 'Esofagitis Erosif & Refluks Laringofaringeal (LPR)',
@@ -363,7 +363,7 @@ const ORGANS: OrganData[] = [
     position: [-0.34, 1.88, -0.06],
     color: 0xA855F7,
     highlightColor: '#9333EA',
-    imageUrl: '/images/organs/spleen.svg',
+    imageUrl: '/images/organs/spleen.jpg',
     commonDiseases: [
       {
         nama: 'Splenomegali Reaktif (Infeksi Tifoid / Malaria / Viral)',
@@ -394,7 +394,7 @@ const ORGANS: OrganData[] = [
     position: [-0.04, 1.62, -0.04],
     color: 0xFBBF24,
     highlightColor: '#D97706',
-    imageUrl: '/images/organs/pancreas.svg',
+    imageUrl: '/images/organs/pancreas.png',
     commonDiseases: [
       {
         nama: 'Diabetes Melitus Tipe 2 (Defisiensi & Resistensi Insulin)',
@@ -456,7 +456,7 @@ const ORGANS: OrganData[] = [
     position: [0, 1.12, 0.08],
     color: 0xFB923C,
     highlightColor: '#EA580C',
-    imageUrl: '/images/organs/small_intestine.svg',
+    imageUrl: '/images/organs/small_intestine.png',
     commonDiseases: [
       {
         nama: 'Gastroenteritis Akut & Diare Sekretorik / Infeksius',
@@ -487,7 +487,7 @@ const ORGANS: OrganData[] = [
     position: [0.24, 1.18, 0.05],
     color: 0xD97706,
     highlightColor: '#B45309',
-    imageUrl: '/images/organs/large_intestine.svg',
+    imageUrl: '/images/organs/large_intestine.png',
     commonDiseases: [
       {
         nama: 'Irritable Bowel Syndrome (IBS) & Kolitis Spastik',
@@ -518,7 +518,7 @@ const ORGANS: OrganData[] = [
     position: [0, 0.68, 0.12],
     color: 0x3B82F6,
     highlightColor: '#2563EB',
-    imageUrl: '/images/organs/bladder.svg',
+    imageUrl: '/images/organs/bladder.png',
     commonDiseases: [
       {
         nama: 'Sistitis Akut (Infeksi Kandung Kemih / ISK Bawah)',
@@ -549,7 +549,7 @@ const ORGANS: OrganData[] = [
     position: [0, 2.35, -0.25],
     color: 0x14B8A6,
     highlightColor: '#0D9488',
-    imageUrl: '/images/organs/spine.svg',
+    imageUrl: '/images/organs/spine.png',
     commonDiseases: [
       {
         nama: 'Low Back Pain (LBP) Mekanik & Spasme Otot Paraspinal',
@@ -574,14 +574,14 @@ const ORGANS: OrganData[] = [
 
 export default function AnatomiPage() {
   const mountRef = useRef<HTMLDivElement>(null);
-  const [selectedOrgan, setSelectedOrgan] = useState<OrganData>(ORGANS[2]); // Default Jantung
+  const [selectedOrgan, setSelectedOrgan] = useState<OrganData | null>(null);
   const [activeSystemFilter, setActiveSystemFilter] = useState<string>('ALL');
   const [isRotating, setIsRotating] = useState<boolean>(true);
   const [gender, setGender] = useState<'female' | 'male'>('female');
   const [isLoadingModel, setIsLoadingModel] = useState<boolean>(false);
   const [modelOpacity, setModelOpacity] = useState<number>(0.28);
   const [viewMode, setViewMode] = useState<'hologram' | 'solid' | 'xray'>('hologram');
-  const [displayMode, setDisplayMode] = useState<'focused' | 'system' | 'all'>('focused');
+  const [isOrganIsolated, setIsOrganIsolated] = useState<boolean>(false);
   const [hoveredOrgan, setHoveredOrgan] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
@@ -652,27 +652,17 @@ export default function AnatomiPage() {
     });
   }, [viewMode, modelOpacity, gender]);
 
-  // Efek visibilitas organ 3D (Individual / Sistem Aktif / Semua) & highlight
+  // Efek visibilitas organ 3D tersinkronisasi antara Filter Sistem Organ & Pilihan Organ Individual
   useEffect(() => {
     Object.entries(organMeshesRef.current).forEach(([id, groupOrMesh]) => {
       const orgData = ORGANS.find((o) => o.id === id);
-      const isSelected = selectedOrgan.id === id;
+      const isSelected = selectedOrgan?.id === id;
       const isHovered = hoveredOrgan === id;
       const matchesFilter = activeSystemFilter === 'ALL' || orgData?.system === activeSystemFilter;
-      const matchesActiveSystem = orgData?.system === selectedOrgan.system;
 
-      // Logika penentuan apakah organ dimunculkan pada 3D:
-      // 1. 'focused': Hanya organ aktif (individual organ terpilih) yang muncul
-      // 2. 'system': Hanya organ yang berada dalam sistem aktif yang muncul
-      // 3. 'all': Seluruh organ muncul
-      let isVisible = false;
-      if (displayMode === 'focused') {
-        isVisible = isSelected;
-      } else if (displayMode === 'system') {
-        isVisible = activeSystemFilter !== 'ALL' ? matchesFilter : matchesActiveSystem;
-      } else {
-        isVisible = matchesFilter;
-      }
+      // Jika organ individual sedang dipilih/dikunci (isOrganIsolated = true dan ada selectedOrgan), tampilkan hanya organ tersebut.
+      // Jika tidak (atau setelah di-reset dengan tombol silang X), tampilkan seluruh organ pada Filter Lapisan Sistem Organ yang aktif.
+      const isVisible = (isOrganIsolated && selectedOrgan) ? isSelected : matchesFilter;
 
       groupOrMesh.visible = isVisible;
 
@@ -686,7 +676,7 @@ export default function AnatomiPage() {
                 baseOpacity: mat.opacity ?? 1
               };
             }
-            if (isSelected || isHovered) {
+            if ((isOrganIsolated && isSelected) || isHovered) {
               mat.transparent = false;
               mat.opacity = 1;
               mat.emissiveIntensity = Math.min(1.25, (mat.userData.baseEmissiveIntensity as number) * (isHovered ? 1.85 : 1.45));
@@ -703,11 +693,11 @@ export default function AnatomiPage() {
       if (ring) {
         ring.visible = isVisible;
         if (ring.material instanceof THREE.MeshBasicMaterial) {
-          ring.material.opacity = isSelected || isHovered ? 0.95 : 0.45;
+          ring.material.opacity = (isOrganIsolated && isSelected) || isHovered ? 0.95 : 0.45;
         }
       }
     });
-  }, [selectedOrgan, hoveredOrgan, activeSystemFilter, displayMode]);
+  }, [selectedOrgan, hoveredOrgan, activeSystemFilter, isOrganIsolated, isLoadingModel]);
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -1996,7 +1986,7 @@ export default function AnatomiPage() {
       const raycaster = new THREE.Raycaster();
       raycaster.setFromCamera(mouse, camera);
 
-      const clickableRoots = Object.values(organMeshesRef.current);
+      const clickableRoots = Object.values(organMeshesRef.current).filter((m) => m.visible);
       const intersects = raycaster.intersectObjects(clickableRoots, true);
       if (intersects.length > 0) {
         const foundId = resolveOrganId(intersects[0].object);
@@ -2018,13 +2008,16 @@ export default function AnatomiPage() {
       const raycaster = new THREE.Raycaster();
       raycaster.setFromCamera(mouse, camera);
 
-      const clickableRoots = Object.values(organMeshesRef.current);
+      const clickableRoots = Object.values(organMeshesRef.current).filter((m) => m.visible);
       const intersects = raycaster.intersectObjects(clickableRoots, true);
       if (intersects.length > 0) {
         const foundId = resolveOrganId(intersects[0].object);
         if (foundId) {
           const org = ORGANS.find((o) => o.id === foundId);
-          if (org) setSelectedOrgan(org);
+          if (org) {
+            setSelectedOrgan(org);
+            setIsOrganIsolated(true);
+          }
         }
       }
     };
@@ -2103,13 +2096,31 @@ export default function AnatomiPage() {
     };
   }, [gender]);
 
-  // Handle Focus Zoom onto specific organ
+  // Handle Focus Zoom onto specific organ & isolate in 3D
   const handleSelectOrgan = (organ: OrganData) => {
     setSelectedOrgan(organ);
+    setIsOrganIsolated(true);
     if (!bodyGroupRef.current || !cameraRef.current) return;
-    // Animate camera target
     bodyGroupRef.current.rotation.y = 0;
     bodyGroupRef.current.rotation.x = 0;
+  };
+
+  // Reset pilihan individual organ kembali ke tampilan Filter Lapisan Sistem Organ
+  const handleResetOrganSelection = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setIsOrganIsolated(false);
+    setSelectedOrgan(null);
+    if (cameraRef.current && bodyGroupRef.current) {
+      cameraRef.current.position.set(0, 2.2, 8.5);
+      bodyGroupRef.current.rotation.set(0, 0, 0);
+    }
+  };
+
+  // Sinkronisasi saat klik tab Filter Lapisan Sistem Organ
+  const handleSelectSystemFilter = (sys: string) => {
+    setActiveSystemFilter(sys);
+    setIsOrganIsolated(false);
+    setSelectedOrgan(null);
   };
 
   const handleZoom = (direction: 'in' | 'out') => {
@@ -2274,10 +2285,10 @@ export default function AnatomiPage() {
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
-                title="Model 3D Anatomi Wanita (female.glb)"
+                title="Model 3D Anatomi Wanita"
               >
                 <Users size={14} />
-                <span>Wanita (female.glb)</span>
+                <span>Wanita</span>
               </button>
               <button
                 type="button"
@@ -2296,84 +2307,10 @@ export default function AnatomiPage() {
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
-                title="Model 3D Anatomi Pria (male.glb)"
+                title="Model 3D Anatomi Pria"
               >
                 <User size={14} />
-                <span>Pria (male.glb)</span>
-              </button>
-            </div>
-
-            {/* Mode Visibilitas Organ 3D: Fokus Organ / Sistem Aktif / Semua Organ */}
-            <div style={{
-              display: 'inline-flex',
-              backgroundColor: '#F8FAFC',
-              borderRadius: '9px',
-              padding: '2px',
-              border: '1.5px solid #1E1E1E',
-              boxShadow: '1.5px 1.5px 0px #1E1E1E'
-            }}>
-              <button
-                type="button"
-                onClick={() => setDisplayMode('focused')}
-                title="Tampilkan hanya organ aktif yang sedang dipilih (Individual Organ)"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '6px 11px',
-                  borderRadius: '7px',
-                  border: 'none',
-                  backgroundColor: displayMode === 'focused' ? '#1E1E1E' : 'transparent',
-                  color: displayMode === 'focused' ? '#FFFFFF' : '#475569',
-                  fontWeight: displayMode === 'focused' ? 900 : 700,
-                  fontSize: '0.76rem',
-                  cursor: 'pointer',
-                  transition: 'all 0.12s ease'
-                }}
-              >
-                <span>🎯 Organ Terpilih</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setDisplayMode('system')}
-                title="Tampilkan organ pada jenis/sistem organ yang aktif"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '6px 11px',
-                  borderRadius: '7px',
-                  border: 'none',
-                  backgroundColor: displayMode === 'system' ? '#1E1E1E' : 'transparent',
-                  color: displayMode === 'system' ? '#FFFFFF' : '#475569',
-                  fontWeight: displayMode === 'system' ? 900 : 700,
-                  fontSize: '0.76rem',
-                  cursor: 'pointer',
-                  transition: 'all 0.12s ease'
-                }}
-              >
-                <span>🗂️ Sistem Aktif</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setDisplayMode('all')}
-                title="Tampilkan semua organ sekaligus"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '6px 11px',
-                  borderRadius: '7px',
-                  border: 'none',
-                  backgroundColor: displayMode === 'all' ? '#1E1E1E' : 'transparent',
-                  color: displayMode === 'all' ? '#FFFFFF' : '#475569',
-                  fontWeight: displayMode === 'all' ? 900 : 700,
-                  fontSize: '0.76rem',
-                  cursor: 'pointer',
-                  transition: 'all 0.12s ease'
-                }}
-              >
-                <span>🌐 Semua Organ</span>
+                <span>Pria</span>
               </button>
             </div>
 
@@ -2530,7 +2467,7 @@ export default function AnatomiPage() {
               }}>
                 <Loader2 size={36} className="animate-spin text-blue-600" style={{ color: '#0284C7' }} />
                 <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0F172A' }}>
-                  Memuat Model 3D Anatomi ({gender === 'female' ? 'female.glb' : 'male.glb'})...
+                  Memuat Model 3D Anatomi ({gender === 'female' ? 'Wanita' : 'Pria'})...
                 </span>
               </div>
             )}
@@ -2602,43 +2539,52 @@ export default function AnatomiPage() {
           </div>
         </div>
 
-        {/* Bottom Bar: System Filter Tabs (Tema Putih Medis) */}
+        {/* Bottom Bar: System Filter Tabs (Menempel ke Kiri / Align Left) */}
         <div style={{
           backgroundColor: '#FFFFFF',
           borderTop: '1.8px solid #1E1E1E',
           padding: '14px 20px',
           display: 'flex',
-          gap: '10px',
-          overflowX: 'auto',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexWrap: 'wrap',
+          flexDirection: 'column',
+          gap: '8px',
+          alignItems: 'flex-start',
+          justifyContent: 'flex-start',
           zIndex: 10
         }}>
           <span style={{ color: '#475569', fontSize: '0.80rem', fontWeight: 800, whiteSpace: 'nowrap' }}>
             FILTER LAPISAN SISTEM ORGAN:
           </span>
-          {['ALL', 'Saraf', 'Kardiovaskular', 'Respirasi', 'Pencernaan', 'Ekskresi', 'Endokrin', 'Imun & Limfatik', 'Muskuloskeletal'].map((sys) => (
-            <button
-              key={sys}
-              onClick={() => setActiveSystemFilter(sys)}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '8px',
-                border: '1.5px solid #1E1E1E',
-                backgroundColor: activeSystemFilter === sys ? '#0284C7' : '#F8FAFC',
-                color: activeSystemFilter === sys ? '#FFFFFF' : '#1E293B',
-                fontSize: '0.80rem',
-                fontWeight: 800,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                boxShadow: activeSystemFilter === sys ? '2px 2px 0px #1E1E1E' : 'none',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              {sys === 'ALL' ? 'Semua Organ' : sys}
-            </button>
-          ))}
+          <div style={{
+            display: 'flex',
+            gap: '10px',
+            overflowX: 'auto',
+            alignItems: 'center',
+            justifyContent: 'flex-start',
+            flexWrap: 'wrap',
+            width: '100%'
+          }}>
+            {['ALL', 'Saraf', 'Kardiovaskular', 'Respirasi', 'Pencernaan', 'Ekskresi', 'Endokrin', 'Imun & Limfatik', 'Muskuloskeletal'].map((sys) => (
+              <button
+                key={sys}
+                onClick={() => handleSelectSystemFilter(sys)}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '8px',
+                  border: '1.5px solid #1E1E1E',
+                  backgroundColor: activeSystemFilter === sys ? '#0284C7' : '#F8FAFC',
+                  color: activeSystemFilter === sys ? '#FFFFFF' : '#1E293B',
+                  fontSize: '0.80rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  boxShadow: activeSystemFilter === sys ? '2px 2px 0px #1E1E1E' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {sys === 'ALL' ? 'Semua Organ' : sys}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -2646,10 +2592,25 @@ export default function AnatomiPage() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {/* Organ Quick Selector Badges with Inline Search Icon on the Left */}
           <div className="neo-card" style={{ padding: '16px', backgroundColor: '#FFFFFF', boxShadow: '2.5px 3px 0px #1E1E1E' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#6B7280' }}>
-                PILIH ORGAN TARGET SECARA LANGSUNG:
-              </span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#6B7280' }}>
+                  PILIH ORGAN TARGET SECARA LANGSUNG:
+                </span>
+                <span style={{
+                  fontSize: '0.71rem',
+                  fontWeight: 800,
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  border: '1.2px solid #1E1E1E',
+                  backgroundColor: (isOrganIsolated && selectedOrgan) ? '#FEF3C7' : '#E0F2FE',
+                  color: (isOrganIsolated && selectedOrgan) ? '#92400E' : '#0369A1'
+                }}>
+                  {isOrganIsolated && selectedOrgan
+                    ? `3D Fokus: ${selectedOrgan.name.split('(')[0].trim()}`
+                    : `3D Lapisan: ${activeSystemFilter === 'ALL' ? 'Semua Organ' : `Sistem ${activeSystemFilter}`}`}
+                </span>
+              </div>
               {searchTerm && (
                 <span style={{ fontSize: '0.72rem', color: '#0284C7', fontWeight: 700 }}>
                   Ditemukan {filteredOrgans.length} dari {ORGANS.length} organ
@@ -2722,26 +2683,58 @@ export default function AnatomiPage() {
                       </span>
                     ) : (
                       filteredOrgans.map((org) => {
-                        const isSelected = selectedOrgan.id === org.id;
+                        const isSelected = isOrganIsolated && selectedOrgan?.id === org.id;
                         return (
-                          <button
+                          <div
                             key={org.id}
-                            onClick={() => handleSelectOrgan(org)}
                             style={{
-                              padding: '6px 12px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
                               borderRadius: '8px',
                               border: '1.5px solid #1E1E1E',
                               backgroundColor: isSelected ? org.highlightColor : '#FAF8F4',
                               color: isSelected ? '#FFFFFF' : '#18181B',
-                              fontWeight: 800,
-                              fontSize: '0.78rem',
-                              cursor: 'pointer',
                               boxShadow: isSelected ? '2px 2px 0px #1E1E1E' : 'none',
+                              overflow: 'hidden',
                               transition: 'all 0.1s ease'
                             }}
                           >
-                            {org.name.split('(')[0]}
-                          </button>
+                            <button
+                              type="button"
+                              onClick={() => handleSelectOrgan(org)}
+                              style={{
+                                padding: isSelected ? '6px 8px 6px 12px' : '6px 12px',
+                                border: 'none',
+                                backgroundColor: 'transparent',
+                                color: 'inherit',
+                                fontWeight: 800,
+                                fontSize: '0.78rem',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {org.name.split('(')[0].trim()}
+                            </button>
+                            {isSelected && (
+                              <button
+                                type="button"
+                                onClick={handleResetOrganSelection}
+                                title="Reset pilihan organ (kembali ke tampilan sistem organ)"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  padding: '6px 8px 6px 4px',
+                                  border: 'none',
+                                  borderLeft: '1px solid rgba(255,255,255,0.35)',
+                                  backgroundColor: 'rgba(0,0,0,0.18)',
+                                  color: '#FFFFFF',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                <X size={13} strokeWidth={3} />
+                              </button>
+                            )}
+                          </div>
                         );
                       })
                     )}
@@ -2749,7 +2742,7 @@ export default function AnatomiPage() {
                 )}
               </div>
             ) : (
-              /* Mode 2: Tampilan Normal (Tombol Cari di kiri Otak, diikuti pilihan organ) */
+              /* Mode 2: Tampilan Normal (Tombol Cari di kiri Otak, diikuti pilihan organ dengan tombol silang X saat aktif) */
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
                 <button
                   type="button"
@@ -2780,26 +2773,58 @@ export default function AnatomiPage() {
                 </button>
 
                 {filteredOrgans.map((org) => {
-                  const isSelected = selectedOrgan.id === org.id;
+                  const isSelected = isOrganIsolated && selectedOrgan?.id === org.id;
                   return (
-                    <button
+                    <div
                       key={org.id}
-                      onClick={() => handleSelectOrgan(org)}
                       style={{
-                        padding: '6px 12px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
                         borderRadius: '8px',
                         border: '1.5px solid #1E1E1E',
                         backgroundColor: isSelected ? org.highlightColor : '#FAF8F4',
                         color: isSelected ? '#FFFFFF' : '#18181B',
-                        fontWeight: 800,
-                        fontSize: '0.78rem',
-                        cursor: 'pointer',
                         boxShadow: isSelected ? '2px 2px 0px #1E1E1E' : 'none',
+                        overflow: 'hidden',
                         transition: 'all 0.1s ease'
                       }}
                     >
-                      {org.name.split('(')[0]}
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectOrgan(org)}
+                        style={{
+                          padding: isSelected ? '6px 8px 6px 12px' : '6px 12px',
+                          border: 'none',
+                          backgroundColor: 'transparent',
+                          color: 'inherit',
+                          fontWeight: 800,
+                          fontSize: '0.78rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {org.name.split('(')[0].trim()}
+                      </button>
+                      {isSelected && (
+                        <button
+                          type="button"
+                          onClick={handleResetOrganSelection}
+                          title="Reset pilihan organ (kembali ke tampilan sistem organ)"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '6px 8px 6px 5px',
+                            border: 'none',
+                            borderLeft: '1.2px solid rgba(255,255,255,0.4)',
+                            backgroundColor: 'rgba(0,0,0,0.18)',
+                            color: '#FFFFFF',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <X size={13} strokeWidth={3} />
+                        </button>
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -2808,40 +2833,77 @@ export default function AnatomiPage() {
 
           {/* Active Organ Clinical Detail Card */}
           <div className="neo-card" style={{ padding: '24px', backgroundColor: '#FFFFFF', boxShadow: '3px 4px 0px #1E1E1E', flex: 1 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1.8px solid #1E1E1E', paddingBottom: '16px', marginBottom: '18px' }}>
-              <div>
-                <span style={{
-                  display: 'inline-block',
-                  backgroundColor: '#FEF3D6',
-                  border: '1.2px solid #1E1E1E',
-                  color: '#92400E',
-                  fontSize: '0.78rem',
-                  fontWeight: 800,
-                  padding: '3px 10px',
-                  borderRadius: '6px',
-                  marginBottom: '8px'
-                }}>
-                  SISTEM {selectedOrgan.system.toUpperCase()}
-                </span>
-                <h3 style={{ margin: 0, fontSize: '1.55rem', fontWeight: 900, color: '#18181B' }}>
-                  {selectedOrgan.name}
-                </h3>
-              </div>
-
+            {!selectedOrgan ? (
               <div style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '12px',
-                backgroundColor: '#EFF6FF',
-                border: '1.6px solid #1E1E1E',
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '2px 2px 0px #1E1E1E'
+                padding: '60px 24px',
+                textAlign: 'center',
+                backgroundColor: '#FAF8F4',
+                borderRadius: '12px',
+                border: '1.8px dashed #CBD5E1',
+                gap: '16px'
               }}>
-                <Stethoscope size={24} color="#1E40AF" />
+                <div style={{
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '16px',
+                  backgroundColor: '#EFF6FF',
+                  border: '2px solid #1E1E1E',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '2.5px 2.5px 0px #1E1E1E'
+                }}>
+                  <Stethoscope size={32} color="#0284C7" />
+                </div>
+                <div style={{ maxWidth: '460px' }}>
+                  <h3 style={{ margin: '0 0 8px 0', fontSize: '1.25rem', fontWeight: 900, color: '#0F172A' }}>
+                    Silakan Pilih Organ untuk Divisualisasi
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '0.88rem', color: '#64748B', lineHeight: 1.6 }}>
+                    Klik salah satu tombol organ di atas pada <strong>PILIH ORGAN TARGET SECARA LANGSUNG</strong> atau sentuh/klik organ langsung pada model 3D di atas untuk melihat visualisasi detail anatomi, patologi penyakit, dan rekomendasi farmakoterapi.
+                  </p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1.8px solid #1E1E1E', paddingBottom: '16px', marginBottom: '18px' }}>
+                  <div>
+                    <span style={{
+                      display: 'inline-block',
+                      backgroundColor: '#FEF3D6',
+                      border: '1.2px solid #1E1E1E',
+                      color: '#92400E',
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      padding: '3px 10px',
+                      borderRadius: '6px',
+                      marginBottom: '8px'
+                    }}>
+                      SISTEM {selectedOrgan.system.toUpperCase()}
+                    </span>
+                    <h3 style={{ margin: 0, fontSize: '1.55rem', fontWeight: 900, color: '#18181B' }}>
+                      {selectedOrgan.name}
+                    </h3>
+                  </div>
+
+                  <div style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '12px',
+                    backgroundColor: '#EFF6FF',
+                    border: '1.6px solid #1E1E1E',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '2px 2px 0px #1E1E1E'
+                  }}>
+                    <Stethoscope size={24} color="#1E40AF" />
+                  </div>
+                </div>
 
             {/* Banner Anatomi & Ilustrasi Gambar Organ (Porsi Seimbang 1/2 : 1/2 & Responsif) */}
             <div
@@ -3245,32 +3307,34 @@ export default function AnatomiPage() {
             )}
           </div>
 
-            {/* Clinical Farmasi Warning */}
-            <div style={{
-              marginTop: '20px',
-              padding: '16px 18px',
-              backgroundColor: '#FEF2F2',
-              border: '1.6px solid #DC2626',
-              borderRadius: '10px',
-              display: 'flex',
-              gap: '14px',
-              alignItems: 'flex-start'
-            }}>
-              <ShieldAlert size={22} color="#DC2626" style={{ flexShrink: 0, marginTop: '2px' }} />
-              <div>
-                <strong style={{ fontSize: '0.94rem', color: '#991B1B', display: 'block' }}>
-                  Catatan Konseling Klinis Apoteker:
-                </strong>
-                <span style={{ fontSize: '0.90rem', color: '#7F1D1D', lineHeight: 1.65, display: 'block', marginTop: '4px' }}>
-                  {selectedOrgan.clinicalNotes}
-                </span>
-              </div>
-            </div>
+                {/* Clinical Farmasi Warning */}
+                <div style={{
+                  marginTop: '20px',
+                  padding: '16px 18px',
+                  backgroundColor: '#FEF2F2',
+                  border: '1.6px solid #DC2626',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  gap: '14px',
+                  alignItems: 'flex-start'
+                }}>
+                  <ShieldAlert size={22} color="#DC2626" style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <div>
+                    <strong style={{ fontSize: '0.94rem', color: '#991B1B', display: 'block' }}>
+                      Catatan Konseling Klinis Apoteker:
+                    </strong>
+                    <span style={{ fontSize: '0.90rem', color: '#7F1D1D', lineHeight: 1.65, display: 'block', marginTop: '4px' }}>
+                      {selectedOrgan.clinicalNotes}
+                    </span>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
         {/* Modal Popup Gambar Anatomi */}
-        {isImageModalOpen && selectedOrgan.imageUrl && (
+        {isImageModalOpen && selectedOrgan?.imageUrl && (
           <div
             onClick={() => setIsImageModalOpen(false)}
             style={{
@@ -3313,10 +3377,10 @@ export default function AnatomiPage() {
                   <Eye size={20} color="#0284C7" />
                   <div>
                     <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#0F172A' }}>
-                      Detail Anatomi 2D: {selectedOrgan.name}
+                      Detail Anatomi 2D: {selectedOrgan?.name}
                     </h3>
                     <span style={{ fontSize: '0.74rem', color: '#64748B', fontWeight: 600 }}>
-                      Sistem {selectedOrgan.system} • Sumber Terbuka Wikimedia Medical Commons
+                      Sistem {selectedOrgan?.system} • Sumber Terbuka Wikimedia Medical Commons
                     </span>
                   </div>
                 </div>
@@ -3351,8 +3415,8 @@ export default function AnatomiPage() {
                 overflowY: 'auto'
               }}>
                 <img
-                  src={selectedOrgan.imageUrl}
-                  alt={`Anatomi Detail ${selectedOrgan.name}`}
+                  src={selectedOrgan?.imageUrl}
+                  alt={`Anatomi Detail ${selectedOrgan?.name}`}
                   referrerPolicy="no-referrer"
                   style={{
                     maxWidth: '100%',
