@@ -18,55 +18,44 @@ import {
   Coins,
   X
 } from 'lucide-react';
-import { Patient, PrescriptionItem, MedicineStock, apiCreateTransaction, apiGetPatients, apiGetStocks, apiUpdateStock } from '@/lib/api';
+import { Patient, PrescriptionItem, apiCreateTransaction, apiGetPatients, apiGetStocks, apiUpdateStock, apiUpdatePatient } from '@/lib/api';
+import {
+  INITIAL_PATIENTS_SEED,
+  INITIAL_STOCKS_SEED,
+  getFaskesProfileSync,
+  loadFaskesProfileAsync,
+  getInitializedPatients,
+  getInitializedStocks,
+  saveStocksToStorage,
+  savePatientsToStorage
+} from '@/lib/pharmacy-store';
 
-const MOCK_PATIENTS: Patient[] = [
-  {
-    id: 1,
-    nama: 'Budi Santoso',
-    nik: '3273011405820003',
-    tanggal_lahir: '1982-05-14',
-    jenis_kelamin: 'L',
-    telepon: '081234567890',
-    alamat: 'Jl. Merdeka No. 45, Bandung',
-    alergi_obat: ['Amoxicillin', 'Penisilin'],
-    catatan_medis: 'Hipertensi',
-  },
-  {
-    id: 2,
-    nama: 'Siti Rahmawati',
-    nik: '3273015509910001',
-    tanggal_lahir: '1991-09-15',
-    jenis_kelamin: 'P',
-    telepon: '082198765432',
-    alamat: 'Jl. Dago Asri No. 12',
-    alergi_obat: ['Aspirin'],
-    catatan_medis: 'Ibu hamil trimester 2',
-  },
-  {
-    id: 3,
-    nama: 'Ahmad Fauzi',
-    nik: '3273010101750004',
-    tanggal_lahir: '1975-01-01',
-    jenis_kelamin: 'L',
-    telepon: '085611223344',
-    alamat: 'Komplek Antapani Indah',
-    alergi_obat: [],
-  }
-];
+interface KasirMedicineItem {
+  id: number;
+  nama: string;
+  harga: number;
+  harga_beli: number;
+  satuan: string;
+  stok: number;
+  golongan: string;
+  expired_date?: string;
+}
 
-const AVAILABLE_MEDICINES = [
-  { id: 1, nama: 'Paracetamol 500mg', harga: 8000, satuan: 'Strip (10 Tab)', stok: 120, golongan: 'Bebas' },
-  { id: 2, nama: 'Amoxicillin 500mg', harga: 14000, satuan: 'Strip (10 Kapsul)', stok: 14, golongan: 'Keras' },
-  { id: 3, nama: 'Metformin HCl 500mg', harga: 6500, satuan: 'Strip (10 Tab)', stok: 85, golongan: 'Keras' },
-  { id: 4, nama: 'Amlodipine Besylate 10mg', harga: 12500, satuan: 'Strip (10 Tab)', stok: 9, golongan: 'Keras' },
-  { id: 5, nama: 'Cetirizine HCl 10mg', harga: 9000, satuan: 'Strip (10 Tab)', stok: 52, golongan: 'Bebas Terbatas' },
-  { id: 6, nama: 'Aspirin 80mg', harga: 11000, satuan: 'Strip (10 Tab)', stok: 30, golongan: 'Bebas Terbatas' },
-];
+const DEFAULT_MEDICINES: KasirMedicineItem[] = INITIAL_STOCKS_SEED.map((s) => ({
+  id: s.id,
+  nama: s.nama,
+  harga: s.harga_jual,
+  harga_beli: s.harga_beli,
+  satuan: s.satuan,
+  stok: s.stok,
+  golongan: s.golongan,
+  expired_date: s.expired_date
+}));
 
 const PACKAGING_OPTIONS = [
   'Tablet / Pcs',
   'Strip (10 Tab)',
+  'Strip (10 Kapsul)',
   'Bungkus / Sachet',
   'Botol / Sirup',
   'Box / Dus',
@@ -75,13 +64,13 @@ const PACKAGING_OPTIONS = [
 ];
 
 export default function KasirPage() {
-  const [patientList, setPatientList] = useState<Patient[]>(MOCK_PATIENTS);
-  const [medicineList, setMedicineList] = useState<typeof AVAILABLE_MEDICINES>(AVAILABLE_MEDICINES);
+  const [patientList, setPatientList] = useState<Patient[]>(INITIAL_PATIENTS_SEED);
+  const [medicineList, setMedicineList] = useState<KasirMedicineItem[]>(DEFAULT_MEDICINES);
   const [selectedPatientId, setSelectedPatientId] = useState<number | ''>(1);
-  const [nonResepNamaPasien, setNonResepNamaPasien] = useState('unknown');
+  const [nonResepNamaPasien, setNonResepNamaPasien] = useState('Pasien Umum (Walk-in)');
   const [tipeTransaksi, setTipeTransaksi] = useState<'Resep' | 'Non-Resep'>('Resep');
   const [dokterPerujuk, setDokterPerujuk] = useState('dr. H. Susanto, Sp.PD');
-  const [namaKasir, setNamaKasir] = useState<string>('Apoteker Jaga');
+  const [namaKasir, setNamaKasir] = useState<string>('');
   const [showPrintModal, setShowPrintModal] = useState<boolean>(false);
   const [printData, setPrintData] = useState<any>(null);
   const [faskesProfile, setFaskesProfile] = useState<{
@@ -90,106 +79,150 @@ export default function KasirPage() {
     nomorIzin: string;
     penanggungJawab: string;
     telepon: string;
+    email: string;
     alamat: string;
     kota: string;
+    provinsi: string;
   }>({
-    nama: 'Apotek Sehat Farma',
-    tipe: 'Apotek',
-    nomorIzin: 'SIA: 442/019/SIA-DPMPTSP/2026',
-    penanggungJawab: 'apt. Sarah Safitri, S.Farm',
-    telepon: '081234567890',
-    alamat: 'Jl. Merdeka No. 45',
-    kota: 'Bandung'
+    nama: '',
+    tipe: '',
+    nomorIzin: '',
+    penanggungJawab: '',
+    telepon: '',
+    email: '',
+    alamat: '',
+    kota: '',
+    provinsi: ''
   });
 
-  // Ambil data pasien, obat stok terkini, dan nama petugas dari sesi / database / localStorage
+  // Ambil data profil faskes, pasien, obat stok terkini, dan nama petugas secara real-time (tanpa hardcode)
   useEffect(() => {
-    // 1. Ambil sesi nama kasir
-    if (typeof window !== 'undefined') {
-      try {
-        const savedUser = localStorage.getItem('mediagnotek_user_session');
-        if (savedUser) {
-          const u = JSON.parse(savedUser);
-          if (u?.name) setNamaKasir(u.name);
-        }
-      } catch {}
-    }
+    const syncFaskesAndUser = async () => {
+      const syncData = getFaskesProfileSync();
+      const fp = syncData.faskes_profile;
+      setFaskesProfile({
+        nama: fp.nama_faskes || '',
+        tipe: fp.tipe_faskes || '',
+        nomorIzin: fp.nomor_izin_operasional || '',
+        penanggungJawab: fp.penanggung_jawab || '',
+        telepon: fp.nomor_telepon || '',
+        email: syncData.email || '',
+        alamat: fp.alamat_lengkap || '',
+        kota: fp.kota || '',
+        provinsi: fp.provinsi || ''
+      });
+      if (fp.penanggung_jawab) {
+        setNamaKasir((prev) => prev || fp.penanggung_jawab);
+      }
 
-    // 2. Load daftar pasien live (Database & localStorage fallback)
+      const asyncData = await loadFaskesProfileAsync();
+      const afp = asyncData.faskes_profile;
+      setFaskesProfile({
+        nama: afp.nama_faskes || '',
+        tipe: afp.tipe_faskes || '',
+        nomorIzin: afp.nomor_izin_operasional || '',
+        penanggungJawab: afp.penanggung_jawab || '',
+        telepon: afp.nomor_telepon || '',
+        email: asyncData.email || '',
+        alamat: afp.alamat_lengkap || '',
+        kota: afp.kota || '',
+        provinsi: afp.provinsi || ''
+      });
+      if (afp.penanggung_jawab) {
+        setNamaKasir((prev) => prev || afp.penanggung_jawab);
+      }
+    };
+
+    // Load daftar pasien live (Database & localStorage terintegrasi)
     const loadPatients = async () => {
+      const localPatients = getInitializedPatients();
+      setPatientList(localPatients);
+
       try {
         const remotePatients = await apiGetPatients();
         if (remotePatients && Array.isArray(remotePatients) && remotePatients.length > 0) {
           setPatientList(remotePatients);
-          return;
+          savePatientsToStorage(remotePatients);
         }
       } catch {}
-
-      if (typeof window !== 'undefined') {
-        try {
-          const savedPatients = localStorage.getItem('mediagnotek_patients_data');
-          if (savedPatients) {
-            const parsed = JSON.parse(savedPatients);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setPatientList(parsed);
-            }
-          }
-        } catch {}
-      }
     };
 
-    // 3. Load daftar obat stok live (Database & localStorage fallback)
+    // Load daftar obat stok live termasuk harga_beli (HPP) dan expired_date (FEFO)
     const loadStocks = async () => {
+      const localStocks = getInitializedStocks();
+      setMedicineList(
+        localStocks.map((s) => ({
+          id: s.id,
+          nama: s.nama,
+          harga: Number(s.harga_jual) || 10000,
+          harga_beli: Number(s.harga_beli) || Math.round((Number(s.harga_jual) || 10000) * 0.6),
+          satuan: s.satuan || 'Tablet',
+          stok: Number(s.stok) || 0,
+          golongan: s.golongan || 'Bebas',
+          expired_date: s.expired_date
+        }))
+      );
+
       try {
         const remoteStocks = await apiGetStocks();
         if (remoteStocks && Array.isArray(remoteStocks) && remoteStocks.length > 0) {
           const mapped = remoteStocks.map((s) => ({
             id: s.id,
             nama: s.nama,
-            harga: s.harga_jual || 10000,
+            harga: Number(s.harga_jual) || 10000,
+            harga_beli: Number(s.harga_beli) || Math.round((Number(s.harga_jual) || 10000) * 0.6),
             satuan: s.satuan || 'Tablet',
-            stok: s.stok || 0,
-            golongan: s.golongan || 'Bebas'
+            stok: Number(s.stok) || 0,
+            golongan: s.golongan || 'Bebas',
+            expired_date: s.expired_date
           }));
           setMedicineList(mapped);
-          return;
         }
       } catch {}
-
-      if (typeof window !== 'undefined') {
-        try {
-          const savedStocks = localStorage.getItem('mediagnotek_stocks_data');
-          if (savedStocks) {
-            const parsed = JSON.parse(savedStocks);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              const mapped = parsed.map((s: any) => ({
-                id: s.id,
-                nama: s.nama,
-                harga: s.harga_jual || 10000,
-                satuan: s.satuan || 'Tablet',
-                stok: s.stok || 0,
-                golongan: s.golongan || 'Bebas'
-              }));
-              setMedicineList(mapped);
-            }
-          }
-        } catch {}
-      }
     };
 
+    syncFaskesAndUser();
     loadPatients();
     loadStocks();
+
+    const handleSessionOrDataUpdate = () => {
+      syncFaskesAndUser();
+      const updatedPatients = getInitializedPatients();
+      setPatientList(updatedPatients);
+      const updatedStocks = getInitializedStocks();
+      setMedicineList(
+        updatedStocks.map((s) => ({
+          id: s.id,
+          nama: s.nama,
+          harga: Number(s.harga_jual) || 10000,
+          harga_beli: Number(s.harga_beli) || Math.round((Number(s.harga_jual) || 10000) * 0.6),
+          satuan: s.satuan || 'Tablet',
+          stok: Number(s.stok) || 0,
+          golongan: s.golongan || 'Bebas',
+          expired_date: s.expired_date
+        }))
+      );
+    };
+
+    window.addEventListener('mediagnotek_session_updated', handleSessionOrDataUpdate);
+    window.addEventListener('mediagnotek_data_updated', handleSessionOrDataUpdate);
+    window.addEventListener('storage', handleSessionOrDataUpdate);
+    return () => {
+      window.removeEventListener('mediagnotek_session_updated', handleSessionOrDataUpdate);
+      window.removeEventListener('mediagnotek_data_updated', handleSessionOrDataUpdate);
+      window.removeEventListener('storage', handleSessionOrDataUpdate);
+    };
   }, []);
 
   const [cartItems, setCartItems] = useState<PrescriptionItem[]>([
-    { drug_id: 3, drug_nama: 'Metformin HCl 500mg', jumlah: 30, satuan: 'Tablet / Pcs', signa: '2 x 1 tablet sesudah makan', harga: 6500 },
-    { drug_id: 4, drug_nama: 'Amlodipine Besylate 10mg', jumlah: 30, satuan: 'Tablet / Pcs', signa: '1 x 1 tablet malam hari', harga: 12500 }
+    { drug_id: 3, drug_nama: 'Metformin HCl 500mg', jumlah: 10, satuan: 'Strip (10 Tab)', signa: '2 x 1 tablet sesudah makan', harga: 6500 },
+    { drug_id: 4, drug_nama: 'Amlodipine Besylate 10mg', jumlah: 10, satuan: 'Strip (10 Tab)', signa: '1 x 1 tablet malam hari', harga: 12500 }
   ]);
 
   // Selected drug to add
   const [addDrugId, setAddDrugId] = useState(1);
-  const [addQty, setAddQty] = useState(10);
-  const [addSatuan, setAddSatuan] = useState('Tablet / Pcs');
+  const [addQty, setAddQty] = useState(2);
+  const [addSatuan, setAddSatuan] = useState('Strip (10 Tab)');
   const [addCustomPrice, setAddCustomPrice] = useState<string>(''); // string allows placeholder default
   const [addSigna, setAddSigna] = useState('3 x 1 tablet sesudah makan');
   const [successNotif, setSuccessNotif] = useState(false);
@@ -197,7 +230,7 @@ export default function KasirPage() {
   const selectedPatient = tipeTransaksi === 'Resep'
     ? patientList.find((p) => p.id === Number(selectedPatientId))
     : undefined;
-  const currentSelectedMed = medicineList.find((m) => m.id === Number(addDrugId)) || medicineList[0] || AVAILABLE_MEDICINES[0];
+  const currentSelectedMed = medicineList.find((m) => m.id === Number(addDrugId)) || medicineList[0] || DEFAULT_MEDICINES[0];
 
   // Skrining Alergi Obat Real-time
   const allergyConflicts = cartItems.filter((item) => {
@@ -224,11 +257,12 @@ export default function KasirPage() {
     const m = medicineList.find((item) => item.id === medId);
     if (m) {
       setAddCustomPrice(String(m.harga));
+      if (m.satuan) setAddSatuan(m.satuan);
     }
   };
 
   const handleAddItem = () => {
-    const med = medicineList.find((m) => m.id === Number(addDrugId)) || AVAILABLE_MEDICINES.find((m) => m.id === Number(addDrugId));
+    const med = medicineList.find((m) => m.id === Number(addDrugId)) || DEFAULT_MEDICINES.find((m) => m.id === Number(addDrugId));
     if (!med) return;
 
     // Use custom price entered, or fallback to default drug price
@@ -237,6 +271,13 @@ export default function KasirPage() {
       : med.harga;
 
     const existingIndex = cartItems.findIndex((c) => c.drug_id === med.id && c.satuan === addSatuan);
+    const currentInCart = existingIndex >= 0 ? cartItems[existingIndex].jumlah : 0;
+    if (currentInCart + addQty > med.stok) {
+      setPaymentError(`Stok ${med.nama} tidak mencukupi. Tersedia: ${med.stok} ${med.satuan}.`);
+      return;
+    }
+    setPaymentError(null);
+
     if (existingIndex >= 0) {
       const updated = [...cartItems];
       updated[existingIndex].jumlah += addQty;
@@ -307,7 +348,35 @@ export default function KasirPage() {
       return;
     }
 
+    // Validasi ketersediaan stok obat sebelum checkout
+    const allStocks = getInitializedStocks();
+    for (const cart of cartItems) {
+      const matchingBatches = allStocks.filter(
+        (s) => s.id === cart.drug_id || s.nama.toLowerCase() === cart.drug_nama.toLowerCase()
+      );
+      const totalAvailable = matchingBatches.reduce((sum, b) => sum + (Number(b.stok) || 0), 0);
+      if (matchingBatches.length > 0 && cart.jumlah > totalAvailable) {
+        setPaymentError(`Stok ${cart.drug_nama} tidak mencukupi (Tersedia: ${totalAvailable}, Diminta: ${cart.jumlah}).`);
+        return;
+      }
+    }
+
     setPaymentError(null);
+
+    // Ambil profil faskes terbaru langsung dari sesi aktif (tanpa hardcode)
+    const liveProfile = getFaskesProfileSync();
+    const fp = liveProfile.faskes_profile;
+    setFaskesProfile({
+      nama: fp.nama_faskes || '',
+      tipe: fp.tipe_faskes || '',
+      nomorIzin: fp.nomor_izin_operasional || '',
+      penanggungJawab: fp.penanggung_jawab || '',
+      telepon: fp.nomor_telepon || '',
+      email: liveProfile.email || '',
+      alamat: fp.alamat_lengkap || '',
+      kota: fp.kota || '',
+      provinsi: fp.provinsi || ''
+    });
 
     // Siapkan data struk resmi untuk dicetak
     const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`;
@@ -320,12 +389,16 @@ export default function KasirPage() {
       minute: '2-digit'
     }).format(now);
 
+    const resolvedPatientName = tipeTransaksi === 'Resep'
+      ? (selectedPatient?.nama || 'Pasien Umum')
+      : (nonResepNamaPasien.trim() || 'Pasien Umum (Walk-in)');
+
     const receiptPayload = {
       invoiceNumber,
       transactionDate,
       namaKasir: namaKasir.trim(),
       tipeTransaksi,
-      namaPasien: tipeTransaksi === 'Resep' ? (selectedPatient?.nama || 'Pasien Umum') : nonResepNamaPasien,
+      namaPasien: resolvedPatientName,
       dokterPerujuk: tipeTransaksi === 'Resep' ? dokterPerujuk : null,
       items: [...cartItems],
       subtotal: subtotalObat,
@@ -333,19 +406,150 @@ export default function KasirPage() {
       grandTotal,
       paymentMethod,
       nominalTunai: paymentMethod === 'TUNAI' ? nominalTunai : grandTotal,
-      kembalian
+      kembalian,
+      faskes: {
+        nama_faskes: fp.nama_faskes || '',
+        tipe_faskes: fp.tipe_faskes || '',
+        nomor_izin_operasional: fp.nomor_izin_operasional || '',
+        penanggung_jawab: fp.penanggung_jawab || namaKasir.trim(),
+        nomor_telepon: fp.nomor_telepon || '',
+        alamat_lengkap: fp.alamat_lengkap || '',
+        kota: fp.kota || '',
+        provinsi: fp.provinsi || '',
+        email: liveProfile.email || ''
+      }
     };
 
     setPrintData(receiptPayload);
     setShowPrintModal(true);
     setSuccessNotif(true);
 
-    // 1. Simpan ke database PostgreSQL / Backend API
+    // 1. Potong stok obat dengan urutan FEFO (First Expired, First Out) & hitung HPP Asli dari harga_beli stok
+    let totalRealHpp = 0;
+    try {
+      let stockModified = false;
+      cartItems.forEach((cart) => {
+        // Cari semua batch yang cocok dan urutkan berdasarkan expired_date terdekat (FEFO)
+        const matchingBatches = allStocks
+          .filter((s) => s.id === cart.drug_id || s.nama.toLowerCase() === cart.drug_nama.toLowerCase())
+          .sort((a, b) => new Date(a.expired_date).getTime() - new Date(b.expired_date).getTime());
+
+        if (matchingBatches.length > 0) {
+          let remainingToDeduct = cart.jumlah;
+          for (const batch of matchingBatches) {
+            if (remainingToDeduct <= 0) break;
+            const available = Number(batch.stok) || 0;
+            const deductQty = Math.min(available, remainingToDeduct);
+            const unitHpp = Number(batch.harga_beli) || Math.round((Number(batch.harga_jual) || cart.harga) * 0.6);
+
+            if (deductQty > 0) {
+              batch.stok = Math.max(0, available - deductQty);
+              totalRealHpp += unitHpp * deductQty;
+              remainingToDeduct -= deductQty;
+              stockModified = true;
+
+              if (batch.id && typeof batch.id === 'number') {
+                apiUpdateStock(batch.id, { stok: batch.stok }).catch(() => {});
+              }
+            }
+          }
+          // Jika masih ada sisa qty (misal stok 0), hitung HPP dari batch pertama
+          if (remainingToDeduct > 0) {
+            const fallbackUnitHpp = Number(matchingBatches[0].harga_beli) || Math.round(cart.harga * 0.6);
+            totalRealHpp += fallbackUnitHpp * remainingToDeduct;
+          }
+        } else {
+          const medInState = medicineList.find((m) => m.id === cart.drug_id);
+          const fallbackUnitHpp = medInState?.harga_beli || Math.round(cart.harga * 0.6);
+          totalRealHpp += fallbackUnitHpp * cart.jumlah;
+        }
+      });
+
+      if (stockModified) {
+        saveStocksToStorage(allStocks);
+        setMedicineList(
+          allStocks.map((s) => ({
+            id: s.id,
+            nama: s.nama,
+            harga: Number(s.harga_jual) || 10000,
+            harga_beli: Number(s.harga_beli) || Math.round((Number(s.harga_jual) || 10000) * 0.6),
+            satuan: s.satuan || 'Tablet',
+            stok: Number(s.stok) || 0,
+            golongan: s.golongan || 'Bebas',
+            expired_date: s.expired_date
+          }))
+        );
+      }
+    } catch (e) {
+      console.warn('Gagal memotong stok lokal:', e);
+    }
+
+    const realLabaKotor = grandTotal - totalRealHpp;
+    const realMarginPersen = grandTotal > 0 ? Number(((realLabaKotor / grandTotal) * 100).toFixed(1)) : 0;
+    const itemsSummaryText = cartItems.map((c) => `${c.drug_nama} (${c.jumlah} ${c.satuan || 'Pcs'})`).join(', ');
+    const skriningStatus = (allergyConflicts.length > 0 || interactionWarnings.length > 0) ? 'Peringatan' : 'Aman';
+
+    const localIsoDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    // 2. Simpan ke localStorage untuk Laporan Keuangan & Overview Dashboard (dengan HPP & Margin asli dari stok)
+    try {
+      const stored = localStorage.getItem('mediagnotek_local_transactions');
+      const list = stored ? JSON.parse(stored) : [];
+      list.unshift({
+        id: invoiceNumber,
+        tanggal: localIsoDate,
+        waktu: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} WIB`,
+        tipe: tipeTransaksi === 'Resep' ? 'Penebusan Resep' : 'Obat Bebas (OTC)',
+        pasien: resolvedPatientName,
+        pasien_id: selectedPatient?.id,
+        dokter: receiptPayload.dokterPerujuk || undefined,
+        items: itemsSummaryText,
+        itemCount: cartItems.length,
+        omzet: grandTotal,
+        hpp: totalRealHpp,
+        labaKotor: realLabaKotor,
+        marginPersen: realMarginPersen,
+        metode: paymentMethod === 'QRIS' ? 'QRIS' : 'Tunai',
+        status: 'Lunas',
+        skrining: skriningStatus,
+        kasir: namaKasir.trim()
+      });
+      localStorage.setItem('mediagnotek_local_transactions', JSON.stringify(list));
+      window.dispatchEvent(new Event('mediagnotek_data_updated'));
+    } catch {}
+
+    // 3. Sinkronkan status kunjungan & pembayaran pasien di Buku Pasien (mediagnotek_patients_data)
+    try {
+      const allPatients = getInitializedPatients();
+      const targetPatient = tipeTransaksi === 'Resep' && selectedPatient
+        ? allPatients.find((p) => p.id === selectedPatient.id)
+        : allPatients.find((p) => p.nama.toLowerCase() === resolvedPatientName.toLowerCase());
+
+      if (targetPatient) {
+        targetPatient.waktu_kunjungan = localIsoDate;
+        targetPatient.status_pembelian = 'Lunas';
+        targetPatient.keterangan_pembelian = `Lunas ${paymentMethod} Rp ${grandTotal.toLocaleString('id-ID')} (${invoiceNumber}: ${itemsSummaryText})`;
+        savePatientsToStorage(allPatients);
+        setPatientList([...allPatients]);
+
+        if (targetPatient.id) {
+          apiUpdatePatient(targetPatient.id, {
+            waktu_kunjungan: targetPatient.waktu_kunjungan,
+            status_pembelian: targetPatient.status_pembelian,
+            keterangan_pembelian: targetPatient.keterangan_pembelian
+          }).catch(() => {});
+        }
+      }
+    } catch (e) {
+      console.warn('Gagal menyinkronkan riwayat pasien:', e);
+    }
+
+    // 4. Simpan ke database PostgreSQL / Backend API
     try {
       const dbPayload = {
         nomor_struk: invoiceNumber,
         nama_kasir: namaKasir.trim(),
-        nama_pasien: receiptPayload.namaPasien,
+        nama_pasien: resolvedPatientName,
         dokter_perujuk: receiptPayload.dokterPerujuk,
         jenis_transaksi: tipeTransaksi === 'Resep' ? 'RESEP' : 'BEBAS',
         total_omzet: grandTotal,
@@ -365,65 +569,6 @@ export default function KasirPage() {
       await apiCreateTransaction(dbPayload);
     } catch (err) {
       console.warn('Gagal sync transaksi ke database cloud:', err);
-    }
-
-    // 2. Simpan cadangan offline di localStorage untuk laporan keuangan lokal
-    try {
-      const stored = localStorage.getItem('mediagnotek_local_transactions');
-      const list = stored ? JSON.parse(stored) : [];
-      list.unshift({
-        id: invoiceNumber,
-        tanggal: now.toISOString().replace('T', ' ').slice(0, 16),
-        tipe: tipeTransaksi === 'Resep' ? 'Penebusan Resep' : 'Obat Bebas (OTC)',
-        pasien: receiptPayload.namaPasien,
-        omzet: grandTotal,
-        hpp: Math.round(grandTotal * 0.65),
-        labaKotor: Math.round(grandTotal * 0.35),
-        marginPersen: 35.0,
-        metode: paymentMethod === 'QRIS' ? 'QRIS' : 'Tunai',
-        kasir: namaKasir.trim()
-      });
-      localStorage.setItem('mediagnotek_local_transactions', JSON.stringify(list));
-    } catch {}
-
-    // 3. Potong stok obat secara otomatis di inventory dan sinkronkan
-    try {
-      if (typeof window !== 'undefined') {
-        const rawStocks = localStorage.getItem('mediagnotek_stocks_data');
-        if (rawStocks) {
-          const allStocks = JSON.parse(rawStocks);
-          if (Array.isArray(allStocks)) {
-            let modified = false;
-            cartItems.forEach((cart) => {
-              const target = allStocks.find((s: any) => s.id === cart.drug_id || s.nama.toLowerCase() === cart.drug_nama.toLowerCase());
-              if (target) {
-                target.stok = Math.max(0, (target.stok || 0) - cart.jumlah);
-                modified = true;
-                // Sync ke backend database jika ID valid
-                if (target.id && typeof target.id === 'number') {
-                  apiUpdateStock(target.id, { stok: target.stok }).catch(() => {});
-                }
-              }
-            });
-
-            if (modified) {
-              localStorage.setItem('mediagnotek_stocks_data', JSON.stringify(allStocks));
-              // Update state lokal kasir juga
-              setMedicineList((prev) =>
-                prev.map((m) => {
-                  const match = cartItems.find((c) => c.drug_id === m.id || c.drug_nama.toLowerCase() === m.nama.toLowerCase());
-                  if (match) {
-                    return { ...m, stok: Math.max(0, m.stok - match.jumlah) };
-                  }
-                  return m;
-                })
-              );
-            }
-          }
-        }
-      }
-    } catch (e) {
-      console.warn('Gagal memotong stok lokal:', e);
     }
 
     setTimeout(() => {
@@ -1276,15 +1421,13 @@ export default function KasirPage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Receipt size={22} color="#0284C7" />
                 <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: '#0F172A' }}>
-                  Struk Pembayaran Apotek
+                  Struk Pembayaran {faskesProfile.tipe || 'Faskes'}
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => {
                   setShowPrintModal(false);
-                  setCartItems([]);
-                  setTunaiBayar('');
                 }}
                 style={{
                   background: 'none',
@@ -1313,17 +1456,39 @@ export default function KasirPage() {
               fontSize: '0.86rem',
               color: '#0F172A'
             }}>
-              {/* Kop Apotek */}
+              {/* Kop Faskes Dinamis Sesuai Profil User (Tanpa Hardcode) */}
               <div style={{ textAlign: 'center', borderBottom: '1.4px dashed #94A3B8', paddingBottom: '12px', marginBottom: '12px' }}>
-                <div style={{ fontSize: '1.15rem', fontWeight: 900, letterSpacing: '-0.3px' }}>
-                  APOTEK MEDIAGNOTEK
+                <div style={{ fontSize: '1.12rem', fontWeight: 900, letterSpacing: '-0.3px', color: '#0F172A' }}>
+                  {(printData.faskes?.nama_faskes || faskesProfile.nama || '').toUpperCase()}
                 </div>
-                <div style={{ fontSize: '0.74rem', color: '#475569', marginTop: '2px' }}>
-                  SIA: 442/019/SIA-DPMPTSP/2026 • SIPA: 1988/SIPA/2026
-                </div>
-                <div style={{ fontSize: '0.74rem', color: '#475569' }}>
-                  Layanan Farmasi & Konsultasi Klinis Terpadu
-                </div>
+                {(printData.faskes?.nomor_izin_operasional || faskesProfile.nomorIzin) && (
+                  <div style={{ fontSize: '0.74rem', color: '#475569', marginTop: '2px' }}>
+                    SIA: {printData.faskes?.nomor_izin_operasional || faskesProfile.nomorIzin}
+                  </div>
+                )}
+                {(printData.faskes?.penanggung_jawab || faskesProfile.penanggungJawab) && (
+                  <div style={{ fontSize: '0.74rem', color: '#475569' }}>
+                    APA: {printData.faskes?.penanggung_jawab || faskesProfile.penanggungJawab}
+                  </div>
+                )}
+                {([
+                  printData.faskes?.alamat_lengkap || faskesProfile.alamat,
+                  printData.faskes?.kota || faskesProfile.kota,
+                  printData.faskes?.provinsi || faskesProfile.provinsi
+                ].filter(Boolean).length > 0) && (
+                  <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '2px' }}>
+                    {[
+                      printData.faskes?.alamat_lengkap || faskesProfile.alamat,
+                      printData.faskes?.kota || faskesProfile.kota,
+                      printData.faskes?.provinsi || faskesProfile.provinsi
+                    ].filter(Boolean).join(', ')}
+                  </div>
+                )}
+                {(printData.faskes?.nomor_telepon || faskesProfile.telepon) && (
+                  <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                    Telp: {printData.faskes?.nomor_telepon || faskesProfile.telepon}
+                  </div>
+                )}
               </div>
 
               {/* Metadata Transaksi & KASIR */}
@@ -1439,13 +1604,11 @@ export default function KasirPage() {
                 type="button"
                 onClick={() => {
                   setShowPrintModal(false);
-                  setCartItems([]);
-                  setTunaiBayar('');
                 }}
                 className="neo-btn-secondary"
                 style={{ padding: '12px 18px', fontSize: '0.88rem', fontWeight: 800 }}
               >
-                Selesai
+                Batal
               </button>
             </div>
           </div>

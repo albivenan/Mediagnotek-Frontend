@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Package,
@@ -21,6 +21,7 @@ import {
   FileSpreadsheet,
   RotateCcw
 } from 'lucide-react';
+import { getInitializedPatients, getInitializedStocks } from '@/lib/pharmacy-store';
 
 interface TransactionRecord {
   id: string;
@@ -52,20 +53,82 @@ export default function DashboardOverviewPage() {
   const [filterTipe, setFilterTipe] = useState('ALL');
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [filterSkrining, setFilterSkrining] = useState('ALL');
+  const [transactions, setTransactions] = useState<TransactionRecord[]>(INITIAL_TRANSACTIONS);
+  const [patientCount, setPatientCount] = useState<number>(4);
+  const [lowStockCount, setLowStockCount] = useState<number>(1);
+  const [expiringCount, setExpiringCount] = useState<number>(2);
+
+  useEffect(() => {
+    const syncDashboardData = () => {
+      if (typeof window === 'undefined') return;
+      try {
+        const patients = getInitializedPatients();
+        setPatientCount(patients.length);
+      } catch {}
+
+      try {
+        const stocks = getInitializedStocks();
+        const now = new Date();
+        const lowCount = stocks.filter((s) => Number(s.stok) <= Number(s.min_stok)).length;
+        const expCount = stocks.filter((s) => {
+          const diffDays = Math.ceil((new Date(s.expired_date).getTime() - now.getTime()) / (1000 * 3600 * 24));
+          return diffDays <= 60;
+        }).length;
+        setLowStockCount(lowCount);
+        setExpiringCount(expCount);
+      } catch {}
+
+      try {
+        const rawLocalTrx = localStorage.getItem('mediagnotek_local_transactions');
+        if (rawLocalTrx) {
+          const parsed = JSON.parse(rawLocalTrx);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const mappedLocal: TransactionRecord[] = parsed.map((t: any) => ({
+              id: t.id,
+              waktu: t.waktu || (t.tanggal ? `${String(t.tanggal).slice(11, 16)} WIB` : 'Baru Saja'),
+              pasien: t.pasien || 'Pasien Umum',
+              tipe: t.tipe === 'Obat Bebas (OTC)' ? 'Obat Bebas (OTC)' : 'Penebusan Resep',
+              dokter: t.dokter,
+              items: t.items || 'Obat Farmasi',
+              itemCount: Number(t.itemCount) || 1,
+              total: Number(t.omzet) || 0,
+              status: t.status || 'Lunas',
+              skrining: t.skrining || 'Aman',
+              kasir: t.kasir || 'Kasir Apotek'
+            }));
+            const mapById = new Map<string, TransactionRecord>();
+            mappedLocal.forEach((m) => mapById.set(m.id, m));
+            INITIAL_TRANSACTIONS.forEach((init) => {
+              if (!mapById.has(init.id)) mapById.set(init.id, init);
+            });
+            setTransactions(Array.from(mapById.values()));
+          }
+        }
+      } catch {}
+    };
+
+    syncDashboardData();
+    window.addEventListener('mediagnotek_data_updated', syncDashboardData);
+    window.addEventListener('storage', syncDashboardData);
+    return () => {
+      window.removeEventListener('mediagnotek_data_updated', syncDashboardData);
+      window.removeEventListener('storage', syncDashboardData);
+    };
+  }, []);
 
   const stats = [
-    { label: 'Total Pasien Terdaftar', value: '1,428', change: '+18 pasien minggu ini', icon: Users, href: '/dashboard/pasien' },
-    { label: 'Transaksi Resep Hari Ini', value: '47 Resep', change: '100% tervalidasi aman', icon: ShoppingCart, href: '/dashboard/kasir' },
-    { label: 'Stok Obat Menipis (Defecta)', value: '3 SKU', change: 'Perlu order ke PBF', icon: AlertTriangle, href: '/dashboard/stok', alert: true },
-    { label: 'Mendekati Expired (FEFO)', value: '2 Batch', change: '< 60 hari ke depan', icon: Calendar, href: '/dashboard/stok', warn: true },
+    { label: 'Total Pasien Terdaftar', value: `${patientCount} Pasien`, change: 'Sinkron Buku Pasien', icon: Users, href: '/dashboard/pasien' },
+    { label: 'Total Transaksi Tercatat', value: `${transactions.length} Nota`, change: '100% tervalidasi aman', icon: ShoppingCart, href: '/dashboard/kasir' },
+    { label: 'Stok Obat Menipis (Defecta)', value: `${lowStockCount} SKU`, change: 'Perlu order ke PBF', icon: AlertTriangle, href: '/dashboard/stok', alert: lowStockCount > 0 },
+    { label: 'Mendekati Expired (FEFO)', value: `${expiringCount} Batch`, change: '< 60 hari ke depan', icon: Calendar, href: '/dashboard/stok', warn: expiringCount > 0 },
   ];
 
   const criticalAlerts = [
     { title: 'Amoxicillin Trihydrate 500mg', desc: 'Batch: BATCH-AMX-2309 kadaluwarsa pada 20 Nov 2026 (< 30 hari). Prioritaskan FEFO atau koordinasi retur.', type: 'danger' },
-    { title: 'Amlodipine Besylate 10mg', desc: 'Sisa stok tinggal 9 strip (Batas minimum: 20 strip). Masuk daftar defecta apotek.', type: 'warning' },
+    { title: 'Amlodipine Besylate 10mg', desc: 'Sisa stok di bawah batas minimum (20 strip). Masuk daftar defecta apotek.', type: 'warning' },
   ];
 
-  const filteredTransactions = INITIAL_TRANSACTIONS.filter((trx) => {
+  const filteredTransactions = transactions.filter((trx) => {
     const matchSearch =
       trx.id.toLowerCase().includes(search.toLowerCase()) ||
       trx.pasien.toLowerCase().includes(search.toLowerCase()) ||

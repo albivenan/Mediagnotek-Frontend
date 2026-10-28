@@ -165,7 +165,7 @@ export default function StokPage() {
     lokasi_rak: 'Rak A-01'
   });
 
-  // Load from backend database on mount with localStorage fallback
+  // Load from backend database on mount with localStorage fallback & real-time sync
   useEffect(() => {
     const fetchStocksData = async () => {
       try {
@@ -187,9 +187,28 @@ export default function StokPage() {
           if (saved) {
             const parsed = JSON.parse(saved);
             if (Array.isArray(parsed) && parsed.length > 0) {
-              setStocks(parsed);
+              const normalized: MedicineStock[] = parsed.map((s: any, idx: number) => ({
+                id: s.id || idx + 1,
+                kode_obat: s.kode_obat || `OBT-00${s.id || idx + 1}`,
+                nama: s.nama || 'Obat Farmasi',
+                kategori: s.kategori || 'Obat Umum',
+                golongan: s.golongan || 'Bebas',
+                bentuk: s.bentuk || (String(s.satuan || '').includes('Botol') ? 'Sirup' : 'Tablet'),
+                satuan: s.satuan || 'Strip (10 Tab)',
+                stok: Number(s.stok) || 0,
+                min_stok: Number(s.min_stok) || 15,
+                harga_beli: Number(s.harga_beli) || Math.round((Number(s.harga_jual) || 10000) * 0.6),
+                harga_jual: Number(s.harga_jual) || 10000,
+                batch_no: s.batch_no || s.kode_batch || `BATCH-2026-0${s.id || idx + 1}`,
+                expired_date: s.expired_date || '2027-06-30',
+                lokasi_rak: s.lokasi_rak || 'Rak A-01'
+              }));
+              setStocks(normalized);
+              return;
             }
           }
+          // Inisialisasi localStorage jika belum ada agar Kasir & Laporan Keuangan selalu sinkron
+          localStorage.setItem('mediagnotek_stocks_data', JSON.stringify(INITIAL_STOCKS));
         } catch (e) {
           console.warn('Gagal membaca data stok dari storage:', e);
         }
@@ -197,6 +216,42 @@ export default function StokPage() {
     };
 
     fetchStocksData();
+
+    const handleSync = () => {
+      if (typeof window === 'undefined') return;
+      try {
+        const saved = localStorage.getItem('mediagnotek_stocks_data');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const normalized: MedicineStock[] = parsed.map((s: any, idx: number) => ({
+              id: s.id || idx + 1,
+              kode_obat: s.kode_obat || `OBT-00${s.id || idx + 1}`,
+              nama: s.nama || 'Obat Farmasi',
+              kategori: s.kategori || 'Obat Umum',
+              golongan: s.golongan || 'Bebas',
+              bentuk: s.bentuk || (String(s.satuan || '').includes('Botol') ? 'Sirup' : 'Tablet'),
+              satuan: s.satuan || 'Strip (10 Tab)',
+              stok: Number(s.stok) || 0,
+              min_stok: Number(s.min_stok) || 15,
+              harga_beli: Number(s.harga_beli) || Math.round((Number(s.harga_jual) || 10000) * 0.6),
+              harga_jual: Number(s.harga_jual) || 10000,
+              batch_no: s.batch_no || s.kode_batch || `BATCH-2026-0${s.id || idx + 1}`,
+              expired_date: s.expired_date || '2027-06-30',
+              lokasi_rak: s.lokasi_rak || 'Rak A-01'
+            }));
+            setStocks(normalized);
+          }
+        }
+      } catch {}
+    };
+
+    window.addEventListener('mediagnotek_data_updated', handleSync);
+    window.addEventListener('storage', handleSync);
+    return () => {
+      window.removeEventListener('mediagnotek_data_updated', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
   }, []);
 
   // Save to localStorage helper
@@ -204,11 +259,12 @@ export default function StokPage() {
     setStocks(newList);
     if (typeof window !== 'undefined') {
       localStorage.setItem('mediagnotek_stocks_data', JSON.stringify(newList));
+      window.dispatchEvent(new Event('mediagnotek_data_updated'));
     }
   };
 
-  // Periksa status kadaluwarsa & stok (basis waktu hari ini)
-  const now = new Date('2026-10-27');
+  // Periksa status kadaluwarsa & stok (basis waktu real-time hari ini, tanpa hardcode)
+  const now = new Date();
 
   const checkStatus = (item: MedicineStock) => {
     const exp = new Date(item.expired_date);

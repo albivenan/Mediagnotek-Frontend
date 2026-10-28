@@ -58,7 +58,7 @@ export default function LoginPage() {
   const [provinsi, setProvinsi] = useState('');
   const [companyError, setCompanyError] = useState('');
 
-  // Save session dynamically based on user's real input
+  // Save session dynamically based on user's real input while preserving existing profile details
   const persistSession = (user: {
     name: string;
     email: string;
@@ -66,36 +66,48 @@ export default function LoginPage() {
     facilityName: string;
     avatar?: string;
   }) => {
-    const session = {
-      id: `USR-${Date.now().toString().slice(-4)}`,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      facility_id: 1,
-      facility_name: user.facilityName,
-      avatar: user.avatar || null,
-      login_time: new Date().toISOString(),
-      is_shared_demo: true
-    };
-
     if (typeof window !== 'undefined') {
+      let existingFaskes: any = null;
+      try {
+        const saved = localStorage.getItem('mediagnotek_faskes_session');
+        if (saved) existingFaskes = JSON.parse(saved);
+      } catch {}
+
+      const prevFp = existingFaskes?.faskes_profile || {};
+      const resolvedFacilityName = user.facilityName || prevFp.nama_faskes || '';
+      const resolvedPenanggungJawab = user.name || prevFp.penanggung_jawab || '';
+
+      const session = {
+        id: `USR-${Date.now().toString().slice(-4)}`,
+        name: resolvedPenanggungJawab,
+        email: user.email,
+        role: user.role,
+        facility_id: 1,
+        facility_name: resolvedFacilityName,
+        avatar: user.avatar || prevFp.foto_faskes_url || null,
+        login_time: new Date().toISOString(),
+        is_shared_demo: true
+      };
+
       localStorage.setItem('mediagnotek_user_session', JSON.stringify(session));
       localStorage.setItem('mediagnotek_faskes_session', JSON.stringify({
-        id: `FSK-${Date.now().toString().slice(-4)}`,
-        email: user.email,
+        id: existingFaskes?.id || `FSK-${Date.now().toString().slice(-4)}`,
+        email: user.email || existingFaskes?.email || '',
         role: 'FASKES_ADMIN',
         faskes_profile: {
-          nama_faskes: user.facilityName,
-          tipe_faskes: tipeFaskes,
-          nomor_izin_operasional: nomorIzin,
-          penanggung_jawab: user.name,
-          nomor_telepon: telepon,
-          alamat_lengkap: alamatLengkap,
-          kota: kota,
-          provinsi: provinsi
+          nama_faskes: resolvedFacilityName,
+          tipe_faskes: tipeFaskes || prevFp.tipe_faskes || 'Apotek',
+          nomor_izin_operasional: nomorIzin || prevFp.nomor_izin_operasional || '',
+          penanggung_jawab: resolvedPenanggungJawab,
+          nomor_telepon: telepon || prevFp.nomor_telepon || '',
+          foto_faskes_url: user.avatar || prevFp.foto_faskes_url || '',
+          alamat_lengkap: alamatLengkap || prevFp.alamat_lengkap || '',
+          kota: kota || prevFp.kota || '',
+          provinsi: provinsi || prevFp.provinsi || ''
         },
-        created_at: new Date().toISOString()
+        created_at: existingFaskes?.created_at || new Date().toISOString()
       }));
+      window.dispatchEvent(new Event('mediagnotek_session_updated'));
     }
   };
 
@@ -113,6 +125,17 @@ export default function LoginPage() {
     // Call backend API
     const apiRes = await apiLogin(email.trim().toLowerCase(), password);
 
+    let savedFacilityName = '';
+    if (typeof window !== 'undefined') {
+      try {
+        const rawFaskes = localStorage.getItem('mediagnotek_faskes_session');
+        if (rawFaskes) {
+          const parsed = JSON.parse(rawFaskes);
+          savedFacilityName = parsed?.faskes_profile?.nama_faskes || '';
+        }
+      } catch {}
+    }
+
     if (apiRes && apiRes.success) {
       if (apiRes.access_token && typeof window !== 'undefined') {
         localStorage.setItem('mediagnotek_auth_token', apiRes.access_token);
@@ -122,7 +145,7 @@ export default function LoginPage() {
         name: apiRes.user?.nama_lengkap || email.split('@')[0],
         email: apiRes.user?.email || email,
         role: apiRes.user?.role || 'ADMIN',
-        facilityName: apiRes.user?.facility_name || 'Fasilitas Kesehatan'
+        facilityName: apiRes.user?.facility_name || savedFacilityName
       });
 
       setIsLoading(false);
@@ -137,7 +160,7 @@ export default function LoginPage() {
         name: email.split('@')[0],
         email: email.trim().toLowerCase(),
         role: 'ADMIN',
-        facilityName: 'Apotek Mandiri Medika'
+        facilityName: savedFacilityName
       });
       setIsLoading(false);
       router.push('/dashboard');

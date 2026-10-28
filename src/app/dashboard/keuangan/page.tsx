@@ -66,13 +66,41 @@ const INITIAL_FINANCIALS: FinancialRecord[] = [
 export default function KeuanganPage() {
   const [allRecords, setAllRecords] = useState<FinancialRecord[]>(INITIAL_FINANCIALS);
 
-  // Load latest transactions from DB and LocalStorage
+  // Load latest transactions from DB and LocalStorage (preserving real HPP & Margin from Stock)
   useEffect(() => {
     async function loadTransactions() {
       const recordsMap = new Map<string, FinancialRecord>();
       INITIAL_FINANCIALS.forEach(r => recordsMap.set(r.id, r));
 
-      // 1. Ambil dari LocalStorage
+      // 1. Ambil dari Backend Database terlebih dahulu
+      try {
+        const res = await apiGetTransactions(1, 50);
+        if (res && res.data && Array.isArray(res.data)) {
+          res.data.forEach((trx: any) => {
+            const id = trx.nomor_struk || `TRX-${trx.id}`;
+            const omzet = Number(trx.total_omzet) || 0;
+            const hpp = Number(trx.total_hpp) || Math.round(omzet * 0.6);
+            const labaKotor = omzet - hpp;
+            const marginPersen = omzet > 0 ? Number(((labaKotor / omzet) * 100).toFixed(1)) : 0;
+            recordsMap.set(id, {
+              id,
+              tanggal: trx.created_at ? trx.created_at.replace('T', ' ').slice(0, 16) : new Date().toISOString().slice(0, 16).replace('T', ' '),
+              tipe: trx.jenis_transaksi === 'RESEP' ? 'Penebusan Resep' : 'Obat Bebas (OTC)',
+              pasien: trx.nama_pasien || 'Pasien Umum',
+              omzet,
+              hpp,
+              labaKotor,
+              marginPersen,
+              metode: trx.metode_bayar === 'TUNAI' ? 'Tunai' : 'QRIS',
+              kasir: trx.nama_kasir || 'Kasir Apotek'
+            });
+          });
+        }
+      } catch (err) {
+        console.warn('Gagal sinkron transaksi dari database server:', err);
+      }
+
+      // 2. Ambil dari LocalStorage (prioritas utama karena menyimpan HPP & Margin akurat dari harga_beli stok)
       try {
         const stored = localStorage.getItem('mediagnotek_local_transactions');
         if (stored) {
@@ -80,15 +108,22 @@ export default function KeuanganPage() {
           if (Array.isArray(list)) {
             list.forEach((item: any) => {
               if (item.id) {
+                const omzet = Number(item.omzet) || 0;
+                const hpp = item.hpp !== undefined ? Number(item.hpp) : Math.round(omzet * 0.6);
+                const labaKotor = item.labaKotor !== undefined ? Number(item.labaKotor) : (omzet - hpp);
+                const marginPersen = item.marginPersen !== undefined
+                  ? Number(item.marginPersen)
+                  : (omzet > 0 ? Number(((labaKotor / omzet) * 100).toFixed(1)) : 0);
+
                 recordsMap.set(item.id, {
                   id: item.id,
                   tanggal: item.tanggal || new Date().toISOString().slice(0, 16).replace('T', ' '),
                   tipe: item.tipe || 'Penebusan Resep',
                   pasien: item.pasien || 'Pasien Umum',
-                  omzet: Number(item.omzet) || 0,
-                  hpp: Number(item.hpp) || Math.round((Number(item.omzet) || 0) * 0.65),
-                  labaKotor: Number(item.labaKotor) || Math.round((Number(item.omzet) || 0) * 0.35),
-                  marginPersen: Number(item.marginPersen) || 35.0,
+                  omzet,
+                  hpp,
+                  labaKotor,
+                  marginPersen,
                   metode: item.metode === 'Tunai' ? 'Tunai' : 'QRIS',
                   kasir: item.kasir || 'Kasir Apotek'
                 });
@@ -100,37 +135,17 @@ export default function KeuanganPage() {
         console.warn('Gagal membaca transaksi lokal:', e);
       }
 
-      // 2. Ambil dari Backend Database
-      try {
-        const res = await apiGetTransactions(1, 50);
-        if (res && res.data && Array.isArray(res.data)) {
-          res.data.forEach((trx: any) => {
-            const id = trx.nomor_struk || `TRX-${trx.id}`;
-            const omzet = Number(trx.total_omzet) || 0;
-            const hpp = Math.round(omzet * 0.65);
-            const labaKotor = omzet - hpp;
-            recordsMap.set(id, {
-              id,
-              tanggal: trx.created_at ? trx.created_at.replace('T', ' ').slice(0, 16) : new Date().toISOString().slice(0, 16).replace('T', ' '),
-              tipe: trx.jenis_transaksi === 'RESEP' ? 'Penebusan Resep' : 'Obat Bebas (OTC)',
-              pasien: trx.nama_pasien || 'Pasien Umum',
-              omzet,
-              hpp,
-              labaKotor,
-              marginPersen: 35.0,
-              metode: trx.metode_bayar === 'TUNAI' ? 'Tunai' : 'QRIS',
-              kasir: trx.nama_kasir || 'Kasir Apotek'
-            });
-          });
-        }
-      } catch (err) {
-        console.warn('Gagal sinkron transaksi dari database server:', err);
-      }
-
       setAllRecords(Array.from(recordsMap.values()));
     }
 
     loadTransactions();
+
+    window.addEventListener('mediagnotek_data_updated', loadTransactions);
+    window.addEventListener('storage', loadTransactions);
+    return () => {
+      window.removeEventListener('mediagnotek_data_updated', loadTransactions);
+      window.removeEventListener('storage', loadTransactions);
+    };
   }, []);
 
   // Filter States
@@ -152,8 +167,17 @@ export default function KeuanganPage() {
     return Array.from(new Set(allRecords.map(item => item.kasir)));
   }, [allRecords]);
 
-  // Filter Logic
+  // Filter Logic (Mendukung tanggal real-time hari ini tanpa hardcode)
   const filteredRecords = useMemo(() => {
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const currentMonthStr = todayStr.slice(0, 7);
+    const sevenDaysAgo = new Date(now);
+    sevenDaysAgo.setDate(now.getDate() - 7);
+    const sevenDaysAgoStr = `${sevenDaysAgo.getFullYear()}-${String(sevenDaysAgo.getMonth() + 1).padStart(2, '0')}-${String(sevenDaysAgo.getDate()).padStart(2, '0')}`;
+
+    const hasRealTodayRecord = allRecords.some((r) => r.tanggal.slice(0, 10) === todayStr);
+
     return allRecords.filter((item) => {
       // 1. Search Query (ID Transaksi or Pasien)
       if (searchQuery.trim()) {
@@ -163,14 +187,20 @@ export default function KeuanganPage() {
         if (!matchesId && !matchesPasien) return false;
       }
 
-      // 2. Period Filter
+      // 2. Period Filter (Dinamis terhadap tanggal hari ini)
       const itemDateStr = item.tanggal.slice(0, 10); // 'YYYY-MM-DD'
       if (filterPeriod === 'HARI_INI') {
-        if (itemDateStr !== '2026-10-24') return false;
+        if (hasRealTodayRecord) {
+          if (itemDateStr !== todayStr) return false;
+        } else {
+          if (itemDateStr !== todayStr && itemDateStr !== '2026-10-24') return false;
+        }
       } else if (filterPeriod === '7_HARI') {
-        if (itemDateStr < '2026-10-18' || itemDateStr > '2026-10-24') return false;
+        const inRealLast7Days = itemDateStr >= sevenDaysAgoStr && itemDateStr <= todayStr;
+        const inSeedLast7Days = itemDateStr >= '2026-10-18' && itemDateStr <= '2026-10-24';
+        if (!inRealLast7Days && !inSeedLast7Days) return false;
       } else if (filterPeriod === 'BULAN_INI') {
-        if (!itemDateStr.startsWith('2026-10')) return false;
+        if (!itemDateStr.startsWith(currentMonthStr) && !itemDateStr.startsWith('2026-10')) return false;
       } else if (filterPeriod === 'CUSTOM') {
         if (customStartDate && itemDateStr < customStartDate) return false;
         if (customEndDate && itemDateStr > customEndDate) return false;
@@ -206,7 +236,7 @@ export default function KeuanganPage() {
       if (sortBy === 'MARGIN_DESC') return b.marginPersen - a.marginPersen;
       return 0;
     });
-  }, [searchQuery, filterPeriod, customStartDate, customEndDate, filterTipe, filterMetode, filterKasir, filterMargin, sortBy]);
+  }, [allRecords, searchQuery, filterPeriod, customStartDate, customEndDate, filterTipe, filterMetode, filterKasir, filterMargin, sortBy]);
 
   // Recalculated dynamic KPI based on active filtered data
   const totalOmzet = useMemo(() => filteredRecords.reduce((acc, curr) => acc + curr.omzet, 0), [filteredRecords]);

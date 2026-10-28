@@ -22,46 +22,31 @@ import {
   ExternalLink,
   RotateCcw
 } from 'lucide-react';
-import { apiUpdateUserProfile, apiGetCurrentUser } from '@/lib/api';
+import { apiUpdateUserProfile } from '@/lib/api';
+import { getFaskesProfileSync, loadFaskesProfileAsync, UnifiedFaskesProfile } from '@/lib/pharmacy-store';
 
-interface FaskesSessionData {
-  id: string;
-  email: string;
-  role: string;
-  faskes_profile: {
-    nama_faskes: string;
-    tipe_faskes: 'Apotek' | 'Klinik' | 'Rumah Sakit';
-    nomor_izin_operasional: string;
-    penanggung_jawab: string;
-    nomor_telepon: string;
-    foto_faskes_url: string;
-    alamat_lengkap: string;
-    kota: string;
-    provinsi: string;
-  };
-  created_at: string;
-}
+type FaskesSessionData = UnifiedFaskesProfile;
 
-const DEFAULT_PROFILE: FaskesSessionData = {
-  id: 'FSK-2026-089',
-  email: 'admin@apoteksehat.com',
+const EMPTY_PROFILE: FaskesSessionData = {
+  id: 'FSK-001',
+  email: '',
   role: 'FASKES_ADMIN',
   faskes_profile: {
-    nama_faskes: 'Apotek Sehat Farma',
+    nama_faskes: '',
     tipe_faskes: 'Apotek',
-    nomor_izin_operasional: 'SIA-3273/2026/089-DINKES',
-    penanggung_jawab: 'apt. Sarah Safitri, S.Farm',
-    nomor_telepon: '081234567890',
-    foto_faskes_url: 'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=500&auto=format&fit=crop&q=80',
-    alamat_lengkap: 'Jl. Merdeka No. 45, RT 02 / RW 05, Kel. Babakan Ciamis',
-    kota: 'Bandung',
-    provinsi: 'Jawa Barat'
+    nomor_izin_operasional: '',
+    penanggung_jawab: '',
+    nomor_telepon: '',
+    foto_faskes_url: '',
+    alamat_lengkap: '',
+    kota: '',
+    provinsi: ''
   },
-  created_at: '2026-01-15T08:30:00.000Z'
+  created_at: new Date().toISOString()
 };
 
 export default function ProfilePage() {
-  const [profileData, setProfileData] = useState<FaskesSessionData>(DEFAULT_PROFILE);
+  const [profileData, setProfileData] = useState<FaskesSessionData>(EMPTY_PROFILE);
   const [isEditing, setIsEditing] = useState(false);
   const [saveToast, setSaveToast] = useState(false);
 
@@ -77,70 +62,35 @@ export default function ProfilePage() {
   const [provinsi, setProvinsi] = useState('');
   const [fotoPreview, setFotoPreview] = useState<string | null>(null);
 
-  // Load profile on mount
+  // Load profile on mount and listen to session updates
   useEffect(() => {
-    const loadProfileData = async () => {
+    const syncProfile = async () => {
       if (typeof window === 'undefined') return;
+      const syncNow = getFaskesProfileSync();
+      setProfileData(syncNow);
+      fillFormFromProfile(syncNow);
 
-      let loadedProfile: FaskesSessionData | null = null;
-      const stored = localStorage.getItem('mediagnotek_faskes_session');
-      if (stored) {
-        try {
-          loadedProfile = JSON.parse(stored);
-        } catch (e) {
-          console.error('Failed to parse faskes session', e);
-        }
-      }
-
-      const userStored = localStorage.getItem('mediagnotek_user_session');
-      let userObj: any = null;
-      if (userStored) {
-        try {
-          userObj = JSON.parse(userStored);
-        } catch (_) {}
-      }
-
-      if (!loadedProfile && !userObj) {
-        try {
-          const apiUser = await apiGetCurrentUser();
-          if (apiUser) {
-            loadedProfile = {
-              id: `FSK-${apiUser.facility_id || '001'}`,
-              email: apiUser.email,
-              role: apiUser.role,
-              faskes_profile: {
-                nama_faskes: apiUser.facility_name || 'Apotek Sehat Farma',
-                tipe_faskes: 'Apotek',
-                nomor_izin_operasional: 'SIA-3273/2026/089-DINKES',
-                penanggung_jawab: apiUser.nama_lengkap,
-                nomor_telepon: '081234567890',
-                foto_faskes_url: apiUser.avatar_url || '',
-                alamat_lengkap: 'Jl. Merdeka No. 45, Bandung',
-                kota: 'Bandung',
-                provinsi: 'Jawa Barat'
-              },
-              created_at: new Date().toISOString()
-            };
-          }
-        } catch (_) {}
-      }
-
-      const finalProfile = loadedProfile || { ...DEFAULT_PROFILE };
-      if (userObj?.name && finalProfile.faskes_profile) {
-        finalProfile.faskes_profile.penanggung_jawab = userObj.name;
-      }
-      if (userObj?.email) {
-        finalProfile.email = userObj.email;
-      }
-      if (!finalProfile.created_at || isNaN(new Date(finalProfile.created_at).getTime())) {
-        finalProfile.created_at = userObj?.login_time || DEFAULT_PROFILE.created_at || new Date().toISOString();
-      }
-
+      const finalProfile = await loadFaskesProfileAsync();
       setProfileData(finalProfile);
       fillFormFromProfile(finalProfile);
+
+      // Pastikan tersimpan di localStorage agar halaman Kasir selalu membaca data profil yang persis sama
+      localStorage.setItem('mediagnotek_faskes_session', JSON.stringify(finalProfile));
     };
 
-    loadProfileData();
+    syncProfile();
+
+    const handleSessionChange = () => {
+      const updated = getFaskesProfileSync();
+      setProfileData(updated);
+      fillFormFromProfile(updated);
+    };
+    window.addEventListener('mediagnotek_session_updated', handleSessionChange);
+    window.addEventListener('storage', handleSessionChange);
+    return () => {
+      window.removeEventListener('mediagnotek_session_updated', handleSessionChange);
+      window.removeEventListener('storage', handleSessionChange);
+    };
   }, []);
 
   const fillFormFromProfile = (data: FaskesSessionData) => {
@@ -191,16 +141,16 @@ export default function ProfilePage() {
     if (typeof window !== 'undefined') {
       localStorage.setItem('mediagnotek_faskes_session', JSON.stringify(updated));
 
-      // Also sync user session so dashboard sidebar immediately reflects new name/avatar
+      // Also sync user session so dashboard sidebar and Kasir immediately reflect new name/facility/avatar
       try {
         const savedUser = localStorage.getItem('mediagnotek_user_session');
         const userObj = savedUser ? JSON.parse(savedUser) : {};
         const updatedUser = {
           ...userObj,
-          name: penanggungJawab || userObj.name || 'Pengelola Farmasi',
-          email: email || userObj.email || 'apoteker@faskes.id',
+          name: penanggungJawab || userObj.name || '',
+          email: email || userObj.email || '',
           avatar: fotoPreview || userObj.avatar || null,
-          facility_name: namaFaskes || userObj.facility_name
+          facility_name: namaFaskes || userObj.facility_name || ''
         };
         localStorage.setItem('mediagnotek_user_session', JSON.stringify(updatedUser));
         window.dispatchEvent(new Event('mediagnotek_session_updated'));
@@ -226,17 +176,11 @@ export default function ProfilePage() {
     setTimeout(() => setSaveToast(false), 3500);
   };
 
-  const handleResetToDefault = () => {
-    if (confirm('Kembalikan profil ke data bawaan simulasi?')) {
-      setProfileData(DEFAULT_PROFILE);
-      fillFormFromProfile(DEFAULT_PROFILE);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('mediagnotek_faskes_session', JSON.stringify(DEFAULT_PROFILE));
-        localStorage.removeItem('mediagnotek_user_session');
-        window.dispatchEvent(new Event('mediagnotek_session_updated'));
-      }
-      setIsEditing(false);
-    }
+  const handleResetToDefault = async () => {
+    const fresh = await loadFaskesProfileAsync();
+    setProfileData(fresh);
+    fillFormFromProfile(fresh);
+    setIsEditing(false);
   };
 
   return (

@@ -98,11 +98,8 @@ export default function PasienPage() {
   const [patients, setPatients] = useState<Patient[]>(INITIAL_PATIENTS);
   const [search, setSearch] = useState('');
   
-  // Default filter bulan ke bulan saat ini (YYYY-MM, misal: '2026-10')
-  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  });
+  // Default filter bulan ke Semua Bulan ('') agar seluruh pasien langsung terlihat
+  const [selectedMonth, setSelectedMonth] = useState<string>('');
 
   const [currentView, setCurrentView] = useState<'list' | 'detail' | 'edit' | 'add'>('list');
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
@@ -134,7 +131,7 @@ export default function PasienPage() {
     keterangan_pembelian: ''
   });
 
-  // Load from backend database on mount with localStorage fallback
+  // Load from backend database on mount with localStorage fallback & real-time sync
   useEffect(() => {
     const fetchPatientsData = async () => {
       try {
@@ -157,8 +154,10 @@ export default function PasienPage() {
             const parsed = JSON.parse(saved);
             if (Array.isArray(parsed) && parsed.length > 0) {
               setPatients(parsed);
+              return;
             }
           }
+          localStorage.setItem('mediagnotek_patients_data', JSON.stringify(INITIAL_PATIENTS));
         } catch (e) {
           console.warn('Gagal membaca data pasien dari storage:', e);
         }
@@ -166,6 +165,26 @@ export default function PasienPage() {
     };
 
     fetchPatientsData();
+
+    const handleSync = () => {
+      if (typeof window === 'undefined') return;
+      try {
+        const saved = localStorage.getItem('mediagnotek_patients_data');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setPatients(parsed);
+          }
+        }
+      } catch {}
+    };
+
+    window.addEventListener('mediagnotek_data_updated', handleSync);
+    window.addEventListener('storage', handleSync);
+    return () => {
+      window.removeEventListener('mediagnotek_data_updated', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
   }, []);
 
   // Save to localStorage helper
@@ -173,6 +192,7 @@ export default function PasienPage() {
     setPatients(newList);
     if (typeof window !== 'undefined') {
       localStorage.setItem('mediagnotek_patients_data', JSON.stringify(newList));
+      window.dispatchEvent(new Event('mediagnotek_data_updated'));
     }
   };
 
