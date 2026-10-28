@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Wallet,
@@ -27,6 +27,7 @@ import {
   User,
   ShieldCheck
 } from 'lucide-react';
+import { apiGetTransactions } from '@/lib/api';
 
 interface FinancialRecord {
   id: string;
@@ -63,6 +64,75 @@ const INITIAL_FINANCIALS: FinancialRecord[] = [
 ];
 
 export default function KeuanganPage() {
+  const [allRecords, setAllRecords] = useState<FinancialRecord[]>(INITIAL_FINANCIALS);
+
+  // Load latest transactions from DB and LocalStorage
+  useEffect(() => {
+    async function loadTransactions() {
+      const recordsMap = new Map<string, FinancialRecord>();
+      INITIAL_FINANCIALS.forEach(r => recordsMap.set(r.id, r));
+
+      // 1. Ambil dari LocalStorage
+      try {
+        const stored = localStorage.getItem('mediagnotek_local_transactions');
+        if (stored) {
+          const list = JSON.parse(stored);
+          if (Array.isArray(list)) {
+            list.forEach((item: any) => {
+              if (item.id) {
+                recordsMap.set(item.id, {
+                  id: item.id,
+                  tanggal: item.tanggal || new Date().toISOString().slice(0, 16).replace('T', ' '),
+                  tipe: item.tipe || 'Penebusan Resep',
+                  pasien: item.pasien || 'Pasien Umum',
+                  omzet: Number(item.omzet) || 0,
+                  hpp: Number(item.hpp) || Math.round((Number(item.omzet) || 0) * 0.65),
+                  labaKotor: Number(item.labaKotor) || Math.round((Number(item.omzet) || 0) * 0.35),
+                  marginPersen: Number(item.marginPersen) || 35.0,
+                  metode: item.metode === 'Tunai' ? 'Tunai' : 'QRIS',
+                  kasir: item.kasir || 'Kasir Apotek'
+                });
+              }
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('Gagal membaca transaksi lokal:', e);
+      }
+
+      // 2. Ambil dari Backend Database
+      try {
+        const res = await apiGetTransactions(1, 50);
+        if (res && res.data && Array.isArray(res.data)) {
+          res.data.forEach((trx: any) => {
+            const id = trx.nomor_struk || `TRX-${trx.id}`;
+            const omzet = Number(trx.total_omzet) || 0;
+            const hpp = Math.round(omzet * 0.65);
+            const labaKotor = omzet - hpp;
+            recordsMap.set(id, {
+              id,
+              tanggal: trx.created_at ? trx.created_at.replace('T', ' ').slice(0, 16) : new Date().toISOString().slice(0, 16).replace('T', ' '),
+              tipe: trx.jenis_transaksi === 'RESEP' ? 'Penebusan Resep' : 'Obat Bebas (OTC)',
+              pasien: trx.nama_pasien || 'Pasien Umum',
+              omzet,
+              hpp,
+              labaKotor,
+              marginPersen: 35.0,
+              metode: trx.metode_bayar === 'TUNAI' ? 'Tunai' : 'QRIS',
+              kasir: trx.nama_kasir || 'Kasir Apotek'
+            });
+          });
+        }
+      } catch (err) {
+        console.warn('Gagal sinkron transaksi dari database server:', err);
+      }
+
+      setAllRecords(Array.from(recordsMap.values()));
+    }
+
+    loadTransactions();
+  }, []);
+
   // Filter States
   const [searchQuery, setSearchQuery] = useState('');
   const [filterPeriod, setFilterPeriod] = useState<'SEMUA' | 'HARI_INI' | '7_HARI' | 'BULAN_INI' | 'CUSTOM'>('SEMUA');
@@ -79,12 +149,12 @@ export default function KeuanganPage() {
 
   // Available unique cashiers for filter dropdown
   const uniqueCashiers = useMemo(() => {
-    return Array.from(new Set(INITIAL_FINANCIALS.map(item => item.kasir)));
-  }, []);
+    return Array.from(new Set(allRecords.map(item => item.kasir)));
+  }, [allRecords]);
 
   // Filter Logic
   const filteredRecords = useMemo(() => {
-    return INITIAL_FINANCIALS.filter((item) => {
+    return allRecords.filter((item) => {
       // 1. Search Query (ID Transaksi or Pasien)
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
@@ -176,51 +246,142 @@ export default function KeuanganPage() {
     setSortBy('DATE_DESC');
   };
 
-  // Export to CSV Function
-  const handleExportCSV = () => {
+  // Export to Excel (.xls) Spreadsheet Function (bukan CSV, terformat kolom murni Excel)
+  const handleExportExcel = () => {
     if (filteredRecords.length === 0) {
-      alert('Tidak ada data yang sesuai filter untuk diekspor.');
+      alert('Tidak ada data yang sesuai kriteria filter untuk diekspor.');
       return;
     }
-    const headers = [
-      'No',
-      'ID Transaksi',
-      'Tanggal & Waktu',
-      'Tipe Transaksi',
-      'Nama Pasien',
-      'Metode Bayar',
-      'Omzet (Rp)',
-      'Modal HPP (Rp)',
-      'Laba Kotor (Rp)',
-      'Margin (%)',
-      'Kasir / Apoteker'
-    ];
-    const rows = filteredRecords.map((r, i) => [
-      i + 1,
-      r.id,
-      r.tanggal,
-      r.tipe,
-      r.pasien,
-      r.metode,
-      r.omzet,
-      r.hpp,
-      r.labaKotor,
-      `${r.marginPersen}%`,
-      r.kasir
-    ]);
 
-    const csvContent = '\uFEFF' + [headers, ...rows]
-      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-      .join('\n');
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const filename = `Laporan_Keuangan_Apotek_Mediagnotek_${todayStr}.xls`;
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    // Buat format XML/HTML Spreadsheet yang langsung dikenali Excel sebagai spreadsheet asli berkolom & ber-style
+    const excelContent = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" 
+            xmlns:x="urn:schemas-microsoft-com:office:excel" 
+            xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <!--[if gte mso 9]>
+        <xml>
+          <x:ExcelWorkbook>
+            <x:ExcelWorksheets>
+              <x:ExcelWorksheet>
+                <x:Name>Laporan Keuangan</x:Name>
+                <x:WorksheetOptions>
+                  <x:DisplayGridlines/>
+                </x:WorksheetOptions>
+              </x:ExcelWorksheet>
+            </x:ExcelWorksheets>
+          </x:ExcelWorkbook>
+        </xml>
+        <![endif]-->
+        <style>
+          th {
+            background-color: #FEF3D6;
+            color: #18181B;
+            font-weight: bold;
+            border: 1px solid #1E1E1E;
+            padding: 8px;
+            text-align: center;
+          }
+          td {
+            border: 0.5px solid #CBD5E1;
+            padding: 6px 8px;
+            mso-number-format: "\\@"; /* Default text */
+          }
+          .num-cell {
+            mso-number-format: "#\\,##0";
+            text-align: right;
+          }
+          .center-cell {
+            text-align: center;
+          }
+          .title-header {
+            font-size: 16pt;
+            font-weight: bold;
+            color: #0F172A;
+            text-align: center;
+          }
+          .sub-header {
+            font-size: 10pt;
+            color: #475569;
+            text-align: center;
+          }
+          .total-row {
+            background-color: #F1F5F9;
+            font-weight: bold;
+            border-top: 2px solid #1E1E1E;
+          }
+        </style>
+      </head>
+      <body>
+        <table>
+          <tr>
+            <td colspan="11" class="title-header">LAPORAN KEUANGAN & PROFIT APOTEK MEDIAGNOTEK</td>
+          </tr>
+          <tr>
+            <td colspan="11" class="sub-header">Tanggal Ekspor: ${new Date().toLocaleString('id-ID')} | Total Transaksi: ${filteredRecords.length} Nota</td>
+          </tr>
+          <tr><td colspan="11"></td></tr>
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>ID Transaksi</th>
+              <th>Tanggal & Waktu</th>
+              <th>Tipe Transaksi</th>
+              <th>Nama Pasien</th>
+              <th>Metode Bayar</th>
+              <th>Omzet Bruto (Rp)</th>
+              <th>Modal HPP (Rp)</th>
+              <th>Laba Kotor (Rp)</th>
+              <th>Margin Laba (%)</th>
+              <th>Kasir / Petugas</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filteredRecords.map((r, i) => `
+              <tr>
+                <td class="center-cell">${i + 1}</td>
+                <td class="center-cell" style="font-weight:bold;">${r.id}</td>
+                <td>${r.tanggal}</td>
+                <td>${r.tipe}</td>
+                <td>${r.pasien}</td>
+                <td class="center-cell">${r.metode}</td>
+                <td class="num-cell">${r.omzet}</td>
+                <td class="num-cell">${r.hpp}</td>
+                <td class="num-cell" style="color:#15803D; font-weight:bold;">${r.labaKotor}</td>
+                <td class="center-cell">${r.marginPersen}%</td>
+                <td>${r.kasir}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+          <tfoot>
+            <tr class="total-row">
+              <td colspan="6" style="text-align:right; font-weight:bold;">TOTAL KESELURUHAN:</td>
+              <td class="num-cell" style="font-weight:bold;">${totalOmzet}</td>
+              <td class="num-cell" style="font-weight:bold;">${totalHPP}</td>
+              <td class="num-cell" style="font-weight:bold; color:#15803D;">${totalLabaKotor}</td>
+              <td class="center-cell" style="font-weight:bold;">${avgMargin}%</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </body>
+      </html>
+    `;
+
+    // Unduh sebagai file spreadsheet Excel murni (.xls)
+    const blob = new Blob([excelContent], { type: 'application/vnd.ms-excel;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `laporan_keuangan_mediagnotek_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', filename);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -238,20 +399,26 @@ export default function KeuanganPage() {
         </div>
 
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          {/* Tombol Ekspor Excel Utama (Bukan CSV Koma) */}
           <button
-            onClick={handleExportCSV}
+            onClick={handleExportExcel}
             className="neo-btn-primary"
             style={{
-              padding: '9px 16px',
-              fontSize: '0.84rem',
+              padding: '9px 18px',
+              fontSize: '0.86rem',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '7px'
+              gap: '8px',
+              backgroundColor: '#DCFCE7',
+              borderColor: '#15803D',
+              color: '#15803D',
+              fontWeight: 900,
+              boxShadow: '2.5px 2.5px 0px #15803D'
             }}
-            title="Unduh data sesuai kriteria filter aktif (.csv)"
+            title="Unduh data dalam format Spreadsheet Microsoft Excel (.xls) berkolom rapi"
           >
-            <Download size={15} strokeWidth={2.2} />
-            <span>Ekspor CSV ({filteredRecords.length})</span>
+            <FileSpreadsheet size={17} strokeWidth={2.3} />
+            <span>Ekspor Excel (.xls)</span>
           </button>
         </div>
       </div>
@@ -537,7 +704,7 @@ export default function KeuanganPage() {
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '10px', paddingTop: '4px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '0.78rem', color: '#6B7280', fontWeight: 700 }}>
-              Menampilkan <strong>{filteredRecords.length}</strong> dari {INITIAL_FINANCIALS.length} transaksi:
+              Menampilkan <strong>{filteredRecords.length}</strong> dari {allRecords.length} transaksi:
             </span>
 
             {/* Chips */}

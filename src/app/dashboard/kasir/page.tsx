@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ShoppingCart,
   User,
@@ -15,9 +15,10 @@ import {
   Search,
   QrCode,
   Banknote,
-  Coins
+  Coins,
+  X
 } from 'lucide-react';
-import { Patient, PrescriptionItem } from '@/lib/api';
+import { Patient, PrescriptionItem, apiCreateTransaction } from '@/lib/api';
 
 const MOCK_PATIENTS: Patient[] = [
   {
@@ -78,6 +79,23 @@ export default function KasirPage() {
   const [nonResepNamaPasien, setNonResepNamaPasien] = useState('unknown');
   const [tipeTransaksi, setTipeTransaksi] = useState<'Resep' | 'Non-Resep'>('Resep');
   const [dokterPerujuk, setDokterPerujuk] = useState('dr. H. Susanto, Sp.PD');
+  const [namaKasir, setNamaKasir] = useState<string>('Apoteker Jaga');
+  const [showPrintModal, setShowPrintModal] = useState<boolean>(false);
+  const [printData, setPrintData] = useState<any>(null);
+
+  // Ambil nama petugas/kasir dari sesi login saat ini
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedUser = localStorage.getItem('mediagnotek_user_session');
+        if (savedUser) {
+          const u = JSON.parse(savedUser);
+          if (u?.name) setNamaKasir(u.name);
+        }
+      } catch {}
+    }
+  }, []);
+
   const [cartItems, setCartItems] = useState<PrescriptionItem[]>([
     { drug_id: 3, drug_nama: 'Metformin HCl 500mg', jumlah: 30, satuan: 'Tablet / Pcs', signa: '2 x 1 tablet sesudah makan', harga: 6500 },
     { drug_id: 4, drug_nama: 'Amlodipine Besylate 10mg', jumlah: 30, satuan: 'Tablet / Pcs', signa: '1 x 1 tablet malam hari', harga: 12500 }
@@ -189,9 +207,14 @@ export default function KasirPage() {
   const kembalian = nominalTunai >= grandTotal ? nominalTunai - grandTotal : 0;
   const isTunaiKurang = paymentMethod === 'TUNAI' && (tunaiBayar === '' || nominalTunai < grandTotal);
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (cartItems.length === 0) {
       setPaymentError('Keranjang belanja masih kosong.');
+      return;
+    }
+
+    if (!namaKasir.trim()) {
+      setPaymentError('Nama kasir / petugas wajib diisi sebelum mencetak nota.');
       return;
     }
 
@@ -201,12 +224,93 @@ export default function KasirPage() {
     }
 
     setPaymentError(null);
+
+    // Siapkan data struk resmi untuk dicetak
+    const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`;
+    const now = new Date();
+    const transactionDate = new Intl.DateTimeFormat('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(now);
+
+    const receiptPayload = {
+      invoiceNumber,
+      transactionDate,
+      namaKasir: namaKasir.trim(),
+      tipeTransaksi,
+      namaPasien: tipeTransaksi === 'Resep' ? (selectedPatient?.nama || 'Pasien Umum') : nonResepNamaPasien,
+      dokterPerujuk: tipeTransaksi === 'Resep' ? dokterPerujuk : null,
+      items: [...cartItems],
+      subtotal: subtotalObat,
+      tuslah,
+      grandTotal,
+      paymentMethod,
+      nominalTunai: paymentMethod === 'TUNAI' ? nominalTunai : grandTotal,
+      kembalian
+    };
+
+    setPrintData(receiptPayload);
+    setShowPrintModal(true);
     setSuccessNotif(true);
+
+    // 1. Simpan ke database PostgreSQL / Backend API
+    try {
+      const dbPayload = {
+        nomor_struk: invoiceNumber,
+        nama_kasir: namaKasir.trim(),
+        nama_pasien: receiptPayload.namaPasien,
+        dokter_perujuk: receiptPayload.dokterPerujuk,
+        jenis_transaksi: tipeTransaksi === 'Resep' ? 'RESEP' : 'BEBAS',
+        total_omzet: grandTotal,
+        metode_bayar: paymentMethod,
+        nominal_tunai: receiptPayload.nominalTunai,
+        nominal_kembalian: kembalian,
+        items: cartItems.map((c) => ({
+          drug_id: c.drug_id,
+          nama_obat: c.drug_nama,
+          jumlah: c.jumlah,
+          satuan: c.satuan || 'Tablet',
+          harga_jual_satuan: c.harga,
+          aturan_pakai: c.signa
+        }))
+      };
+
+      await apiCreateTransaction(dbPayload);
+    } catch (err) {
+      console.warn('Gagal sync transaksi ke database cloud:', err);
+    }
+
+    // 2. Simpan cadangan offline di localStorage untuk laporan keuangan lokal
+    try {
+      const stored = localStorage.getItem('mediagnotek_local_transactions');
+      const list = stored ? JSON.parse(stored) : [];
+      list.unshift({
+        id: invoiceNumber,
+        tanggal: now.toISOString().replace('T', ' ').slice(0, 16),
+        tipe: tipeTransaksi === 'Resep' ? 'Penebusan Resep' : 'Obat Bebas (OTC)',
+        pasien: receiptPayload.namaPasien,
+        omzet: grandTotal,
+        hpp: Math.round(grandTotal * 0.65),
+        labaKotor: Math.round(grandTotal * 0.35),
+        marginPersen: 35.0,
+        metode: paymentMethod === 'QRIS' ? 'QRIS' : 'Tunai',
+        kasir: namaKasir.trim()
+      });
+      localStorage.setItem('mediagnotek_local_transactions', JSON.stringify(list));
+    } catch {}
+
     setTimeout(() => {
       setSuccessNotif(false);
-      setCartItems([]);
-      setTunaiBayar('');
-    }, 2500);
+    }, 4000);
+  };
+
+  const handlePrintReceipt = () => {
+    if (typeof window !== 'undefined') {
+      window.print();
+    }
   };
 
 
@@ -937,6 +1041,47 @@ export default function KasirPage() {
                     </div>
                   )}
 
+                  {/* Input Nama Kasir / Petugas Jaga */}
+                  <div style={{
+                    marginTop: '16px',
+                    padding: '12px 14px',
+                    backgroundColor: '#FFFFFF',
+                    border: '1.6px solid #1E1E1E',
+                    borderRadius: '10px',
+                    boxShadow: '2px 2px 0px #1E1E1E'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <label style={{ fontSize: '0.84rem', fontWeight: 800, color: '#18181B', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <User size={15} color="#0284C7" />
+                        Nama Kasir / Petugas:
+                      </label>
+                      <span style={{ fontSize: '0.72rem', color: '#15803D', fontWeight: 700 }}>
+                        *Tercantum pada Struk
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      value={namaKasir}
+                      onChange={(e) => {
+                        setNamaKasir(e.target.value);
+                        setPaymentError(null);
+                      }}
+                      placeholder="Masukkan nama kasir (misal: Apt. Budi / Kasir 01)"
+                      className="form-input-neo"
+                      style={{
+                        width: '100%',
+                        fontSize: '0.90rem',
+                        fontWeight: 700,
+                        backgroundColor: '#FAF8F4',
+                        border: '1.4px solid #1E1E1E',
+                        borderRadius: '8px',
+                        padding: '8px 12px',
+                        boxSizing: 'border-box'
+                      }}
+                      required
+                    />
+                  </div>
+
                   {/* Tombol Eksekusi Pembayaran */}
                   <div style={{ display: 'flex', gap: '12px', marginTop: '18px' }}>
                     <button
@@ -971,6 +1116,259 @@ export default function KasirPage() {
           </div>
         </div>
       </div>
+
+      {/* MODAL STRUK RESMI CETAK NOTA KASIR */}
+      {showPrintModal && printData && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px'
+        }}>
+          <div className="neo-card" style={{
+            width: '100%',
+            maxWidth: '460px',
+            maxHeight: '92vh',
+            overflowY: 'auto',
+            backgroundColor: '#FFFFFF',
+            border: '2px solid #1E1E1E',
+            borderRadius: '16px',
+            boxShadow: '6px 8px 0px #1E1E1E',
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}>
+            {/* Header Modal */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1.5px solid #1E1E1E', paddingBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Receipt size={22} color="#0284C7" />
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: '#0F172A' }}>
+                  Struk Pembayaran Apotek
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPrintModal(false);
+                  setCartItems([]);
+                  setTunaiBayar('');
+                }}
+                style={{
+                  background: 'none',
+                  border: '1.4px solid #1E1E1E',
+                  borderRadius: '8px',
+                  width: '30px',
+                  height: '30px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: '#FAF8F4'
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* AREA CETAK NOTA TERMAL */}
+            <div id="printable-receipt" style={{
+              backgroundColor: '#FAF8F4',
+              border: '1.6px dashed #1E1E1E',
+              borderRadius: '12px',
+              padding: '20px',
+              fontFamily: 'monospace',
+              fontSize: '0.86rem',
+              color: '#0F172A'
+            }}>
+              {/* Kop Apotek */}
+              <div style={{ textAlign: 'center', borderBottom: '1.4px dashed #94A3B8', paddingBottom: '12px', marginBottom: '12px' }}>
+                <div style={{ fontSize: '1.15rem', fontWeight: 900, letterSpacing: '-0.3px' }}>
+                  APOTEK MEDIAGNOTEK
+                </div>
+                <div style={{ fontSize: '0.74rem', color: '#475569', marginTop: '2px' }}>
+                  SIA: 442/019/SIA-DPMPTSP/2026 • SIPA: 1988/SIPA/2026
+                </div>
+                <div style={{ fontSize: '0.74rem', color: '#475569' }}>
+                  Layanan Farmasi & Konsultasi Klinis Terpadu
+                </div>
+              </div>
+
+              {/* Metadata Transaksi & KASIR */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.80rem', borderBottom: '1.4px dashed #94A3B8', paddingBottom: '10px', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>No. Nota:</span>
+                  <strong>{printData.invoiceNumber}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Waktu:</span>
+                  <span>{printData.transactionDate}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', backgroundColor: '#FEF3D6', padding: '2px 6px', borderRadius: '4px', border: '1px solid #F59E0B' }}>
+                  <span style={{ fontWeight: 800, color: '#92400E' }}>KASIR / PETUGAS:</span>
+                  <strong style={{ color: '#92400E' }}>{printData.namaKasir}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Pelanggan / Pasien:</span>
+                  <strong>{printData.namaPasien}</strong>
+                </div>
+                {printData.dokterPerujuk && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Dokter:</span>
+                    <span>{printData.dokterPerujuk}</span>
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Tipe:</span>
+                  <span>{printData.tipeTransaksi === 'Resep' ? 'Penebusan Resep' : 'Penjualan Bebas (OTC)'}</span>
+                </div>
+              </div>
+
+              {/* Rincian Obat */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderBottom: '1.4px dashed #94A3B8', paddingBottom: '12px', marginBottom: '12px' }}>
+                {printData.items.map((it: any, idx: number) => (
+                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800 }}>
+                      <span>{it.drug_nama}</span>
+                      <span>Rp {(it.harga * it.jumlah).toLocaleString('id-ID')}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', color: '#64748B' }}>
+                      <span>{it.jumlah} {it.satuan} @ Rp {it.harga.toLocaleString('id-ID')}</span>
+                      <span>({it.signa || 'Aturan Pakai Standar'})</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Perhitungan Total */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.84rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Subtotal:</span>
+                  <span>Rp {printData.subtotal.toLocaleString('id-ID')}</span>
+                </div>
+                {printData.tuslah > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Tuslah / Embalase:</span>
+                    <span>Rp {printData.tuslah.toLocaleString('id-ID')}</span>
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: 900, borderTop: '1.4px solid #1E1E1E', paddingTop: '6px', marginTop: '4px' }}>
+                  <span>TOTAL:</span>
+                  <span style={{ color: '#15803D' }}>Rp {printData.grandTotal.toLocaleString('id-ID')}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.80rem', marginTop: '4px' }}>
+                  <span>Metode Bayar:</span>
+                  <strong>{printData.paymentMethod}</strong>
+                </div>
+                {printData.paymentMethod === 'TUNAI' && (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.80rem' }}>
+                      <span>Uang Diterima:</span>
+                      <span>Rp {printData.nominalTunai.toLocaleString('id-ID')}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.84rem', fontWeight: 800, color: '#0369A1' }}>
+                      <span>Kembalian:</span>
+                      <span>Rp {printData.kembalian.toLocaleString('id-ID')}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Footer Struk */}
+              <div style={{ textAlign: 'center', fontSize: '0.72rem', color: '#64748B', marginTop: '14px', borderTop: '1.4px dashed #94A3B8', paddingTop: '8px' }}>
+                Terima kasih atas kunjungan Anda.<br />
+                Semoga lekas sembuh & sehat selalu.<br />
+                *Obat yang sudah dibeli tidak dapat ditukar/dikembalikan*
+              </div>
+            </div>
+
+            {/* Tombol Aksi Modal */}
+            <div className="no-print" style={{ display: 'flex', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={handlePrintReceipt}
+                className="neo-btn-primary"
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  fontSize: '0.92rem',
+                  fontWeight: 900
+                }}
+              >
+                <Printer size={18} />
+                Cetak Struk Sekarang
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPrintModal(false);
+                  setCartItems([]);
+                  setTunaiBayar('');
+                }}
+                className="neo-btn-secondary"
+                style={{ padding: '12px 18px', fontSize: '0.88rem', fontWeight: 800 }}
+              >
+                Selesai
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* STYLE CSS KHUSUS MODE CETAK PRINT NOTA KASIR */}
+      <style jsx global>{`
+        @media print {
+          /* Sembunyikan semua elemen navigasi, sidebar, header, dan elemen background */
+          body * {
+            visibility: hidden !important;
+          }
+
+          /* Tampilkan hanya area struk nota kasir yang akan dicetak */
+          #printable-receipt,
+          #printable-receipt * {
+            visibility: visible !important;
+          }
+
+          /* Tempatkan struk di bagian paling atas halaman cetak tanpa margin berlebih */
+          #printable-receipt {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 78mm !important; /* Standar lebar kertas printer termal POS 80mm/58mm */
+            max-width: 100% !important;
+            margin: 0 auto !important;
+            padding: 10px !important;
+            border: none !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+            font-size: 11px !important;
+            line-height: 1.3 !important;
+            box-shadow: none !important;
+          }
+
+          .no-print {
+            display: none !important;
+          }
+
+          @page {
+            size: auto;
+            margin: 4mm;
+          }
+        }
+      `}</style>
     </div>
   );
 }

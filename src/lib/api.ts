@@ -491,4 +491,34 @@ export async function apiDeleteStock(batchId: number): Promise<boolean> {
   }
 }
 
+export async function apiCreateTransaction(payload: any) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/transactions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (error) {
+    console.warn('Backend POST /transactions unreachable:', error);
+  }
+  return null;
+}
+
+export async function apiGetTransactions(page = 1, size = 50, search?: string) {
+  try {
+    const query = new URLSearchParams({ page: String(page), size: String(size) });
+    if (search) query.append('search', search);
+    const res = await fetch(`${API_BASE_URL}/transactions?${query.toString()}`);
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (error) {
+    console.warn('Backend GET /transactions unreachable:', error);
+  }
+  return null;
+}
+
 
