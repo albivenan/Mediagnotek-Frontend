@@ -145,12 +145,10 @@ export default function PasienPage() {
       errors.nama = 'Nama pasien minimal 3 karakter.';
     }
 
-    // 2. Validasi NIK (16 digit angka)
+    // 2. Validasi NIK (Opsional, namun jika diisi wajib tepat 16 digit angka)
     const cleanNik = formData.nik.trim();
-    if (!cleanNik) {
-      errors.nik = 'NIK (Nomor Induk Kependudukan) wajib diisi.';
-    } else if (!/^\d{16}$/.test(cleanNik)) {
-      errors.nik = 'NIK harus berupa 16 digit angka sesuai KTP.';
+    if (cleanNik && !/^\d{16}$/.test(cleanNik)) {
+      errors.nik = 'Jika NIK diisi, harus berupa 16 digit angka sesuai KTP.';
     }
 
     // 3. Validasi Tanggal Lahir (wajib dan tidak boleh masa depan)
@@ -277,7 +275,7 @@ export default function PasienPage() {
     // Filter pencarian
     const matchesSearch =
       p.nama.toLowerCase().includes(search.toLowerCase()) ||
-      p.nik.includes(search) ||
+      (p.nik || '').includes(search) ||
       p.telepon.includes(search) ||
       p.alamat.toLowerCase().includes(search.toLowerCase()) ||
       (p.penyakit_diderita && p.penyakit_diderita.toLowerCase().includes(search.toLowerCase()));
@@ -687,7 +685,7 @@ export default function PasienPage() {
 
                         {/* 3. NIK & Gender */}
                         <td style={{ padding: '14px 16px' }}>
-                          <div style={{ fontWeight: 600, color: '#374151' }}>{p.nik}</div>
+                          <div style={{ fontWeight: 600, color: '#374151' }}>{p.nik || '-'}</div>
                           <span style={{
                             display: 'inline-block',
                             marginTop: '3px',
@@ -1022,7 +1020,7 @@ export default function PasienPage() {
                   Alamat Lengkap & NIK
                 </div>
                 <div style={{ fontSize: '0.88rem', color: '#1F2937', lineHeight: 1.5 }}>
-                  <div><strong>NIK:</strong> {selectedPatient.nik}</div>
+                  <div><strong>NIK:</strong> {selectedPatient.nik || '-'}</div>
                   <div style={{ marginTop: '4px' }}><strong>Alamat:</strong> {selectedPatient.alamat}</div>
                 </div>
               </div>
@@ -1147,12 +1145,12 @@ export default function PasienPage() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
-                    Nomor Induk Kependudukan (NIK 16 Digit) <span style={{ color: '#DC2626' }}>*</span>
+                    Nomor Induk Kependudukan (NIK) <span style={{ color: '#6B7280', fontSize: '0.78rem', fontWeight: 600 }}>(Opsional, 16 digit jika diisi)</span>
                   </label>
                   <input
                     type="text"
                     maxLength={16}
-                    placeholder="16 digit angka KTP"
+                    placeholder="16 digit angka KTP (opsional)"
                     value={formData.nik}
                     onChange={(e) => {
                       const val = e.target.value.replace(/\D/g, '');
@@ -1489,12 +1487,12 @@ export default function PasienPage() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
-                    Nomor Induk Kependudukan (NIK 16 Digit) <span style={{ color: '#DC2626' }}>*</span>
+                    Nomor Induk Kependudukan (NIK) <span style={{ color: '#6B7280', fontSize: '0.78rem', fontWeight: 600 }}>(Opsional, 16 digit jika diisi)</span>
                   </label>
                   <input
                     type="text"
                     maxLength={16}
-                    placeholder="16 digit angka KTP"
+                    placeholder="16 digit angka KTP (opsional)"
                     value={formData.nik}
                     onChange={(e) => {
                       const val = e.target.value.replace(/\D/g, '');
