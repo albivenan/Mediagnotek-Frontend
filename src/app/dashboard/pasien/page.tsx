@@ -131,6 +131,82 @@ export default function PasienPage() {
     keterangan_pembelian: ''
   });
 
+  // State Error Validasi Frontend
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  // Fungsi Validasi Komprehensif di Frontend Saja
+  const validatePatientForm = () => {
+    const errors: Record<string, string> = {};
+
+    // 1. Validasi Nama Lengkap
+    if (!formData.nama.trim()) {
+      errors.nama = 'Nama lengkap pasien wajib diisi.';
+    } else if (formData.nama.trim().length < 3) {
+      errors.nama = 'Nama pasien minimal 3 karakter.';
+    }
+
+    // 2. Validasi NIK (16 digit angka)
+    const cleanNik = formData.nik.trim();
+    if (!cleanNik) {
+      errors.nik = 'NIK (Nomor Induk Kependudukan) wajib diisi.';
+    } else if (!/^\d{16}$/.test(cleanNik)) {
+      errors.nik = 'NIK harus berupa 16 digit angka sesuai KTP.';
+    }
+
+    // 3. Validasi Tanggal Lahir (wajib dan tidak boleh masa depan)
+    if (!formData.tanggal_lahir) {
+      errors.tanggal_lahir = 'Tanggal lahir pasien wajib dipilih.';
+    } else {
+      const birthDate = new Date(formData.tanggal_lahir);
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+      if (birthDate > today) {
+        errors.tanggal_lahir = 'Tanggal lahir tidak boleh melebihi hari ini.';
+      }
+    }
+
+    // 4. Validasi Jenis Kelamin
+    if (!formData.jenis_kelamin) {
+      errors.jenis_kelamin = 'Jenis kelamin wajib dipilih.';
+    }
+
+    // 5. Validasi Nomor Telepon / WA (10-14 digit numerik, awalan 08 atau +62)
+    const cleanPhone = formData.telepon.trim();
+    if (!cleanPhone) {
+      errors.telepon = 'Nomor telepon/WhatsApp wajib diisi.';
+    } else if (!/^(08|\+?62)\d{8,12}$/.test(cleanPhone.replace(/[\s-]/g, ''))) {
+      errors.telepon = 'Nomor HP tidak valid. Masukkan 10-14 digit angka (misal: 08123456789).';
+    }
+
+    // 6. Validasi Waktu Kunjungan
+    if (!formData.waktu_kunjungan.trim()) {
+      errors.waktu_kunjungan = 'Waktu kunjungan pasien wajib diisi.';
+    }
+
+    // 7. Validasi Penyakit / Keluhan Utama
+    if (!formData.penyakit_diderita.trim()) {
+      errors.penyakit_diderita = 'Keluhan atau penyakit yang diderita pasien wajib diisi.';
+    }
+
+    // 8. Validasi Alamat Lengkap
+    if (!formData.alamat.trim()) {
+      errors.alamat = 'Alamat lengkap tempat tinggal pasien wajib diisi.';
+    } else if (formData.alamat.trim().length < 5) {
+      errors.alamat = 'Alamat terlalu singkat (minimal 5 karakter).';
+    }
+
+    // 9. Validasi Keterangan Pembelian jika status Belum Lunas
+    if (formData.status_pembelian === 'Belum Lunas' && !formData.keterangan_pembelian.trim()) {
+      errors.keterangan_pembelian = 'Rincian sisa tagihan/tenggat waktu wajib diisi jika status Belum Lunas.';
+    }
+
+    setFormErrors(errors);
+    return {
+      isValid: Object.keys(errors).length === 0,
+      errors
+    };
+  };
+
   // Load from backend database on mount with localStorage fallback & real-time sync
   useEffect(() => {
     const fetchPatientsData = async () => {
@@ -219,6 +295,7 @@ export default function PasienPage() {
     const now = new Date();
     const formattedNow = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     
+    setFormErrors({});
     setFormData({
       nama: '',
       nik: '',
@@ -240,6 +317,7 @@ export default function PasienPage() {
   // Navigasi ke Halaman Edit Pasien (render halaman baru)
   const handleOpenEditPage = (p: Patient) => {
     setSelectedPatient(p);
+    setFormErrors({});
     setFormData({
       nama: p.nama,
       nik: p.nik === '-' ? '' : p.nik,
@@ -261,7 +339,14 @@ export default function PasienPage() {
   // Simpan Tambah Pasien Baru (tersinkron ke Database Backend)
   const handleSaveNewPatient = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.nama.trim()) return;
+    
+    // Jalankan validasi frontend
+    const { isValid, errors } = validatePatientForm();
+    if (!isValid) {
+      const firstErrorKey = Object.keys(errors)[0];
+      showToast(`Validasi gagal: ${errors[firstErrorKey]}`, 'danger');
+      return;
+    }
 
     const alergiList = formData.alergi_obat_raw
       ? formData.alergi_obat_raw.split(',').map((s) => s.trim()).filter(Boolean)
@@ -273,18 +358,18 @@ export default function PasienPage() {
 
     const payload = {
       nama_lengkap: formData.nama.trim(),
-      nik: formData.nik.trim() || '-',
-      tanggal_lahir: formData.tanggal_lahir || '1990-01-01',
+      nik: formData.nik.trim(),
+      tanggal_lahir: formData.tanggal_lahir,
       jenis_kelamin: formData.jenis_kelamin,
-      no_hp: formData.telepon.trim() || '-',
-      alamat: formData.alamat.trim() || '-',
+      no_hp: formData.telepon.trim(),
+      alamat: formData.alamat.trim(),
       alergi_obat: alergiList,
       riwayat_penyakit: riwayatList,
       catatan_medis: formData.catatan_medis.trim(),
-      waktu_kunjungan: formData.waktu_kunjungan.trim() || '2026-10-27 10:00',
-      penyakit_diderita: formData.penyakit_diderita.trim() || 'Pemeriksaan Rutin Apotek',
+      waktu_kunjungan: formData.waktu_kunjungan.trim(),
+      penyakit_diderita: formData.penyakit_diderita.trim(),
       status_pembelian: formData.status_pembelian,
-      keterangan_pembelian: formData.keterangan_pembelian.trim() || (formData.status_pembelian === 'Lunas' ? 'Lunas' : 'Belum Lunas')
+      keterangan_pembelian: formData.keterangan_pembelian.trim() || (formData.status_pembelian === 'Lunas' ? 'Lunas Kasir' : 'Belum Lunas')
     };
 
     let savedPatient: Patient | null = null;
@@ -318,7 +403,15 @@ export default function PasienPage() {
   // Simpan Update Pasien (tersinkron ke Database Backend)
   const handleSaveEditPatient = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedPatient || !formData.nama.trim()) return;
+    if (!selectedPatient) return;
+
+    // Jalankan validasi frontend
+    const { isValid, errors } = validatePatientForm();
+    if (!isValid) {
+      const firstErrorKey = Object.keys(errors)[0];
+      showToast(`Validasi gagal: ${errors[firstErrorKey]}`, 'danger');
+      return;
+    }
 
     const alergiList = formData.alergi_obat_raw
       ? formData.alergi_obat_raw.split(',').map((s) => s.trim()).filter(Boolean)
@@ -330,16 +423,16 @@ export default function PasienPage() {
 
     const payload = {
       nama_lengkap: formData.nama.trim(),
-      nik: formData.nik.trim() || '-',
-      tanggal_lahir: formData.tanggal_lahir || '1990-01-01',
+      nik: formData.nik.trim(),
+      tanggal_lahir: formData.tanggal_lahir,
       jenis_kelamin: formData.jenis_kelamin,
-      no_hp: formData.telepon.trim() || '-',
-      alamat: formData.alamat.trim() || '-',
+      no_hp: formData.telepon.trim(),
+      alamat: formData.alamat.trim(),
       alergi_obat: alergiList,
       riwayat_penyakit: riwayatList,
       catatan_medis: formData.catatan_medis.trim(),
       waktu_kunjungan: formData.waktu_kunjungan.trim() || selectedPatient.waktu_kunjungan || '2026-10-27 10:00',
-      penyakit_diderita: formData.penyakit_diderita.trim() || selectedPatient.penyakit_diderita || '-',
+      penyakit_diderita: formData.penyakit_diderita.trim(),
       status_pembelian: formData.status_pembelian,
       keterangan_pembelian: formData.keterangan_pembelian.trim()
     };
@@ -1028,86 +1121,128 @@ export default function PasienPage() {
               </p>
             </div>
 
-            <form onSubmit={handleSaveEditPatient} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            <form onSubmit={handleSaveEditPatient} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
-                    Nama Lengkap Pasien *
+                    Nama Lengkap Pasien <span style={{ color: '#DC2626' }}>*</span>
                   </label>
                   <input
                     type="text"
-                    required
                     placeholder="Contoh: Budi Santoso"
                     value={formData.nama}
-                    onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, nama: e.target.value });
+                      if (formErrors.nama) setFormErrors({ ...formErrors, nama: '' });
+                    }}
                     className="form-input-neo"
-                    style={{ width: '100%' }}
+                    style={{ width: '100%', borderColor: formErrors.nama ? '#DC2626' : undefined }}
                   />
+                  {formErrors.nama && (
+                    <span style={{ color: '#DC2626', fontSize: '0.76rem', fontWeight: 700, marginTop: '4px', display: 'block' }}>
+                      {formErrors.nama}
+                    </span>
+                  )}
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
-                    Nomor Induk Kependudukan (NIK)
+                    Nomor Induk Kependudukan (NIK 16 Digit) <span style={{ color: '#DC2626' }}>*</span>
                   </label>
                   <input
                     type="text"
-                    placeholder="16 digit NIK"
+                    maxLength={16}
+                    placeholder="16 digit angka KTP"
                     value={formData.nik}
-                    onChange={(e) => setFormData({ ...formData, nik: e.target.value })}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '');
+                      setFormData({ ...formData, nik: val });
+                      if (formErrors.nik) setFormErrors({ ...formErrors, nik: '' });
+                    }}
                     className="form-input-neo"
-                    style={{ width: '100%' }}
+                    style={{ width: '100%', borderColor: formErrors.nik ? '#DC2626' : undefined }}
                   />
+                  {formErrors.nik && (
+                    <span style={{ color: '#DC2626', fontSize: '0.76rem', fontWeight: 700, marginTop: '4px', display: 'block' }}>
+                      {formErrors.nik}
+                    </span>
+                  )}
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
-                    Jenis Kelamin
+                    Jenis Kelamin <span style={{ color: '#DC2626' }}>*</span>
                   </label>
                   <select
                     value={formData.jenis_kelamin}
-                    onChange={(e) => setFormData({ ...formData, jenis_kelamin: e.target.value as 'L' | 'P' })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, jenis_kelamin: e.target.value as 'L' | 'P' });
+                      if (formErrors.jenis_kelamin) setFormErrors({ ...formErrors, jenis_kelamin: '' });
+                    }}
                     className="form-input-neo"
-                    style={{ width: '100%', height: '44px' }}
+                    style={{ width: '100%', height: '44px', borderColor: formErrors.jenis_kelamin ? '#DC2626' : undefined }}
                   >
                     <option value="L">Laki-laki (L)</option>
                     <option value="P">Perempuan (P)</option>
                   </select>
+                  {formErrors.jenis_kelamin && (
+                    <span style={{ color: '#DC2626', fontSize: '0.76rem', fontWeight: 700, marginTop: '4px', display: 'block' }}>
+                      {formErrors.jenis_kelamin}
+                    </span>
+                  )}
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
-                    Tanggal Lahir
+                    Tanggal Lahir <span style={{ color: '#DC2626' }}>*</span>
                   </label>
                   <input
                     type="date"
+                    max={new Date().toISOString().slice(0, 10)}
                     value={formData.tanggal_lahir}
-                    onChange={(e) => setFormData({ ...formData, tanggal_lahir: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, tanggal_lahir: e.target.value });
+                      if (formErrors.tanggal_lahir) setFormErrors({ ...formErrors, tanggal_lahir: '' });
+                    }}
                     className="form-input-neo"
-                    style={{ width: '100%' }}
+                    style={{ width: '100%', borderColor: formErrors.tanggal_lahir ? '#DC2626' : undefined }}
                   />
+                  {formErrors.tanggal_lahir && (
+                    <span style={{ color: '#DC2626', fontSize: '0.76rem', fontWeight: 700, marginTop: '4px', display: 'block' }}>
+                      {formErrors.tanggal_lahir}
+                    </span>
+                  )}
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
-                    No Telepon / WhatsApp
+                    No Telepon / WhatsApp <span style={{ color: '#DC2626' }}>*</span>
                   </label>
                   <input
                     type="tel"
-                    placeholder="0812xxxx"
+                    placeholder="0812xxxx (10-14 digit)"
                     value={formData.telepon}
-                    onChange={(e) => setFormData({ ...formData, telepon: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, telepon: e.target.value });
+                      if (formErrors.telepon) setFormErrors({ ...formErrors, telepon: '' });
+                    }}
                     className="form-input-neo"
-                    style={{ width: '100%' }}
+                    style={{ width: '100%', borderColor: formErrors.telepon ? '#DC2626' : undefined }}
                   />
+                  {formErrors.telepon && (
+                    <span style={{ color: '#DC2626', fontSize: '0.76rem', fontWeight: 700, marginTop: '4px', display: 'block' }}>
+                      {formErrors.telepon}
+                    </span>
+                  )}
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#B91C1C' }}>
-                    ⚠️ Peringatan Alergi Obat (Pisahkan dengan koma)
+                    ⚠️ Peringatan Alergi Obat (Opsional, pisahkan koma)
                   </label>
                   <input
                     type="text"
@@ -1124,7 +1259,7 @@ export default function PasienPage() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#92400E' }}>
-                    Riwayat Penyakit Kronis (Pisahkan dengan koma)
+                    Riwayat Penyakit Kronis (Opsional, pisahkan koma)
                   </label>
                   <input
                     type="text"
@@ -1140,37 +1275,53 @@ export default function PasienPage() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#1E40AF' }}>
-                    Waktu Kunjungan Pasien
+                    Waktu Kunjungan Pasien <span style={{ color: '#DC2626' }}>*</span>
                   </label>
                   <input
                     type="text"
                     placeholder="YYYY-MM-DD HH:mm (Contoh: 2026-10-27 10:15)"
                     value={formData.waktu_kunjungan}
-                    onChange={(e) => setFormData({ ...formData, waktu_kunjungan: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, waktu_kunjungan: e.target.value });
+                      if (formErrors.waktu_kunjungan) setFormErrors({ ...formErrors, waktu_kunjungan: '' });
+                    }}
                     className="form-input-neo"
-                    style={{ width: '100%' }}
+                    style={{ width: '100%', borderColor: formErrors.waktu_kunjungan ? '#DC2626' : undefined }}
                   />
+                  {formErrors.waktu_kunjungan && (
+                    <span style={{ color: '#DC2626', fontSize: '0.76rem', fontWeight: 700, marginTop: '4px', display: 'block' }}>
+                      {formErrors.waktu_kunjungan}
+                    </span>
+                  )}
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#1E40AF' }}>
-                    Penyakit yang Diderita (Keluhan / Diagnosis Utama)
+                    Penyakit yang Diderita (Keluhan / Diagnosis Utama) <span style={{ color: '#DC2626' }}>*</span>
                   </label>
                   <input
                     type="text"
                     placeholder="Contoh: Hipertensi Primer, Sakit Kepala, Dispepsia"
                     value={formData.penyakit_diderita}
-                    onChange={(e) => setFormData({ ...formData, penyakit_diderita: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, penyakit_diderita: e.target.value });
+                      if (formErrors.penyakit_diderita) setFormErrors({ ...formErrors, penyakit_diderita: '' });
+                    }}
                     className="form-input-neo"
-                    style={{ width: '100%' }}
+                    style={{ width: '100%', borderColor: formErrors.penyakit_diderita ? '#DC2626' : undefined }}
                   />
+                  {formErrors.penyakit_diderita && (
+                    <span style={{ color: '#DC2626', fontSize: '0.76rem', fontWeight: 700, marginTop: '4px', display: 'block' }}>
+                      {formErrors.penyakit_diderita}
+                    </span>
+                  )}
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
-                    Status Pembelian Obat
+                    Status Pembelian Obat <span style={{ color: '#DC2626' }}>*</span>
                   </label>
                   <select
                     value={formData.status_pembelian}
@@ -1191,25 +1342,41 @@ export default function PasienPage() {
                     type="text"
                     placeholder="Contoh: Sisa tagihan Rp 45.000 (Tenggat 30 Okt 2026) / Lunas Kasir"
                     value={formData.keterangan_pembelian}
-                    onChange={(e) => setFormData({ ...formData, keterangan_pembelian: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, keterangan_pembelian: e.target.value });
+                      if (formErrors.keterangan_pembelian) setFormErrors({ ...formErrors, keterangan_pembelian: '' });
+                    }}
                     className="form-input-neo"
-                    style={{ width: '100%', borderColor: formData.status_pembelian === 'Belum Lunas' ? '#FCA5A5' : undefined }}
+                    style={{ width: '100%', borderColor: formErrors.keterangan_pembelian ? '#DC2626' : (formData.status_pembelian === 'Belum Lunas' ? '#FCA5A5' : undefined) }}
                   />
+                  {formErrors.keterangan_pembelian && (
+                    <span style={{ color: '#DC2626', fontSize: '0.76rem', fontWeight: 700, marginTop: '4px', display: 'block' }}>
+                      {formErrors.keterangan_pembelian}
+                    </span>
+                  )}
                 </div>
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
-                  Alamat Lengkap
+                  Alamat Lengkap Tempat Tinggal <span style={{ color: '#DC2626' }}>*</span>
                 </label>
                 <textarea
                   rows={2}
                   placeholder="Jl. / RT / RW / Kelurahan / Kecamatan / Kota"
                   value={formData.alamat}
-                  onChange={(e) => setFormData({ ...formData, alamat: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, alamat: e.target.value });
+                    if (formErrors.alamat) setFormErrors({ ...formErrors, alamat: '' });
+                  }}
                   className="form-input-neo"
-                  style={{ width: '100%', resize: 'none' }}
+                  style={{ width: '100%', resize: 'none', borderColor: formErrors.alamat ? '#DC2626' : undefined }}
                 />
+                {formErrors.alamat && (
+                  <span style={{ color: '#DC2626', fontSize: '0.76rem', fontWeight: 700, marginTop: '4px', display: 'block' }}>
+                    {formErrors.alamat}
+                  </span>
+                )}
               </div>
 
               <div>
@@ -1296,86 +1463,128 @@ export default function PasienPage() {
               </p>
             </div>
 
-            <form onSubmit={handleSaveNewPatient} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            <form onSubmit={handleSaveNewPatient} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
-                    Nama Lengkap Pasien *
+                    Nama Lengkap Pasien <span style={{ color: '#DC2626' }}>*</span>
                   </label>
                   <input
                     type="text"
-                    required
                     placeholder="Contoh: Budi Santoso"
                     value={formData.nama}
-                    onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, nama: e.target.value });
+                      if (formErrors.nama) setFormErrors({ ...formErrors, nama: '' });
+                    }}
                     className="form-input-neo"
-                    style={{ width: '100%' }}
+                    style={{ width: '100%', borderColor: formErrors.nama ? '#DC2626' : undefined }}
                   />
+                  {formErrors.nama && (
+                    <span style={{ color: '#DC2626', fontSize: '0.76rem', fontWeight: 700, marginTop: '4px', display: 'block' }}>
+                      {formErrors.nama}
+                    </span>
+                  )}
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
-                    Nomor Induk Kependudukan (NIK)
+                    Nomor Induk Kependudukan (NIK 16 Digit) <span style={{ color: '#DC2626' }}>*</span>
                   </label>
                   <input
                     type="text"
-                    placeholder="16 digit NIK"
+                    maxLength={16}
+                    placeholder="16 digit angka KTP"
                     value={formData.nik}
-                    onChange={(e) => setFormData({ ...formData, nik: e.target.value })}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '');
+                      setFormData({ ...formData, nik: val });
+                      if (formErrors.nik) setFormErrors({ ...formErrors, nik: '' });
+                    }}
                     className="form-input-neo"
-                    style={{ width: '100%' }}
+                    style={{ width: '100%', borderColor: formErrors.nik ? '#DC2626' : undefined }}
                   />
+                  {formErrors.nik && (
+                    <span style={{ color: '#DC2626', fontSize: '0.76rem', fontWeight: 700, marginTop: '4px', display: 'block' }}>
+                      {formErrors.nik}
+                    </span>
+                  )}
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
-                    Jenis Kelamin
+                    Jenis Kelamin <span style={{ color: '#DC2626' }}>*</span>
                   </label>
                   <select
                     value={formData.jenis_kelamin}
-                    onChange={(e) => setFormData({ ...formData, jenis_kelamin: e.target.value as 'L' | 'P' })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, jenis_kelamin: e.target.value as 'L' | 'P' });
+                      if (formErrors.jenis_kelamin) setFormErrors({ ...formErrors, jenis_kelamin: '' });
+                    }}
                     className="form-input-neo"
-                    style={{ width: '100%', height: '44px' }}
+                    style={{ width: '100%', height: '44px', borderColor: formErrors.jenis_kelamin ? '#DC2626' : undefined }}
                   >
                     <option value="L">Laki-laki (L)</option>
                     <option value="P">Perempuan (P)</option>
                   </select>
+                  {formErrors.jenis_kelamin && (
+                    <span style={{ color: '#DC2626', fontSize: '0.76rem', fontWeight: 700, marginTop: '4px', display: 'block' }}>
+                      {formErrors.jenis_kelamin}
+                    </span>
+                  )}
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
-                    Tanggal Lahir
+                    Tanggal Lahir <span style={{ color: '#DC2626' }}>*</span>
                   </label>
                   <input
                     type="date"
+                    max={new Date().toISOString().slice(0, 10)}
                     value={formData.tanggal_lahir}
-                    onChange={(e) => setFormData({ ...formData, tanggal_lahir: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, tanggal_lahir: e.target.value });
+                      if (formErrors.tanggal_lahir) setFormErrors({ ...formErrors, tanggal_lahir: '' });
+                    }}
                     className="form-input-neo"
-                    style={{ width: '100%' }}
+                    style={{ width: '100%', borderColor: formErrors.tanggal_lahir ? '#DC2626' : undefined }}
                   />
+                  {formErrors.tanggal_lahir && (
+                    <span style={{ color: '#DC2626', fontSize: '0.76rem', fontWeight: 700, marginTop: '4px', display: 'block' }}>
+                      {formErrors.tanggal_lahir}
+                    </span>
+                  )}
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
-                    No Telepon / WhatsApp
+                    No Telepon / WhatsApp <span style={{ color: '#DC2626' }}>*</span>
                   </label>
                   <input
                     type="tel"
-                    placeholder="0812xxxx"
+                    placeholder="0812xxxx (10-14 digit)"
                     value={formData.telepon}
-                    onChange={(e) => setFormData({ ...formData, telepon: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, telepon: e.target.value });
+                      if (formErrors.telepon) setFormErrors({ ...formErrors, telepon: '' });
+                    }}
                     className="form-input-neo"
-                    style={{ width: '100%' }}
+                    style={{ width: '100%', borderColor: formErrors.telepon ? '#DC2626' : undefined }}
                   />
+                  {formErrors.telepon && (
+                    <span style={{ color: '#DC2626', fontSize: '0.76rem', fontWeight: 700, marginTop: '4px', display: 'block' }}>
+                      {formErrors.telepon}
+                    </span>
+                  )}
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#B91C1C' }}>
-                    ⚠️ Peringatan Alergi Obat (Pisahkan dengan koma)
+                    ⚠️ Peringatan Alergi Obat (Opsional, pisahkan koma)
                   </label>
                   <input
                     type="text"
@@ -1392,7 +1601,7 @@ export default function PasienPage() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#92400E' }}>
-                    Riwayat Penyakit Kronis (Pisahkan dengan koma)
+                    Riwayat Penyakit Kronis (Opsional, pisahkan koma)
                   </label>
                   <input
                     type="text"
@@ -1408,37 +1617,53 @@ export default function PasienPage() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#1E40AF' }}>
-                    Waktu Kunjungan Pasien
+                    Waktu Kunjungan Pasien <span style={{ color: '#DC2626' }}>*</span>
                   </label>
                   <input
                     type="text"
                     placeholder="YYYY-MM-DD HH:mm (Contoh: 2026-10-27 10:15)"
                     value={formData.waktu_kunjungan}
-                    onChange={(e) => setFormData({ ...formData, waktu_kunjungan: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, waktu_kunjungan: e.target.value });
+                      if (formErrors.waktu_kunjungan) setFormErrors({ ...formErrors, waktu_kunjungan: '' });
+                    }}
                     className="form-input-neo"
-                    style={{ width: '100%' }}
+                    style={{ width: '100%', borderColor: formErrors.waktu_kunjungan ? '#DC2626' : undefined }}
                   />
+                  {formErrors.waktu_kunjungan && (
+                    <span style={{ color: '#DC2626', fontSize: '0.76rem', fontWeight: 700, marginTop: '4px', display: 'block' }}>
+                      {formErrors.waktu_kunjungan}
+                    </span>
+                  )}
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#1E40AF' }}>
-                    Penyakit yang Diderita (Keluhan / Diagnosis Utama)
+                    Penyakit yang Diderita (Keluhan / Diagnosis Utama) <span style={{ color: '#DC2626' }}>*</span>
                   </label>
                   <input
                     type="text"
                     placeholder="Contoh: Hipertensi Primer, Sakit Kepala, Dispepsia"
                     value={formData.penyakit_diderita}
-                    onChange={(e) => setFormData({ ...formData, penyakit_diderita: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, penyakit_diderita: e.target.value });
+                      if (formErrors.penyakit_diderita) setFormErrors({ ...formErrors, penyakit_diderita: '' });
+                    }}
                     className="form-input-neo"
-                    style={{ width: '100%' }}
+                    style={{ width: '100%', borderColor: formErrors.penyakit_diderita ? '#DC2626' : undefined }}
                   />
+                  {formErrors.penyakit_diderita && (
+                    <span style={{ color: '#DC2626', fontSize: '0.76rem', fontWeight: 700, marginTop: '4px', display: 'block' }}>
+                      {formErrors.penyakit_diderita}
+                    </span>
+                  )}
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
-                    Status Pembelian Obat
+                    Status Pembelian Obat <span style={{ color: '#DC2626' }}>*</span>
                   </label>
                   <select
                     value={formData.status_pembelian}
@@ -1459,25 +1684,41 @@ export default function PasienPage() {
                     type="text"
                     placeholder="Contoh: Sisa tagihan Rp 45.000 (Tenggat 30 Okt 2026) / Lunas Kasir"
                     value={formData.keterangan_pembelian}
-                    onChange={(e) => setFormData({ ...formData, keterangan_pembelian: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, keterangan_pembelian: e.target.value });
+                      if (formErrors.keterangan_pembelian) setFormErrors({ ...formErrors, keterangan_pembelian: '' });
+                    }}
                     className="form-input-neo"
-                    style={{ width: '100%', borderColor: formData.status_pembelian === 'Belum Lunas' ? '#FCA5A5' : undefined }}
+                    style={{ width: '100%', borderColor: formErrors.keterangan_pembelian ? '#DC2626' : (formData.status_pembelian === 'Belum Lunas' ? '#FCA5A5' : undefined) }}
                   />
+                  {formErrors.keterangan_pembelian && (
+                    <span style={{ color: '#DC2626', fontSize: '0.76rem', fontWeight: 700, marginTop: '4px', display: 'block' }}>
+                      {formErrors.keterangan_pembelian}
+                    </span>
+                  )}
                 </div>
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px', color: '#18181B' }}>
-                  Alamat Lengkap
+                  Alamat Lengkap Tempat Tinggal <span style={{ color: '#DC2626' }}>*</span>
                 </label>
                 <textarea
                   rows={2}
                   placeholder="Jl. / RT / RW / Kelurahan / Kecamatan / Kota"
                   value={formData.alamat}
-                  onChange={(e) => setFormData({ ...formData, alamat: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, alamat: e.target.value });
+                    if (formErrors.alamat) setFormErrors({ ...formErrors, alamat: '' });
+                  }}
                   className="form-input-neo"
-                  style={{ width: '100%', resize: 'none' }}
+                  style={{ width: '100%', resize: 'none', borderColor: formErrors.alamat ? '#DC2626' : undefined }}
                 />
+                {formErrors.alamat && (
+                  <span style={{ color: '#DC2626', fontSize: '0.76rem', fontWeight: 700, marginTop: '4px', display: 'block' }}>
+                    {formErrors.alamat}
+                  </span>
+                )}
               </div>
 
               <div>
