@@ -618,6 +618,38 @@ ${patientHeader}
 // ============================================================================
 // MAIN PLATFORM INFERENCE FUNCTION
 // ============================================================================
+// OUT-OF-SCOPE GUARDRAILS & STANDAR PENOLAKAN NON-MEDIS / NON-KEUANGAN
+// ============================================================================
+const OUT_OF_SCOPE_REFUSAL_TEXT = `**MOHON MAAF, PERTANYAAN DI LUAR KONTEKS MEDIS & KEUANGAN FASKES**
+
+Saya adalah **MediagnoTek AI**, asisten klinis dan operasional yang didesain secara khusus untuk ekosistem fasilitas kesehatan dan apotek **MediagnoTek**.
+
+Saya **hanya** dapat merespons pertanyaan dan konsultasi yang berkaitan dengan:
+1. **Dunia Medis & Diagnostik Klinis:** Evaluasi keluhan gejala penyakit, patofisiologi, estimasi diagnosis (ICD-10), visualisasi anatomi organ tubuh 3D, serta interpretasi berkas medis (Foto Rontgen, EKG, Hasil Laboratorium, Resep, Foto Kulit/Luka, Rekam Medis PDF/DOCX).
+2. **Farmasi & Tata Laksana Obat:** Rekomendasi terapi farmakoterapi, perhitungan dosis dewasa/pediatrik, skrining interaksi obat, kontraindikasi, efek samping, dan edukasi KIE apoteker.
+3. **Manajemen Operasional & Keuangan POS:** Alur kasir POS, pencetakan struk transaksi, sinkronisasi stok obat (FEFO), pencatatan data pasien, serta pelaporan keuangan & laba-rugi faskes/apotek.
+
+*Silakan ajukan pertanyaan seputar keluhan kesehatan pasien, rekomendasi terapi obat, interpretasi hasil penunjang medis, atau administrasi transaksi kasir dan laporan keuangan faskes Anda.*`;
+
+function checkOutOfScopeQuery(text: string): boolean {
+  const q = (text || '').toLowerCase().trim();
+  if (!q) return false;
+
+  const explicitOutOfScope = [
+    'presiden', 'prabowo', 'jokowi', 'menteri', 'pemilu', 'partai', 'politik', 'pilpres', 'pilkada', 'dpr', 'mpr',
+    'gubernur', 'walikota', 'bupati', 'artis', 'selebriti', 'aktor', 'aktris', 'film', 'sinema', 'bioskop',
+    'lagu', 'musik', 'konser', 'sepak bola', 'sepakbola', 'sepak-bola', 'liga', 'ronaldo', 'messi', 'motogp', 'f1',
+    'resep kue', 'resep masak', 'masakan', 'restoran', 'kuliner', 'game', 'gaming', 'moba', 'anime', 'manga',
+    'ramalan', 'zodiak', 'horoskop', 'cuaca', 'otomotif', 'mobil', 'motor', 'bensin', 'modifikasi', 'coding',
+    'pemrograman', 'python', 'javascript', 'html', 'css', 'skripsi umum', 'tugas sekolah'
+  ];
+
+  return explicitOutOfScope.some((term) => q.includes(term));
+}
+
+// ============================================================================
+// MEDIAGNOTEK LOCAL CLINICAL & MULTIMODAL INFERENCE ENGINE
+// ============================================================================
 function processPlatformInference(
   message: string,
   patientContext: any,
@@ -633,13 +665,64 @@ function processPlatformInference(
     return buildDeepAttachmentAnalysis(message, attachment, patientContext, stockSummary, faskesName);
   }
 
-  // 2. Check if this is a follow-up question referring to a previous attachment or diagnosis in conversationHistory
+  // 2. Guardrail Check: Refuse clearly out-of-scope non-medical / non-POS topics
+  if (checkOutOfScopeQuery(q)) {
+    return {
+      icd: 'ICD-10 Z71.9',
+      confidence: '100%',
+      reply: OUT_OF_SCOPE_REFUSAL_TEXT
+    };
+  }
+
+  // 3. Check if this is a follow-up question referring to a previous attachment or diagnosis in conversationHistory
   const prevAttachmentTurn = conversationHistory
     ? [...conversationHistory].reverse().find((t) => t.attachmentName)
     : undefined;
   const prevAiTurn = conversationHistory
     ? [...conversationHistory].reverse().find((t) => t.sender === 'ai' && t.icdCode)
     : undefined;
+
+  // 4. POS, Kasir, Struk, Keuangan, Omzet & Laporan Faskes
+  const isFinanceOrPos =
+    q.includes('keuangan') ||
+    q.includes('kasir') ||
+    q.includes('struk') ||
+    q.includes('laporan') ||
+    q.includes('omzet') ||
+    q.includes('omset') ||
+    q.includes('laba') ||
+    q.includes('rugi') ||
+    q.includes('transaksi') ||
+    q.includes('pembayaran') ||
+    q.includes('penjualan') ||
+    q.includes('pos');
+
+  if (isFinanceOrPos) {
+    return {
+      icd: 'POS-FINANCE-01',
+      confidence: '99.5%',
+      reply: `**PANDUAN ADMINISTRASI OPERASIONAL KASIR & KEUANGAN MEDIAGNOTEK POS**
+
+**1. Alur Transaksi Kasir & Penjualan Obat:**
+- **Pencarian Cepat Produk:** Masukkan nama obat, kode SKU, atau gunakan pemindai barcode untuk memasukkan item ke keranjang belanja kasir.
+- **Kategori Pelayanan:**
+  - **Penjualan Bebas (OTC):** Transaksi langsung diproses dengan memasukkan kuantitas dan metode pembayaran (*Tunai / QRIS / Transfer*).
+  - **Penjualan Resep / Pasien Terdaftar:** Hubungkan transaksi dengan **ID Pasien** agar riwayat terapi dan alergi obat otomatis terekam di **Buku Rekam Pasien**.
+
+**2. Pengelolaan Struk & Bukti Pembayaran:**
+- Struk belanja resmi MediagnoTek mencantumkan: Nama Faskes/Apotek, Tanggal & Jam Transaksi, Nama Kasir, Rincian Obat (Nama, Qty, Harga Satuan, Subtotal), Pajak/Diskon (jika ada), Total Pembayaran, dan Kembalian.
+- Struk dapat langsung dicetak (*Thermal Printer 58mm/80mm*) atau diunduh sebagai arsip digital.
+
+**3. Manajemen Stok Terintegrasi (FEFO - First Expired, First Out):**
+- Setiap kali transaksi kasir diselesaikan, stok obat di sistem otomatis berkurang berdasarkan batch dengan tanggal kedaluwarsa paling dekat.
+- Sistem memberikan peringatan dini (*warning*) jika stok obat berada di bawah batas minimum (*low stock threshold*).
+
+**4. Pelaporan Keuangan & Akuntansi Apotek:**
+- **Laporan Penjualan Harian/Bulanan:** Memantau akumulasi omzet harian, jumlah transaksi, dan metode pembayaran terpopuler.
+- **Laporan Laba/Rugi (*Profit & Loss*):** Menghitung selisih antara Total Pendapatan dengan Harga Pokok Penjualan (HPP / Biaya Kulak Farmasi) serta biaya operasional faskes.
+- **Laporan Mutasi Stok & Penyesuaian (*Stock Opname*):** Rekonsiliasi fisik vs catatan sistem untuk meminimalkan selisih barang.`
+    };
+  }
 
   // Check if user asks about stock availability
   if (
@@ -778,6 +861,34 @@ Silakan ketik keluhan klinis pasien atau klik ikon **Lampirkan Berkas (📎)** d
   }
 
   // 7. Comprehensive General Clinical Assessment for any other medical query
+  // Pastikan pertanyaan memiliki konteks klinis/kesehatan/farmasi sebelum memberikan asesmen klinis
+  const hasMedicalContext =
+    q.includes('sakit') || q.includes('nyeri') || q.includes('demam') || q.includes('batuk') ||
+    q.includes('pilek') || q.includes('flu') || q.includes('pusing') || q.includes('mual') ||
+    q.includes('muntah') || q.includes('diare') || q.includes('sesak') || q.includes('napas') ||
+    q.includes('lambung') || q.includes('maag') || q.includes('gerd') || q.includes('gula') ||
+    q.includes('diabetes') || q.includes('tensi') || q.includes('darah') || q.includes('jantung') ||
+    q.includes('paru') || q.includes('ginjal') || q.includes('hati') || q.includes('kulit') ||
+    q.includes('gatal') || q.includes('luka') || q.includes('alergi') || q.includes('infeksi') ||
+    q.includes('bakteri') || q.includes('virus') || q.includes('jamur') || q.includes('organ') ||
+    q.includes('anatomi') || q.includes('kepala') || q.includes('dada') || q.includes('perut') ||
+    q.includes('tenggorokan') || q.includes('mata') || q.includes('telinga') || q.includes('hidung') ||
+    q.includes('sendi') || q.includes('tulang') || q.includes('otot') || q.includes('kolesterol') ||
+    q.includes('asam urat') || q.includes('stroke') || q.includes('obat') || q.includes('resep') ||
+    q.includes('dosis') || q.includes('pasien') || q.includes('klinis') || q.includes('diagnosa') ||
+    q.includes('diagnosis') || q.includes('icd') || q.includes('gejala') || q.includes('keluhan') ||
+    q.includes('terapi') || q.includes('apotek') || q.includes('faskes') || q.includes('dokter') ||
+    q.includes('perawat') || q.includes('kesehatan') || q.includes('medis') ||
+    Boolean(patientContext?.name);
+
+  if (!hasMedicalContext) {
+    return {
+      icd: 'ICD-10 Z71.9',
+      confidence: '100%',
+      reply: OUT_OF_SCOPE_REFUSAL_TEXT
+    };
+  }
+
   const patientInfo = patientContext?.name
     ? `**Konteks Pasien Aktif:** **${patientContext.name}** (${patientContext.id || '#RM'}) • Usia/Gender: ${patientContext.age || '-'}/${patientContext.gender || '-'} • TD: ${patientContext.bloodPressure || '-'} • Keluhan Awal: *${patientContext.symptoms || '-'}*\n\n`
     : '';
@@ -838,6 +949,20 @@ export async function POST(request: Request) {
       );
     }
 
+    // Pre-guardrail: Jika tidak melampirkan berkas dan pertanyaan terdeteksi jelas di luar ranah medis/faskes
+    if (!attachment && checkOutOfScopeQuery(message)) {
+      return NextResponse.json({
+        reply: OUT_OF_SCOPE_REFUSAL_TEXT,
+        icd_code: 'ICD-10 Z71.9',
+        confidence: '100%',
+        provider: 'MediagnoTek Guardrail Engine',
+        timestamp: new Date().toLocaleTimeString('id-ID', {
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      });
+    }
+
     const geminiKey =
       process.env.GEMINI_API_KEY ||
       process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
@@ -848,7 +973,7 @@ export async function POST(request: Request) {
       try {
         const patientInfo = patient_context
           ? `Konteks Pasien Aktif: Nama ${patient_context.name || 'Umum'}, ID ${patient_context.id || '-'}, Usia ${patient_context.age || '-'}, Gender ${patient_context.gender || '-'}, Tekanan Darah ${patient_context.bloodPressure || '-'}, Keluhan Awal: ${patient_context.symptoms || '-'}.`
-          : 'Konteks Pasien: Konsultasi Medis & Farmasi Klinis.';
+          : 'Konteks Pasien: Konsultasi Medis, Farmasi Klinis & Manajemen Faskes.';
 
         const historySnippet =
           Array.isArray(conversation_history) && conversation_history.length > 0
@@ -878,10 +1003,24 @@ export async function POST(request: Request) {
           ? `\nDaftar Ringkas Ketersediaan Stok Obat Aktual di ${faskes_name || 'Apotek'}:\n${stock_summary}`
           : '';
 
-        const systemPrompt = `Anda adalah "MediagnoTek AI", Asisten Pakar Diagnostik Klinis Kedokteran dan Farmasi Klinis (Apoteker) untuk sistem informasi kesehatan & apotek MediagnoTek (${faskes_name || 'Faskes MediagnoTek'}).
+        const systemPrompt = `Anda adalah "MediagnoTek AI", Asisten Pakar Diagnostik Klinis Kedokteran, Farmasi Klinis (Apoteker), serta Point of Sale (POS) & Keuangan Faskes MediagnoTek (${faskes_name || 'Faskes MediagnoTek'}).
 ${patientInfo}${historySnippet}${attachmentMeta}${stockContext}
 
-INSTRUKSI WAJIB:
+ATURAN MUTLAK & BATASAN DOMAIN (GUARDRAILS):
+1. RUANG LINGKUP YANG DIIZINKAN (HANYA INI YANG BOLEH DIJAWAB):
+   - Dunia medis, kesehatan, gejala klinis, patofisiologi, estimasi diagnosis penyakit (ICD-10), dan anatomi organ tubuh.
+   - Farmasi klinis, obat-obatan, perhitungan dosis, interaksi obat, kontraindikasi, efek samping, skrining resep, dan KIE apoteker.
+   - Manajemen faskes/apotek, kasir POS, stok obat (FEFO), struk belanja, dan laporan keuangan apotek MediagnoTek.
+   - Sapaan/greeting formal sebagai MediagnoTek AI dan penjelasan kapabilitas sistem.
+
+2. PENOLAKAN PERTANYAAN DI LUAR KONTEKS (WAJIB DIPATUHI SECARA KETAT):
+   - JIKA pengguna menanyakan hal DI LUAR domain medis, kesehatan, farmasi, atau operasional/keuangan faskes (CONTOH: tokoh politik/presiden seperti Prabowo/Jokowi/menteri, pemilu/partai/politik, selebriti, hiburan, musik/film, resep masakan non-medis, olahraga umum/sepakbola, otomotif, coding/pemrograman umum, lelucon, atau pengetahuan umum di luar kesehatan):
+   - ANDA WAJIB MENOLAK SECARA TEGAS DAN SOPAN! DILARANG KERAS MENJAWAB INFORMASI NON-MEDIS TERSEBUT.
+   - Berikan respon penolakan dengan format persis berikut:
+     "**MOHON MAAF, PERTANYAAN DI LUAR KONTEKS MEDIS & KEUANGAN FASKES**\n\nSaya adalah **MediagnoTek AI**, asisten klinis dan operasional yang didesain secara khusus hanya untuk mendampingi konsultasi medis, farmasi/obat-obatan, diagnosa klinis, serta manajemen operasional dan keuangan faskes/apotek MediagnoTek. Pertanyaan ini berada di luar lingkup medis dan keuangan faskes kami.\n\nSilakan ajukan pertanyaan seputar keluhan kesehatan pasien, rekomendasi terapi obat, interpretasi hasil rontgen/lab/resep, atau administrasi transaksi kasir dan laporan keuangan faskes Anda.\n\n[ICD: ICD-10 Z71.9] [CONFIDENCE: 100%]"
+   - Jangan menjawab atau menguraikan topik non-medis tersebut sama sekali.
+
+INSTRUKSI JAWABAN (UNTUK PERTANYAAN SESUAI DOMAIN MEDIS/FARMASI/KEUANGAN):
 1. Berikan jawaban dalam Bahasa Indonesia yang SANGAT MATANG, LENGKAP, MENDALAM, TERSTRUKTUR, dan PROFESIONAL untuk dokter & apoteker.
 2. Jika pengguna melampirkan GAMBAR (Rontgen, EKG, Hasil Lab, Resep, Foto Obat, atau Foto Klinis Kulit/Luka) atau DOKUMEN (PDF/DOCX):
    - Jelaskan secara spesifik dan mendalam:
