@@ -539,6 +539,9 @@ export default function DashboardLayout({
               onClick={() => {
                 if (typeof window !== 'undefined') {
                   localStorage.removeItem('mediagnotek_user_session');
+                  localStorage.removeItem('mediagnotek_auth_token');
+                  document.cookie = 'mediagnotek_session=; path=/; max-age=0;';
+                  document.cookie = 'mediagnotek_auth_token=; path=/; max-age=0;';
                   window.location.href = '/login';
                 }
               }}

@@ -40,16 +40,27 @@ export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
 
+  // Navigasi aman: jika belum login, arahkan ke /login dengan parameter redirect
+  const authUrl = (path: string) => {
+    return isLoggedIn ? path : `/login?redirect=${encodeURIComponent(path)}`;
+  };
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
+        const hasSessionCookie = document.cookie.includes('mediagnotek_session') || document.cookie.includes('mediagnotek_auth_token');
         const session = localStorage.getItem('mediagnotek_user_session');
-        if (session) {
+
+        if (session && hasSessionCookie) {
           const parsed = JSON.parse(session);
           if (parsed?.name || parsed?.email) {
             setIsLoggedIn(true);
             setUserName(parsed.name || parsed.email.split('@')[0]);
           }
+        } else if (!hasSessionCookie) {
+          // Bersihkan sisa state jika cookie login sudah tidak ada/expired
+          setIsLoggedIn(false);
+          setUserName('');
         }
       } catch (e) {
         console.warn('Failed reading session on homepage:', e);
@@ -257,7 +268,7 @@ export default function HomePage() {
                   <span>Lanjutkan ke Dashboard Faskes</span>
                 </Link>
                 <Link
-                  href="/dashboard/anatomi"
+                  href={authUrl("/dashboard/anatomi")}
                   className="hero-cta-btn"
                   style={{
                     padding: '13px 26px',
@@ -479,7 +490,7 @@ export default function HomePage() {
                   <strong style={{ color: '#0284C7' }}>AI Apoteker:</strong> "Aman tanpa interaksi merugikan langsung. Disarankan minum Metformin sesudah makan dan Amlodipine pada malam hari."
                 </div>
                 <Link
-                  href="/dashboard/ai-analisa"
+                  href={authUrl("/dashboard/ai-analisa")}
                   style={{
                     fontSize: '0.78rem',
                     fontWeight: 800,
@@ -544,7 +555,7 @@ export default function HomePage() {
                 <ShoppingCart size={15} />
                 <span>Penebusan Resep & Kasir</span>
               </div>
-              <Link href="/dashboard/kasir" style={{ fontSize: '0.78rem', fontWeight: 800, color: '#18181B', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '2px' }}>
+              <Link href={authUrl("/dashboard/kasir")} style={{ fontSize: '0.78rem', fontWeight: 800, color: '#18181B', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '2px' }}>
                 Buka <ChevronRight size={14} />
               </Link>
             </div>
@@ -674,7 +685,7 @@ export default function HomePage() {
               <p style={{ color: '#52525B', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '18px' }}>
                 Dukungan resep dokter maupun obat bebas (OTC), cetak etiket aturan pakai obat otomatis, serta pembayaran instan QRIS dan Tunai.
               </p>
-              <Link href="/dashboard/kasir" style={{ color: '#18181B', fontWeight: 800, fontSize: '0.86rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <Link href={authUrl("/dashboard/kasir")} style={{ color: '#18181B', fontWeight: 800, fontSize: '0.86rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 Buka Kasir Apotek <span>→</span>
               </Link>
             </div>
@@ -701,7 +712,7 @@ export default function HomePage() {
               <p style={{ color: '#52525B', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '18px' }}>
                 Lacak batch obat berdasarkan First Expired First Out. Deteksi dini obat mendekati kadaluwarsa (&lt; 60 hari) dan peringatan stok menipis (defecta).
               </p>
-              <Link href="/dashboard/stok" style={{ color: '#18181B', fontWeight: 800, fontSize: '0.86rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <Link href={authUrl("/dashboard/stok")} style={{ color: '#18181B', fontWeight: 800, fontSize: '0.86rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 Kelola Inventori & FEFO <span>→</span>
               </Link>
             </div>
@@ -728,7 +739,7 @@ export default function HomePage() {
               <p style={{ color: '#52525B', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '18px' }}>
                 Simpan data pasien lengkap dengan riwayat alergi obat dan penyakit kronis. Mencegah kesalahan peracikan fatal secara proaktif.
               </p>
-              <Link href="/dashboard/pasien" style={{ color: '#18181B', fontWeight: 800, fontSize: '0.86rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <Link href={authUrl("/dashboard/pasien")} style={{ color: '#18181B', fontWeight: 800, fontSize: '0.86rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 Lihat Buku Data Pasien <span>→</span>
               </Link>
             </div>
@@ -755,7 +766,7 @@ export default function HomePage() {
               <p style={{ color: '#52525B', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '18px' }}>
                 Asisten interaktif berstandar ICD-10 untuk mengecek potensi interaksi antar obat, penyesuaian dosis khusus, dan panduan konseling farmasi.
               </p>
-              <Link href="/dashboard/ai-analisa" style={{ color: '#18181B', fontWeight: 800, fontSize: '0.86rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <Link href={authUrl("/dashboard/ai-analisa")} style={{ color: '#18181B', fontWeight: 800, fontSize: '0.86rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 Mulai Tanya Jawab AI <span>→</span>
               </Link>
             </div>
@@ -782,7 +793,7 @@ export default function HomePage() {
               <p style={{ color: '#52525B', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '18px' }}>
                 Rekapitulasi otomatis arus kas masuk per metode (QRIS vs Tunai), kalkulasi HPP obat dari PBF, dan persentase margin keuntungan harian.
               </p>
-              <Link href="/dashboard/keuangan" style={{ color: '#18181B', fontWeight: 800, fontSize: '0.86rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <Link href={authUrl("/dashboard/keuangan")} style={{ color: '#18181B', fontWeight: 800, fontSize: '0.86rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 Buka Laporan Keuangan <span>→</span>
               </Link>
             </div>
@@ -809,7 +820,7 @@ export default function HomePage() {
               <p style={{ color: '#52525B', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '18px' }}>
                 Visualisasi interaktif pola penyakit musiman, tren resep bulanan, dan evaluasi keparahan kasus klinis faskes.
               </p>
-              <Link href="/dashboard/visual" style={{ color: '#18181B', fontWeight: 800, fontSize: '0.86rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <Link href={authUrl("/dashboard/visual")} style={{ color: '#18181B', fontWeight: 800, fontSize: '0.86rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 Eksplorasi Grafik Data <span>→</span>
               </Link>
             </div>
@@ -836,7 +847,7 @@ export default function HomePage() {
               <p style={{ color: '#52525B', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '18px' }}>
                 Visualisasi 3D organ tubuh manusia interaktif 360° berbasis Three.js WebGL, 16 organ prosedural, pemetaan lapisan sistem, dan diagnosa farmakologi presisi.
               </p>
-              <Link href="/dashboard/anatomi" style={{ color: '#0284C7', fontWeight: 800, fontSize: '0.86rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <Link href={authUrl("/dashboard/anatomi")} style={{ color: '#0284C7', fontWeight: 800, fontSize: '0.86rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 Jelajahi Anatomi 3D <span>→</span>
               </Link>
             </div>
@@ -863,7 +874,7 @@ export default function HomePage() {
               <p style={{ color: '#52525B', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '18px' }}>
                 Sindikasi berita medis real-time seputar kebijakan Kemenkes & BPJS, riset penyakit epidemi, obat & farmasi, serta teknologi faskes Indonesia.
               </p>
-              <Link href="/dashboard/berita" style={{ color: '#15803D', fontWeight: 800, fontSize: '0.86rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <Link href={authUrl("/dashboard/berita")} style={{ color: '#15803D', fontWeight: 800, fontSize: '0.86rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 Baca Warta Medis <span>→</span>
               </Link>
             </div>
@@ -976,7 +987,7 @@ export default function HomePage() {
 
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                   <Link
-                    href="/dashboard/anatomi"
+                    href={authUrl("/dashboard/anatomi")}
                     className="neo-btn-primary"
                     style={{ padding: '12px 26px', fontSize: '0.92rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '8px' }}
                   >
@@ -1071,7 +1082,7 @@ export default function HomePage() {
                   <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 700 }}>
                     16 Organ Aktif Tersedia
                   </span>
-                  <Link href="/dashboard/anatomi" style={{ fontSize: '0.80rem', fontWeight: 800, color: '#0284C7', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Link href={authUrl("/dashboard/anatomi")} style={{ fontSize: '0.80rem', fontWeight: 800, color: '#0284C7', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     Interaksi 360° Sekarang <ArrowRight size={13} />
                   </Link>
                 </div>
@@ -1109,7 +1120,7 @@ export default function HomePage() {
               </div>
 
               <Link
-                href="/dashboard/berita"
+                href={authUrl("/dashboard/berita")}
                 className="neo-btn-primary"
                 style={{ padding: '10px 22px', fontSize: '0.88rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '8px' }}
               >
@@ -1154,7 +1165,7 @@ export default function HomePage() {
                 </div>
                 <div style={{ paddingTop: '16px', marginTop: '16px', borderTop: '1px dashed #D1D5DB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#4B5563' }}>Sumber: Warta Nasional</span>
-                  <Link href="/dashboard/berita" style={{ fontSize: '0.80rem', fontWeight: 800, color: '#0284C7', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Link href={authUrl("/dashboard/berita")} style={{ fontSize: '0.80rem', fontWeight: 800, color: '#0284C7', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     Baca Selengkapnya →
                   </Link>
                 </div>
@@ -1189,7 +1200,7 @@ export default function HomePage() {
                 </div>
                 <div style={{ paddingTop: '16px', marginTop: '16px', borderTop: '1px dashed #D1D5DB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#4B5563' }}>Sumber: Farmasi Indonesia</span>
-                  <Link href="/dashboard/berita" style={{ fontSize: '0.80rem', fontWeight: 800, color: '#0284C7', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Link href={authUrl("/dashboard/berita")} style={{ fontSize: '0.80rem', fontWeight: 800, color: '#0284C7', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     Baca Selengkapnya →
                   </Link>
                 </div>
@@ -1224,7 +1235,7 @@ export default function HomePage() {
                 </div>
                 <div style={{ paddingTop: '16px', marginTop: '16px', borderTop: '1px dashed #D1D5DB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#4B5563' }}>Sumber: Medika Pos</span>
-                  <Link href="/dashboard/berita" style={{ fontSize: '0.80rem', fontWeight: 800, color: '#0284C7', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Link href={authUrl("/dashboard/berita")} style={{ fontSize: '0.80rem', fontWeight: 800, color: '#0284C7', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     Baca Selengkapnya →
                   </Link>
                 </div>
@@ -1594,7 +1605,7 @@ export default function HomePage() {
               Keunggulan
             </a>
             {isLoggedIn ? (
-              <Link href="/dashboard" style={{ color: '#15803D', fontSize: '0.86rem', textDecoration: 'none', fontWeight: 800 }}>
+              <Link href={authUrl("/dashboard")} style={{ color: '#15803D', fontSize: '0.86rem', textDecoration: 'none', fontWeight: 800 }}>
                 Buka Dashboard →
               </Link>
             ) : (

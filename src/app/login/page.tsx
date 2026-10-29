@@ -107,6 +107,10 @@ export default function LoginPage() {
         },
         created_at: existingFaskes?.created_at || new Date().toISOString()
       }));
+
+      // Set cookie untuk server-side middleware guard Next.js (berlaku 7 hari)
+      document.cookie = `mediagnotek_session=true; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+
       window.dispatchEvent(new Event('mediagnotek_session_updated'));
     }
   };
@@ -139,6 +143,7 @@ export default function LoginPage() {
     if (apiRes && apiRes.success) {
       if (apiRes.access_token && typeof window !== 'undefined') {
         localStorage.setItem('mediagnotek_auth_token', apiRes.access_token);
+        document.cookie = `mediagnotek_auth_token=${apiRes.access_token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
       }
 
       persistSession({
@@ -206,6 +211,7 @@ export default function LoginPage() {
 
                   if (typeof window !== 'undefined') {
                     localStorage.setItem('mediagnotek_auth_token', response.credential);
+                    document.cookie = "mediagnotek_auth_token=" + encodeURIComponent(response.credential) + "; path=/; max-age=604800; SameSite=Lax;"
                   }
 
                   // Panggil backend API
