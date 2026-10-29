@@ -328,8 +328,28 @@ export interface AIChatPayload {
   attachment?: {
     name: string;
     type: string;
+    size?: string;
     dataUrl?: string;
+    extractedText?: string;
+    visualProfile?: {
+      width: number;
+      height: number;
+      brightness: number;
+      contrast: number;
+      grayscaleRatio: number;
+      dominantTone: string;
+      visualCategory: string;
+    };
   };
+  conversation_history?: Array<{
+    sender: 'user' | 'ai';
+    text: string;
+    icdCode?: string;
+    attachmentName?: string;
+    attachmentType?: string;
+  }>;
+  stock_summary?: string;
+  faskes_name?: string;
   api_key?: string;
 }
 

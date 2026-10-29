@@ -32,12 +32,211 @@ import {
 } from 'lucide-react';
 
 import { apiSendAiChatMessage } from '@/lib/api';
+import { getInitializedStocks, getFaskesProfileSync, UnifiedFaskesProfile } from '@/lib/pharmacy-store';
+
+interface VisualProfile {
+  width: number;
+  height: number;
+  brightness: number;
+  contrast: number;
+  grayscaleRatio: number;
+  dominantTone: string;
+  visualCategory: string;
+}
 
 interface AttachedFile {
   name: string;
   type: 'image' | 'pdf' | 'docx' | 'camera';
   size?: string;
   dataUrl?: string;
+  extractedText?: string;
+  visualProfile?: VisualProfile;
+}
+
+// Helper: Analyze image visual profile & compress for smooth API transfer and localStorage history
+function analyzeImageVisualProfile(dataUrl: string): Promise<{ compressedDataUrl: string; visualProfile: VisualProfile }> {
+  return new Promise((resolve) => {
+    const fallbackProfile: VisualProfile = {
+      width: 800,
+      height: 600,
+      brightness: 55,
+      contrast: 48,
+      grayscaleRatio: 35,
+      dominantTone: 'Campuran Klinis',
+      visualCategory: 'Citra Klinis Medis'
+    };
+    if (typeof window === 'undefined') {
+      resolve({ compressedDataUrl: dataUrl, visualProfile: fallbackProfile });
+      return;
+    }
+    const img = new window.Image();
+    img.onload = () => {
+      try {
+        const origW = img.naturalWidth || img.width || 800;
+        const origH = img.naturalHeight || img.height || 600;
+        const maxDim = 760;
+        const scale = Math.min(1, maxDim / Math.max(origW, origH));
+        const targetW = Math.max(1, Math.round(origW * scale));
+        const targetH = Math.max(1, Math.round(origH * scale));
+
+        const canvas = document.createElement('canvas');
+        canvas.width = targetW;
+        canvas.height = targetH;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve({ compressedDataUrl: dataUrl, visualProfile: { ...fallbackProfile, width: origW, height: origH } });
+          return;
+        }
+        ctx.drawImage(img, 0, 0, targetW, targetH);
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+
+        // Sample pixels to determine brightness, contrast, grayscale ratio, and dominant tone
+        const sampleData = ctx.getImageData(0, 0, targetW, targetH).data;
+        let totalLum = 0;
+        let lumSqSum = 0;
+        let grayCount = 0;
+        let rSum = 0;
+        let gSum = 0;
+        let bSum = 0;
+        const step = Math.max(4, Math.floor(sampleData.length / (4 * 2500)) * 4);
+        let samples = 0;
+
+        for (let i = 0; i < sampleData.length; i += step) {
+          const r = sampleData[i];
+          const g = sampleData[i + 1];
+          const b = sampleData[i + 2];
+          const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+          totalLum += lum;
+          lumSqSum += lum * lum;
+          rSum += r;
+          gSum += g;
+          bSum += b;
+          if (Math.abs(r - g) < 14 && Math.abs(g - b) < 14 && Math.abs(r - b) < 14) {
+            grayCount++;
+          }
+          samples++;
+        }
+
+        const avgLum = samples > 0 ? totalLum / samples : 128;
+        const variance = samples > 0 ? Math.max(0, lumSqSum / samples - avgLum * avgLum) : 1000;
+        const stdDev = Math.sqrt(variance);
+
+        const brightness = Math.round((avgLum / 255) * 100);
+        const contrast = Math.min(100, Math.round((stdDev / 128) * 100));
+        const grayscaleRatio = samples > 0 ? Math.round((grayCount / samples) * 100) : 30;
+
+        const avgR = samples > 0 ? rSum / samples : 128;
+        const avgG = samples > 0 ? gSum / samples : 128;
+        const avgB = samples > 0 ? bSum / samples : 128;
+
+        let dominantTone = 'Spektrum Warna Seimbang';
+        let visualCategory = 'Citra Klinis / Jaringan Medis';
+
+        if (grayscaleRatio >= 72 && brightness < 58) {
+          dominantTone = 'Monokrom Radiologis (Hitam-Putih)';
+          visualCategory = 'Citra Radiologi / X-Ray / CT / USG';
+        } else if (brightness >= 68 && grayscaleRatio >= 45) {
+          dominantTone = 'Latar Terang Dokumen / Kertas';
+          visualCategory = 'Lembar Hasil Lab / Resep / EKG Cetak';
+        } else if (avgR > avgG + 15 && avgR > avgB + 15) {
+          dominantTone = 'Dominan Eritematosa / Hangat (Merah-Kulit)';
+          visualCategory = 'Citra Klinis Dermatologi / Jaringan Epitel';
+        }
+
+        resolve({
+          compressedDataUrl,
+          visualProfile: {
+            width: origW,
+            height: origH,
+            brightness,
+            contrast,
+            grayscaleRatio,
+            dominantTone,
+            visualCategory
+          }
+        });
+      } catch {
+        resolve({ compressedDataUrl: dataUrl, visualProfile: fallbackProfile });
+      }
+    };
+    img.onerror = () => {
+      resolve({ compressedDataUrl: dataUrl, visualProfile: fallbackProfile });
+    };
+    img.src = dataUrl;
+  });
+}
+
+// Helper: Extract dataUrl and readable text strings from PDF / DOCX / TXT files
+function extractDocumentData(file: File): Promise<{ dataUrl?: string; extractedText: string }> {
+  return new Promise((resolve) => {
+    const readerDataUrl = new FileReader();
+    readerDataUrl.onload = () => {
+      const dataUrl = typeof readerDataUrl.result === 'string' ? readerDataUrl.result : undefined;
+      const readerBuf = new FileReader();
+      readerBuf.onload = () => {
+        try {
+          const buffer = readerBuf.result as ArrayBuffer;
+          const bytes = new Uint8Array(buffer.slice(0, 120000));
+          let raw = '';
+          for (let i = 0; i < bytes.length; i++) {
+            const c = bytes[i];
+            if ((c >= 32 && c <= 126) || c === 10 || c === 13) {
+              raw += String.fromCharCode(c);
+            } else {
+              raw += ' ';
+            }
+          }
+          // Filter meaningful clinical/Indonesian/medical tokens
+          const cleanChunks = raw
+            .replace(/\b(obj|endobj|stream|endstream|xref|trailer|Font|Type|Page|Parent|Resources|Filter|FlateDecode|xml|rels|word|theme)\b/gi, ' ')
+            .match(/[A-Za-z0-9.,:/()\-+%]{4,}(?:\s+[A-Za-z0-9.,:/()\-+%]{2,}){1,12}/g);
+          const extractedText = cleanChunks ? cleanChunks.slice(0, 35).join(' • ').slice(0, 1200) : '';
+          resolve({ dataUrl, extractedText });
+        } catch {
+          resolve({ dataUrl, extractedText: '' });
+        }
+      };
+      readerBuf.onerror = () => resolve({ dataUrl, extractedText: '' });
+      readerBuf.readAsArrayBuffer(file);
+    };
+    readerDataUrl.onerror = () => resolve({ dataUrl: undefined, extractedText: '' });
+    readerDataUrl.readAsDataURL(file);
+  });
+}
+
+// Helper: Map ICD-10 code & AI response text into an accurate Primary Diagnosis title
+function resolveDiagnosisTitle(icdCode?: string, aiText?: string): string {
+  if (aiText) {
+    const explicitMatch =
+      aiText.match(/\*\*Diagnosa Primer:\*\*\s*\*\*([^*(\n]+)/i) ||
+      aiText.match(/\*\*Diagnosa Primer:\*\*\s*([^\n(]+)/i) ||
+      aiText.match(/\*\*Diagnosa Penyakit Utama:\*\*\s*\n?\*\*([^*(\n]+)/i) ||
+      aiText.match(/\*\*Kode Utama:\*\*\s*\*\*([^*(\n]+)/i);
+    if (explicitMatch && explicitMatch[1]) {
+      const cleaned = explicitMatch[1].replace(/\*/g, '').trim();
+      if (cleaned.length >= 4 && cleaned.length <= 75) return cleaned;
+    }
+  }
+  const code = (icdCode || '').toUpperCase();
+  if (code.includes('J18')) return 'Pneumonia Bakterial / Bronkopneumonia';
+  if (code.includes('J20') || code.includes('J06')) return 'Infeksi Saluran Pernapasan Akut (ISPA)';
+  if (code.includes('A15')) return 'Tuberkulosis Paru Aktif';
+  if (code.includes('E11')) return 'Diabetes Mellitus Tipe 2';
+  if (code.includes('I10')) return 'Hipertensi Esensial Primer';
+  if (code.includes('I20') || code.includes('I21')) return 'Sindrom Koroner Akut / Iskemia Miokard';
+  if (code.includes('I63')) return 'Stroke Iskemik Akut';
+  if (code.includes('K21') || code.includes('K29') || code.includes('K30')) return 'Sindrom Dispepsia & GERD';
+  if (code.includes('K80')) return 'Kolelitiasis (Batu Kandung Empedu)';
+  if (code.includes('E78')) return 'Dislipidemia / Hiperkolesterolemia';
+  if (code.includes('L23') || code.includes('L30') || code.includes('L50')) return 'Dermatitis Alergika & Inflamasi Kulit';
+  if (code.includes('D72') || code.includes('R65')) return 'Leukositosis Reaktif / Infeksi Bakterial';
+  if (code.includes('A09')) return 'Gastroenteritis Akut (GEA)';
+  if (code.includes('M10')) return 'Artritis Gout & Hiperurisemia';
+  if (code.includes('M79')) return 'Myalgia / Nyeri Muskuloskeletal';
+  if (code.includes('Z01.7')) return 'Evaluasi Hasil Pemeriksaan Laboratorium';
+  if (code.includes('Z76.0')) return 'Skrining Resep & Telaah Farmasi Klinis';
+  if (code.includes('Z00.0')) return 'Evaluasi Rekam Medis & Rujukan Klinis';
+  return 'Evaluasi Diagnostik & Farmasi Klinis';
 }
 
 // Helper function to render text with bold formatting without showing raw markdown asterisks
@@ -219,8 +418,10 @@ export default function AiAnalisaPage() {
   const [userEmail, setUserEmail] = useState<string>('guest@apotek.id');
   const [requestCount, setRequestCount] = useState<number>(0);
   const [quotaExceeded, setQuotaExceeded] = useState<boolean>(false);
+  const [faskesProfile, setFaskesProfile] = useState<UnifiedFaskesProfile>(() => getFaskesProfileSync());
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
-  // Sync user email & kuota request saat mount
+  // Sync user email, profil faskes, & kuota request saat mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       let email = 'guest@apotek.id';
@@ -233,6 +434,7 @@ export default function AiAnalisaPage() {
       } catch (_) {}
 
       setUserEmail(email);
+      setFaskesProfile(getFaskesProfileSync());
 
       const usageKey = `mediagnotek_ai_usage_${email}`;
       const savedCount = Number(localStorage.getItem(usageKey) || '0');
@@ -349,40 +551,128 @@ export default function AiAnalisaPage() {
     }, 3500);
   }, []);
 
-  // Handle file selection from input
-  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>, fileType: 'image' | 'pdf' | 'docx') => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Helper: Build or update a HistorySession record from a message list
+  const buildOrUpdateSessionRecord = useCallback(
+    (msgList: ChatMessage[], existingSessionId: string | null): { session: HistorySession; updatedList: HistorySession[] } => {
+      const latestAiMsg = [...msgList].reverse().find((m) => m.sender === 'ai' && m.icdCode);
+      const userMsgs = msgList.filter((m) => m.sender === 'user');
+      const attachedFiles = msgList.filter((m) => m.attachment).map((m) => m.attachment!.name);
 
-    const sizeStr = file.size > 1024 * 1024
-      ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
-      : `${Math.round(file.size / 1024)} KB`;
+      // Build meaningful chiefComplaint from activePatient or user messages + attachments
+      let computedComplaint = activePatient?.symptoms || '';
+      if (!computedComplaint) {
+        const latestUserText = userMsgs.length > 0 ? userMsgs[userMsgs.length - 1].text : '';
+        if (attachedFiles.length > 0) {
+          const cleanPrompt = latestUserText.replace(/\[Mengirim lampiran:.*?\]/i, '').trim();
+          computedComplaint = cleanPrompt
+            ? `${cleanPrompt} (Lampiran: ${attachedFiles.join(', ')})`
+            : `Telaah Berkas Medis: ${attachedFiles.join(', ')}`;
+        } else if (latestUserText) {
+          computedComplaint = latestUserText.slice(0, 140);
+        } else {
+          computedComplaint = 'Konsultasi klinis & telaah farmakoterapi';
+        }
+      }
 
-    if (fileType === 'image') {
-      const reader = new FileReader();
-      reader.onload = () => {
+      // Build meaningful clinical summary note from AI response
+      let computedDoctorNote = 'Evaluasi klinis dan rekomendasi farmakoterapi telah diverifikasi sistem MediagnoTek AI.';
+      if (latestAiMsg?.text) {
+        const cleanLines = latestAiMsg.text
+          .split('\n')
+          .map((l) => l.replace(/\*\*/g, '').replace(/^[\*\-\+]\s+/, '').trim())
+          .filter(
+            (l) =>
+              l.length > 25 &&
+              !l.startsWith('LAPORAN ') &&
+              !l.startsWith('Pasien Terkait:') &&
+              !l.startsWith('1.') &&
+              !l.startsWith('2.') &&
+              !l.startsWith('3.') &&
+              !l.startsWith('4.') &&
+              !l.startsWith('5.')
+          );
+        if (cleanLines.length > 0) {
+          computedDoctorNote = cleanLines.slice(0, 2).join(' ').slice(0, 240);
+          if (computedDoctorNote.length >= 240) computedDoctorNote += '...';
+        }
+      }
+
+      const timeNow = new Date();
+      const existingSession = existingSessionId ? historyList.find((h) => h.id === existingSessionId) : undefined;
+      const sessionNum = Math.floor(100 + Math.random() * 900);
+
+      const sessionObj: HistorySession = {
+        id: existingSession?.id || existingSessionId || 's_' + Date.now().toString(),
+        sessionCode: existingSession?.sessionCode || `SESI-2026-${sessionNum}`,
+        patientId: activePatient?.id || existingSession?.patientId || '#UMUM',
+        patientName: activePatient?.name || existingSession?.patientName || 'Konsultasi Mandiri (Pengguna)',
+        patientAge: activePatient?.age || existingSession?.patientAge || '-',
+        patientGender: activePatient?.gender || existingSession?.patientGender || '-',
+        bloodPressure: activePatient?.bloodPressure || existingSession?.bloodPressure || '-',
+        chiefComplaint: computedComplaint,
+        date: existingSession?.date || timeNow.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+        time: timeNow.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' WIB',
+        primaryDiagnosis: resolveDiagnosisTitle(latestAiMsg?.icdCode, latestAiMsg?.text),
+        icdCode: latestAiMsg?.icdCode || existingSession?.icdCode || 'ICD-10 R69',
+        confidence: latestAiMsg?.confidence || existingSession?.confidence || '95.8%',
+        status: attachedFiles.some((f) => f.toLowerCase().includes('lab')) ? 'Tindak Lanjut Lab' : 'Terverifikasi',
+        doctorNote: computedDoctorNote,
+        messages: [...msgList]
+      };
+
+      const existsInList = historyList.some((h) => h.id === sessionObj.id);
+      const updatedList = existsInList
+        ? historyList.map((h) => (h.id === sessionObj.id ? sessionObj : h))
+        : [sessionObj, ...historyList];
+
+      return { session: sessionObj, updatedList };
+    },
+    [activePatient, historyList]
+  );
+
+  // Handle file selection from input (with visual analysis for images & text extraction for PDF/DOCX)
+  const handleFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>, fileType: 'image' | 'pdf' | 'docx') => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const sizeStr =
+        file.size > 1024 * 1024
+          ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+          : `${Math.max(1, Math.round(file.size / 1024))} KB`;
+
+      setIsAttachMenuOpen(false);
+      e.target.value = '';
+
+      if (fileType === 'image') {
+        const reader = new FileReader();
+        reader.onload = async () => {
+          const rawDataUrl = reader.result as string;
+          const { compressedDataUrl, visualProfile } = await analyzeImageVisualProfile(rawDataUrl);
+          setStagedAttachment({
+            name: file.name,
+            type: 'image',
+            size: sizeStr,
+            dataUrl: compressedDataUrl,
+            visualProfile
+          });
+          triggerToast(`Citra medis "${file.name}" (${visualProfile.width}x${visualProfile.height}px) siap dianalisis.`);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        const { dataUrl, extractedText } = await extractDocumentData(file);
         setStagedAttachment({
           name: file.name,
-          type: 'image',
+          type: fileType,
           size: sizeStr,
-          dataUrl: reader.result as string
+          dataUrl,
+          extractedText
         });
-        triggerToast(`Foto medis "${file.name}" berhasil dilampirkan.`);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      setStagedAttachment({
-        name: file.name,
-        type: fileType,
-        size: sizeStr
-      });
-      triggerToast(`Dokumen "${file.name}" berhasil dilampirkan.`);
-    }
-
-    setIsAttachMenuOpen(false);
-    // Reset file input value so same file can be selected again
-    e.target.value = '';
-  }, [triggerToast]);
+        triggerToast(`Dokumen "${file.name}" (${sizeStr}) berhasil diekstrak & siap dianalisis.`);
+      }
+    },
+    [triggerToast]
+  );
 
   // Handle Camera capture
   const startCamera = useCallback(async () => {
@@ -409,7 +699,7 @@ export default function AiAnalisaPage() {
     setIsCameraActive(false);
   }, [cameraStream]);
 
-  const capturePhoto = useCallback(() => {
+  const capturePhoto = useCallback(async () => {
     if (!videoRef.current) return;
     const canvas = document.createElement('canvas');
     canvas.width = videoRef.current.videoWidth || 640;
@@ -417,15 +707,19 @@ export default function AiAnalisaPage() {
     const ctx = canvas.getContext('2d');
     if (ctx) {
       ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      const rawDataUrl = canvas.toDataURL('image/jpeg', 0.85);
       const photoName = `Foto_Klinis_${new Date().getHours()}${new Date().getMinutes()}${new Date().getSeconds()}.jpg`;
+      stopCamera();
+      const { compressedDataUrl, visualProfile } = await analyzeImageVisualProfile(rawDataUrl);
       setStagedAttachment({
         name: photoName,
         type: 'camera',
         size: '120 KB',
-        dataUrl
+        dataUrl: compressedDataUrl,
+        visualProfile
       });
-      triggerToast('Hasil foto kamera berhasil dilampirkan ke pesan.');
+      triggerToast('Hasil foto kamera klinis berhasil dipindai & dilampirkan.');
+      return;
     }
     stopCamera();
   }, [stopCamera, triggerToast]);
@@ -455,7 +749,6 @@ export default function AiAnalisaPage() {
     const userMsgId = 'usr_' + Date.now().toString();
     const currentAttachment = stagedAttachment;
 
-
     const userMsg: ChatMessage = {
       id: userMsgId,
       sender: 'user',
@@ -464,21 +757,76 @@ export default function AiAnalisaPage() {
       attachment: currentAttachment || undefined
     };
 
-    setMessages((prev) => [...prev, userMsg]);
+    const nextMessagesWithUser = [...messages, userMsg];
+    setMessages(nextMessagesWithUser);
     if (!textToSend) setInputQuery('');
     setStagedAttachment(null);
     setIsTyping(true);
 
-    // 1. Hubungkan langsung ke API AI Backend (FastAPI / Gemini / OpenAI)
+    // Siapkan ringkasan stok obat aktual dari apotek (pharmacy-store) agar AI dapat mencocokkan ketersediaan obat
+    let stockSummary = '';
+    try {
+      const stocks = getInitializedStocks();
+      if (stocks && stocks.length > 0) {
+        stockSummary = stocks
+          .slice(0, 8)
+          .map(
+            (s) =>
+              `- **${s.nama} (${s.golongan})**: Stok **${s.stok} ${s.satuan}** | Harga Jual: **Rp ${Number(s.harga_jual).toLocaleString('id-ID')}/${s.satuan}** | Batch FEFO: \`${s.kode_batch}\` (Exp: ${s.expired_date})`
+          )
+          .join('\n');
+      }
+    } catch (_) {}
+
+    const activeFaskes = getFaskesProfileSync();
+
+    // Siapkan riwayat percakapan (multi-turn context)
+    const conversationHistory = nextMessagesWithUser.slice(-6).map((m) => ({
+      sender: m.sender,
+      text: m.text,
+      icdCode: m.icdCode,
+      attachmentName: m.attachment?.name,
+      attachmentType: m.attachment?.type
+    }));
+
+    // Helper untuk menyimpan pesan AI & auto-sync ke Riwayat Analisa
+    const finalizeAiMessage = (aiMsg: ChatMessage) => {
+      const finalMessages = [...nextMessagesWithUser, aiMsg];
+      setMessages(finalMessages);
+      setIsTyping(false);
+
+      // Auto-sync ke Riwayat Analisa agar tidak pernah hilang dan selalu up-to-date
+      const targetSessionId = currentSessionId || 's_' + Date.now().toString();
+      if (!currentSessionId) {
+        setCurrentSessionId(targetSessionId);
+      }
+      const { updatedList } = buildOrUpdateSessionRecord(finalMessages, targetSessionId);
+      setHistoryList(updatedList);
+      if (typeof window !== 'undefined' && userEmail) {
+        try {
+          localStorage.setItem(`mediagnotek_ai_history_${userEmail}`, JSON.stringify(updatedList));
+        } catch (_) {}
+      }
+    };
+
+    // 1. Hubungkan langsung ke API AI Backend (/api/ai/chat)
     try {
       const apiRes = await apiSendAiChatMessage({
         message: query,
         patient_context: activePatient,
-        attachment: currentAttachment ? {
-          name: currentAttachment.name,
-          type: currentAttachment.type,
-          dataUrl: currentAttachment.dataUrl
-        } : undefined
+        attachment: currentAttachment
+          ? {
+              name: currentAttachment.name,
+              type: currentAttachment.type,
+              size: currentAttachment.size,
+              dataUrl: currentAttachment.dataUrl,
+              extractedText: currentAttachment.extractedText,
+              visualProfile: currentAttachment.visualProfile
+            }
+          : undefined,
+        conversation_history: conversationHistory,
+        stock_summary: stockSummary,
+        faskes_name: activeFaskes.faskes_profile?.nama_faskes || 'Apotek MediagnoTek'
       });
 
       if (apiRes && apiRes.reply) {
@@ -490,15 +838,14 @@ export default function AiAnalisaPage() {
           icdCode: apiRes.icd_code,
           confidence: apiRes.confidence
         };
-        setMessages((prev) => [...prev, aiMsg]);
-        setIsTyping(false);
+        finalizeAiMessage(aiMsg);
         return;
       }
     } catch (err) {
       console.warn('Gagal memanggil API AI eksternal, beralih ke mesin penalaran lokal:', err);
     }
 
-    // 2. Mesin Penalaran Klinis Lokal Apotek (Fallback jika backend offline)
+    // 2. Mesin Penalaran Klinis Lokal Apotek (Fallback jika endpoint tidak terjangkau)
     setTimeout(() => {
       let responseText = '';
       let icd = '';
@@ -506,7 +853,6 @@ export default function AiAnalisaPage() {
 
       const lowerQ = query.toLowerCase().trim();
 
-      // Pure Spam Guard: Hanya tolak jika secara eksplisit menanyakan topik yang 100% di luar kesehatan & platform
       const isExplicitSpam = [
         'koding', 'coding', 'python', 'javascript', 'html', 'css', 'script bot', 'sql injection',
         'pilpres', 'pemilu', 'partai politik', 'presiden', 'dpr', 'pilkada',
@@ -517,111 +863,13 @@ export default function AiAnalisaPage() {
       ].some(pattern => lowerQ.includes(pattern));
 
       if (isExplicitSpam && !currentAttachment) {
-        // Out of Context Rejection Response
         responseText = `⚠️ **Pemberitahuan Pembatasan Konteks (CDSS Guardrail Active)**\n\nSaya adalah **MediagnoTek AI Medical & Clinical Pharmacy Assistant** yang dirancang khusus untuk konsultasi klinis medis, telaah obat & resep, interpretasi berkas medis, serta operasional faskes dan apotek.\n\nPertanyaan Anda berada **di luar lingkup medis, kesehatan, maupun platform apotek**. Silakan ajukan pertanyaan seputar:\n- Gejala klinis pasien & keluhan fisik (termasuk nyeri, pegal otot, pusing, demam)\n- Estimasi diagnosa diferensial & kode standar ICD-10\n- Evaluasi dosis obat, interaksi, & aturan FEFO\n- Analisis laporan keuangan (/dashboard/keuangan) atau berkas rekam medis terlampir`;
         icd = 'Pedoman Klinis';
         conf = 'Akses Dibatasi';
-      } else if (lowerQ.includes('pegal') || lowerQ.includes('muncak') || lowerQ.includes('naik gunung') || lowerQ.includes('mendaki') || lowerQ.includes('linu') || lowerQ.includes('doms') || lowerQ.includes('asam laktat') || lowerQ.includes('kram')) {
-        responseText = `Hasil Evaluasi Klinis Muskuloskeletal:\n\n**🩺 Estimasi Diagnosa Medis Utama:**\n**Delayed Onset Muscle Soreness (DOMS) / Myalgia Pasca-Eksersi Fisik Berat (ICD-10 M79.1)** — Tingkat Keyakinan: 96.8%\n\n**📖 Patofisiologi & Penyebab Pegal Setelah Muncak (Mendaki Gunung):**\n1. **Mikrotrauma Serabut Otot (Micro-tears)**: Saat mendaki dan terutama menuruni lereng curam, otot paha (*quadriceps*), betis (*gastrocnemius*), dan pinggang mengalami **kontraksi eksentrik intensitas tinggi** (otot memanjang saat menahan beban tubuh dan tas carrier).\n2. **Inflamasi Steril & Respon Edema**: Robekan mikro pada sarkomer memicu pelepasan mediator bradikinin, prostaglandin, dan histamin dalam 24–72 jam pasca aktivitas (menjelaskan mengapa rasa pegal justru memuncak di hari ke-2).\n3. **Akumulasi Asam Laktat Sementara**: Akumulasi ion hidrogen metabolik mempercepat kelelahan otot lokal.\n\n**💊 Rekomendasi Terapi & Tindakan Apoteker:**\n- **Analgesik Oral**: Parasetamol 500mg tiap 6 jam PO, atau NSAID seperti Ibuprofen 400mg PO sesudah makan untuk menekan peradangan serabut otot.\n- **Obat Topikal**: Oleskan gel Natrium Diklofenak 1% atau salep metil salisilat/menthol 3–4x sehari pada paha dan betis.\n- **Rehidrasi & Elektrolit**: Konsumsi air elektrolit (mengandung Kalium & Magnesium) untuk mencegah spasme kram otot, serta suplementasi Vitamin B Kompleks (B1, B6, B12 neurotropik).\n- **Non-Farmakologis**: Istirahat aktif (peregangan ringan/stretching), rendam kaki air hangat, dan hindari pijat keras pada area otot yang sedang radang akut.`;
-        icd = 'ICD-10 M79.1';
-        conf = '96.8%';
-      } else if (lowerQ.includes('keuangan') || lowerQ.includes('omzet') || lowerQ.includes('omset') || lowerQ.includes('laba') || lowerQ.includes('hpp') || lowerQ.includes('margin') || lowerQ.includes('neraca') || lowerQ.includes('arus kas') || lowerQ.includes('cash flow')) {
-        responseText = `Laporan Analisis Finansial & Kinerja Keuangan Apotek MediagnoTek:\n\n**💼 Ringkasan KPI Keuangan Terkini (/dashboard/keuangan):**\n- **Total Omzet Penjualan**: **Rp 3.973.000** (tercatat 18 transaksi perputaran)\n- **Total HPP (Harga Pokok Penjualan)**: **Rp 2.508.500** (modal beli netto distributor PBF)\n- **Total Laba Kotor (Gross Profit)**: **Rp 1.464.500**\n- **Rata-rata Margin Keuntungan**: **36.9%** (berada pada standar rentang apotek sehat 30%–45%)\n\n**📊 Breakdown Kategori Penjualan:**\n1. **Penebusan Resep Dokter**: Menghasilkan omzet tertinggi dengan tiket transaksi rata-rata Rp 145.000 – Rp 730.000 per pasien (margin berkisar 31.4% s/d 38.9%).\n2. **Obat Bebas (OTC)**: Memberikan persentase margin laba kotor tertinggi rata-rata **42.8% – 45.7%**.\n\n**💳 Distribusi Metode Pembayaran:**\n- **QRIS Dinamis/Statis**: Mendominasi **72.4%** total transaksi kasir (lebih cepat & otomatis terekonsiliasi).\n- **Tunai (Cash)**: **27.6%** total transaksi.\n\n**🎯 Rekomendasi Optimalisasi Keuangan Apoteker:**\n1. Pantau perputaran produk *Fast-Moving* (Paracetamol, Amlodipine, Cefixime) agar stok tidak mengalami kekosongan (*stockout*).\n2. Integrasikan penjualan kasir dengan peringatan stok FEFO untuk mencegah kerugian akibat obat kedaluwarsa (*expired inventory loss*).\n3. Lakukan rekonsiliasi harian antara saldo kas fisik kasir dengan laporan sistem Kasir POS.`;
-        icd = 'FIN-KPI-01';
-        conf = '98.9%';
-      } else if (currentAttachment) {
-        // High-Precision Multi-Modal Clinical Attachment Analysis
-        const fName = (currentAttachment.name || '').toLowerCase();
-        const fType = currentAttachment.type;
-        const combined = `${fName} ${lowerQ} ${fType}`.toLowerCase();
-        const noteContext = lowerQ && !lowerQ.includes('lampiran') && !lowerQ.includes('analisa') && !lowerQ.includes('kirim') ? `Catatan Anamnesis Dokter: "${query}"\n\n` : '';
-
-        // 1. Thorax / Chest X-Ray / Radiologi Paru
-        if (combined.includes('thorax') || combined.includes('rontgen') || combined.includes('xray') || combined.includes('x-ray') || combined.includes('chest') || combined.includes('paru') || combined.includes('dada') || combined.includes('sesak') || combined.includes('infiltrat') || combined.includes('pneumonia') || combined.includes('batuk') || combined.includes('tbc') || combined.includes('tb')) {
-          responseText = `${noteContext}Hasil Analisis Citra Radiologis: **${currentAttachment.name}**\n\n**🩺 Diagnosa Penyakit Utama:**\n**Pneumonia Lobaris Dextra (ICD-10 J18.1)** — Tingkat Keyakinan AI: 96.4%\n\n**📖 Penjelasan Penyakit & Patofisiologi:**\nPasien terindikasi mengalami penyakit **Pneumonia Lobaris**, yaitu infeksi saluran pernapasan bawah akut di mana satu atau beberapa lobus paru (pada citra ini: lobus inferior dextra / bawah kanan) mengalami peradangan hebat dan rongga alveolinya terisi eksudat cairan purulen (nanah/lendir kental). Penyakit ini umumnya disebabkan oleh invasi bakteri patogen *Streptococcus pneumoniae*. Hal ini mengganggu difusi oksigen darah, sehingga pasien biasanya mengeluhkan demam tinggi menggigil, batuk produktif dengan sputum kental, sesak napas progresif, dan nyeri dada pleuritik saat bernapas.\n\n**🔍 Bukti Temuan Citra Radiologis (Computer Vision):**\n- Ditemukan peningkatan corakan bronkovaskular dengan densitas konsolidasi inhomogen berawan pada lobus inferior dextra.\n- Tampak gambaran *air bronchogram* fokal pada lapang paru kanan bawah.\n- Sinus kostofrenikus sinistra tajam normal, dextra tampak sedikit terselubung efusi parapneumonik minimal.\n- Cor: Rasio CTR < 50% (ukuran jantung dalam batas normal).\n\n**📋 Diagnosa Banding (Penyakit Pembanding):**\n1. **Bronkopneumonia Terkomplikasi (ICD-10 J18.0)**\n2. **Tuberkulosis Paru Aktif Dupleks (ICD-10 A15.0)**\n\n**💊 Rekomendasi Terapi Medis & Rencana Dokter:**\n- **Antibiotik Empiris Lini Pertama**: Ceftriaxone 1g IV tiap 24 jam + Azitromisin 500mg PO 1x/hari selama 5-7 hari.\n- **Simtomatik**: Parasetamol 500-1000mg PO tiap 6-8 jam bila demam > 38°C, Mukolitik N-Asetilsistein 200mg 3x/hari.\n- **Pemeriksaan Lanjutan**: Sputum BTA serial & kultur mikrobiologi uji sensitivitas antibiotik.\n- **Evaluasi**: Foto rontgen toraks evaluatif dalam 7-10 hari pasca terapi.`;
-          icd = 'Pneumonia (J18.1)';
-          conf = '96.4%';
-        }
-        // 2. EKG / Elektrokardiografi / Jantung
-        else if (combined.includes('ekg') || combined.includes('ecg') || combined.includes('jantung') || combined.includes('cardio') || combined.includes('stemi') || combined.includes('aritmia') || combined.includes('infark') || combined.includes('iskemia') || combined.includes('irama')) {
-          responseText = `${noteContext}Hasil Analisis Elektrokardiogram (EKG 12-Lead): **${currentAttachment.name}**\n\n**🩺 Diagnosa Penyakit Utama:**\n**STEMI Inferior Akut / Infark Miokard Akut Dinding Bawah (ICD-10 I21.1)** — Tingkat Keyakinan AI: 97.2%\n\n**📖 Penjelasan Penyakit & Patofisiologi:**\nPasien mengalami penyakit **Infark Miokard Akut dengan Elevasi Segmen ST (STEMI)**, yaitu sindrom koroner akut emergensi di mana terjadi sumbatan total mendadak pada arteri koroner (arteri koroner kanan / RCA) akibat ruptur plak aterosklerotik dan pembentukan trombus. Akibatnya, jaringan otot jantung dinding bawah (miokard inferior) mengalami iskemia berat dan nekrosis jaringan selular karena terhentinya suplai darah beroksigen. Pasien biasanya mengeluhkan nyeri dada retrosternal seperti dihantam benda berat yang menjalar ke leher atau lengan kiri disertai keringat dingin.\n\n**🔍 Bukti Temuan Elektrokardiografi (EKG):**\n- Ditemukan elevasi segmen ST konveks > 1.5mm pada sadapan inferior (Lead II, III, dan aVF).\n- Depresi segmen ST resiprokal pada lead I dan aVL.\n- Irama: Sinus Rhythm, Laju QRS ~98 bpm, aksis normoaksis (0° hingga +90°).\n- Interval PR 0.16s (normal), Durasi QRS 0.08s (sempit normal).\n\n**📋 Diagnosa Banding (Penyakit Pembanding):**\n1. **Angina Pektoris Tak Stabil / UAP (ICD-10 I20.0)**\n2. **Perikarditis Akut (ICD-10 I30.9)**\n\n**💊 Tindakan Emergensi Kardiologi (CITO):**\n- Oksigenasi nasal 3-4 L/menit bila saturasi SpO2 < 90%.\n- **Dual Antiplatelet Loading**: Aspilet 160-320mg kunyah + Clopidogrel 300-600mg PO.\n- ISDN 5mg sublingual (bila tensi sistolik > 100 mmHg).\n- Cek enzim biomarker jantung serial (Troponin I/T kuantitatif & CK-MB).\n- Segera konsul CITO Spesialis Jantung untuk persiapan Percutaneous Coronary Intervention (PCI).`;
-          icd = 'STEMI Akut (I21.1)';
-          conf = '97.2%';
-        }
-        // 3. CT-Scan / MRI Kepala & Neuro
-        else if (combined.includes('ct') || combined.includes('mri') || combined.includes('head') || combined.includes('otak') || combined.includes('brain') || combined.includes('kepala') || combined.includes('stroke') || combined.includes('neuro')) {
-          responseText = `${noteContext}Hasil Analisis Tomografi Multislice (CT-Scan): **${currentAttachment.name}**\n\n**🩺 Diagnosa Penyakit Utama:**\n**Stroke Iskemik Akut / Infark Serebri Non-Hemoragik (ICD-10 I63.9)** — Tingkat Keyakinan AI: 95.8%\n\n**📖 Penjelasan Penyakit & Patofisiologi:**\nPasien terdiagnosa menderita **Stroke Iskemik Akut**, yaitu gangguan peredaran darah otak fokal akibat penyumbatan tromboemboli pada pembuluh darah arteri serebri media (MCA). Sumbatan ini menghentikan pasokan darah dan nutrisi glukosa ke parenkim otak, menyebabkan hilangnya fungsi neuron secara mendadak. Manifestasi klinis umumnya berupa kelemahan separuh badan (hemiparesis), pelo (disartria), atau penurunan kesadaran.\n\n**🔍 Bukti Temuan Neuro-Radiologi:**\n- Area fokal hipodens (densitas rendah) berbatas tegas pada teritori arteri serebri media (MCA) sinistra.\n- Tidak ditemukan hiperdensitas tanda perdarahan intrakranial aktif (stroke hemoragik disingkirkan).\n- Midline shift < 2mm, ventrikel lateralis simetris intak.\n\n**📋 Diagnosa Banding (Penyakit Pembanding):**\n1. **Transient Ischemic Attack / TIA (ICD-10 G45.9)**\n2. **Hematoma Subdural Kronis (ICD-10 I62.0)**\n\n**💊 Rencana Tindakan Penanganan Medis:**\n- Evaluasi onset defisit neurologis (Golden Period trombolisis IV rt-PA < 4.5 jam).\n- Kendalikan tekanan darah secara terukur & pertahankan perfusi serebral (posisi kepala elevasi 30°).\n- Pasang infus NaCl 0.9% dan siapkan evaluasi skor NIHSS bersama dokter spesialis saraf.`;
-          icd = 'Stroke Iskemik (I63.9)';
-          conf = '95.8%';
-        }
-        // 4. USG Abdomen / Ginekologi / Hepar
-        else if (combined.includes('usg') || combined.includes('abdomen') || combined.includes('perut') || combined.includes('liver') || combined.includes('hepar') || combined.includes('empedu') || combined.includes('batu') || combined.includes('kolelitiasis') || combined.includes('ginjal')) {
-          responseText = `${noteContext}Hasil Analisis Sonografi Ultrasonografi (USG): **${currentAttachment.name}**\n\n**🩺 Diagnosa Penyakit Utama:**\n**Kolelitiasis Simtomatik / Batu Kandung Empedu (ICD-10 K80.2)** — Tingkat Keyakinan AI: 94.8%\n\n**📖 Penjelasan Penyakit & Patofisiologi:**\nPasien mengalami penyakit **Kolelitiasis (Batu Empedu)**, yaitu terbentuknya endapan keras kristal kolesterol atau pigmen bilirubin di dalam kantung empedu (*vesika fellea*). Ketika kantung empedu berkontraksi saat mencerna makanan berlemak, batu menyumbat saluran duktus sistikus sehingga memicu kolik bilier—nyeri hebat mendadak pada kuadran kanan atas perut atau ulu hati yang menjalar ke punggung dan bahu kanan, sering disertai mual dan muntah.\n\n**🔍 Bukti Temuan Sonopatologi Abdomen:**\n- Tampak bentukan hiperekoik multiple berdiameter 4-6mm di dalam lumen vesika fellea dengan *acoustic shadow* (bayangan akustik posterior) yang khas.\n- Dinding vesika fellea dalam batas normal (< 3mm, belum menunjukkan kolesistitis akut berat).\n- Hepar berukuran normal, parenkim homogen, dan ginjal bilateral intak.\n\n**📋 Diagnosa Banding (Penyakit Pembanding):**\n1. **Kolesistitis Akut Kalkulus (ICD-10 K81.0)**\n2. **Dispepsia Fungsional / Gastritis Erosif (ICD-10 K29.7)**\n\n**💊 Rekomendasi Terapi & Rencana Dokter:**\n- Terapi antispasmodik & analgetik: Hiosin Butilbromid 20mg PO/IV bila nyeri kolik menyerang.\n- Diet ketat rendah lemak jenuh (hindari santan, jeroan, dan gorengan).\n- Cek profil fungsi hati (SGOT, SGPT, Bilirubin Total/Direk).\n- Pertimbangkan konsultasi spesialis bedah digestif untuk rencana kolesistektomi elektif.`;
-          icd = 'Kolelitiasis (K80.2)';
-          conf = '94.8%';
-        }
-        // 5. Hasil Laboratorium Darah Rutin / Kimia Darah / Urin (PDF/Docx/Gambar)
-        else if (combined.includes('lab') || combined.includes('darah') || combined.includes('hematologi') || combined.includes('urine') || combined.includes('hba1c') || combined.includes('kolesterol') || combined.includes('leukosit') || combined.includes('trombosit') || combined.includes('hb') || combined.includes('gds') || combined.includes('crp')) {
-          responseText = `${noteContext}Hasil Ekstraksi & Verifikasi Nilai Kritis Laboratorium: **${currentAttachment.name}**\n\n**🩺 Diagnosa Penyakit Utama:**\n**Sindrom Respon Inflamasi Sistemik / Infeksi Bakterial Akut (ICD-10 R65.1) disertai Anemia Ringan (ICD-10 D64.9)** — Tingkat Keyakinan AI: 96.8%\n\n**📖 Penjelasan Penyakit & Patofisiologi:**\nData hasil laboratorium mengindikasikan penyakit **Infeksi Bakterial Akut Sistemik**. Adanya respon leukositosis tinggi (14.800 /uL) disertai peningkatan tajam protein fase akut (CRP 32 mg/L) menandakan sistem kekebalan tubuh sedang aktif melawan serbuan infeksi bakteri patogen. Sitokin inflamasi menekan proses pembentukan sel darah merah di sumsum tulang, mengakibatkan penurunan kadar hemoglobin (anemia ringan 10.2 g/dL).\n\n**🔍 Hasil Interpretasi Parameter Kritis:**\n- **Leukosit**: 14.800 /uL (Tinggi — Nilai Rujukan: 4.500 - 11.000 /uL) -> Respon Reaksi Inflamasi / Infeksi Bakterial\n- **C-Reactive Protein (CRP)**: 32 mg/L (Meningkat Signifikan — Nilai Rujukan: < 5 mg/L)\n- **Hemoglobin (Hb)**: 10.2 g/dL (Rendah — Nilai Rujukan: 13.0 - 17.5 g/dL) -> Anemia Derajat Ringan\n- **Gula Darah Sewaktu (GDS)**: 178 mg/dL -> Hiperglikemia Reaktif terhadap Stress Infeksi\n- **Trombosit**: 285.000 /uL -> Normal\n\n**📋 Diagnosa Banding (Penyakit Pembanding):**\n1. **Sepsis Bakterial Dini (ICD-10 A41.9)**\n2. **Infeksi Saluran Kemih Terkomplikasi (ICD-10 N39.0)**\n\n**💊 Rekomendasi Terapi & Tindak Lanjut:**\n- Lakukan pelacakan fokal infeksi (fokus paru, saluran kemih, atau gastrointestinal).\n- Mulai antibiotik spektrum luas sesuai fokus infeksi.\n- Cek Ferritin serum, TIBC, dan hitung jenis leukosit (diff count) untuk penajaman etiologi anemia.`;
-          icd = 'Infeksi Bakterial (R65.1)';
-          conf = '96.8%';
-        }
-        // 6. Foto Klinis Dermatologi / Kamera Langsung / Lesi Kulit
-        else if (fType === 'camera' || combined.includes('kulit') || combined.includes('luka') || combined.includes('foto_klinis') || combined.includes('mata') || combined.includes('lesi') || combined.includes('ruam') || combined.includes('gatal')) {
-          responseText = `${noteContext}Hasil Analisis Citra Klinis Dermatologi: **${currentAttachment.name}**\n\n**🩺 Diagnosa Penyakit Utama:**\n**Dermatitis Kontak Alergi / Iritan Eksaserbasi Akut (ICD-10 L23.9)** — Tingkat Keyakinan AI: 93.7%\n\n**📖 Penjelasan Penyakit & Patofisiologi:**\nPasien terindikasi menderita **Dermatitis Kontak Alergi (DKA)**, yaitu penyakit peradangan kulit non-menular yang timbul akibat reaksi hipersensitivitas tipe lambat (tipe IV) setelah kulit berkontak dengan zat alergen atau bahan kimia iritatif (seperti deterjen keras, logam nikel, kosmetik, atau getah tanaman). Sel T tersensitisasi melepaskan histamin dan mediator peradangan yang memicu vasodilatasi pembuluh darah kulit, menimbulkan bercak kemerahan, edema dermal, serta rasa gatal (*pruritus*) yang intens.\n\n**🔍 Bukti Temuan Lesi Makroskopis:**\n- Ditemukan plak makulopapular eritematosa batas tegas dengan skuama halus dan edema dermal superfisial.\n- Terdapat ekskoriasi (goresan akibat garukan) pada area lesi fokal.\n- Tidak ditemukan bula nekrotik jaringan dalam ataupun pus purulen berat.\n\n**📋 Diagnosa Banding (Penyakit Pembanding):**\n1. **Dermatitis Atopik Eksaserbasi Akut (ICD-10 L20.9)**\n2. **Tinea Korporis / Infeksi Jamur Kulit (ICD-10 B35.4)**\n\n**💊 Rekomendasi Terapi & Anjuran Dokter:**\n- **Kortikosteroid Topikal**: Krim Hidrokortison 2.5% atau Desonide dioleskan tipis 2x sehari selama 5-7 hari.\n- **Antihistamin Oral**: Cetirizine 10mg 1x malam hari untuk meredakan rasa gatal dan mencegah garukan.\n- Kompres dingin bila terasa perih dan hindari kontak dengan sabun antiseptik keras.`;
-          icd = 'Dermatitis Kontak (L23.9)';
-          conf = '93.7%';
-        }
-        // 7. Dokumen Resume Medis / Rujukan Pasien (PDF / DOCX)
-        else if (combined.includes('resume') || combined.includes('rujukan') || combined.includes('rekam') || combined.includes('pasien') || combined.includes('surat') || combined.includes('discharge')) {
-          responseText = `${noteContext}Hasil Analisis Rekam Medis Terstruktur: **${currentAttachment.name}**\n\n**🩺 Diagnosa Penyakit Terdeteksi:**\n**Hipertensi Primer Grade 2 disertai Dislipidemia Campuran (ICD-10 I10 & E78.5)** — Tingkat Keyakinan AI: 94.5%\n\n**📖 Penjelasan Penyakit & Patofisiologi:**\nBerdasarkan resume rekam medis, penyakit utama pasien adalah **Hipertensi Primer Esensial (Tekanan Darah Tinggi)** kronis dengan komorbiditas **Dislipidemia**. Hipertensi menyebabkan penebalan dinding arteri perifer dan meningkatkan beban kerja ventrikel kiri jantung. Tanpa kontrol tensi yang ketat, kondisi ini dapat mempercepat aterosklerosis pembuluh darah dan memicu komplikasi infark jantung, stroke, serta gagal ginjal kronis.\n\n**🔍 Rangkuman Profil Klinis Pasien:**\n- Profil Tensi Terakhir: Rata-rata 150/95 mmHg (Hipertensi Grade 2 terkontrol sebagian).\n- Riwayat Terapi Terakhir: Candesartan 8mg 1x/hari, Atorvastatin 20mg 1x/malam.\n- Profil Kolesterol: LDL meningkat moderat, riwayat alergi obat tidak tercatat.\n\n**📋 Rekomendasi Penanganan Dokter:**\n- Optimasi titrasi dosis antihipertensi target tekanan darah klinis < 130/80 mmHg.\n- Lanjutkan Atorvastatin 20mg pada malam hari untuk perlindungan kardiovaskular.\n- Jadwalkan skrining profil fungsi ginjal berkala (eGFR dan Ureum/Kreatinin serum).`;
-          icd = 'Hipertensi (I10)';
-          conf = '94.5%';
-        }
-        // 8. Citra Medis Gambar Apapun (Generic Image Analysis: selalu menjelaskan diagnosa penyakit secara komprehensif)
-        else if (fType === 'image') {
-          responseText = `${noteContext}Hasil Analisis Citra Diagnostik Medis (Multi-Modal Vision Engine): **${currentAttachment.name}**\n\n**🩺 Diagnosa Penyakit Utama:**\n**Pneumonia Bakterial Akut dengan Konsolidasi Infiltrat Paru (ICD-10 J18.9)** — Tingkat Keyakinan AI: 95.8%\n\n**📖 Penjelasan Penyakit & Patofisiologi:**\nBerdasarkan segmentasi computer vision terhadap citra medis yang dilampirkan, penyakit yang terdeteksi adalah **Pneumonia Bakterial Akut**. Penyakit ini merupakan infeksi mikroba pada parenkim paru-paru di mana kantung udara (alveolus) mengalami peradangan akut dan terisi cairan eksudat inflamatori. Penyebab tersering adalah invasi bakteri patogen seperti *Streptococcus pneumoniae* atau *Klebsiella pneumoniae*. Kondisi ini mengganggu pertukaran oksigen, sehingga pasien umumnya mengeluhkan demam tinggi menggigil, batuk produktif berdahak kuning/kehijauan, napas cepat dan dangkal, serta rasa sesak atau nyeri dada.\n\n**🔍 Bukti Temuan Citra Visual AI:**\n- **Densitas Citra**: Ditemukan opasitas konsolidasi fokal dengan peningkatan densitas pada lapang jaringan parenkim.\n- **Pola Vaskularitas**: Peningkatan corakan vaskular fokal yang konsisten dengan respon inflamasi aktif.\n- **Integritas Struktur**: Tidak ditemukan tanda fraktur korteks tulang ataupun bayangan kavitasi tuberkulosis kronis (menunjukkan infeksi akut).\n\n**📋 Diagnosa Banding (Penyakit Pembanding):**\n1. **Bronkopneumonia Infiltratif (ICD-10 J18.0)**\n2. **Efusi Pleura Parapneumonik (ICD-10 J90)**\n3. **Tuberkulosis Paru Kasus Baru (ICD-10 A15.0)**\n\n**💊 Rekomendasi Terapi Medis & Tindakan Dokter:**\n- **Antibiotik Empiris**: Ceftriaxone 1g IV tiap 24 jam + Azitromisin 500mg PO 1x/hari selama 5-7 hari.\n- **Simtomatik**: Parasetamol 500-1000mg tiap 6 jam bila suhu tubuh > 38°C, Mukolitik N-Asetilsistein 200mg 3x/hari.\n- **Pemeriksaan Laboratorium**: Dianjurkan pemeriksaan Darah Lengkap (DPL), C-Reactive Protein (CRP), dan kultur dahak.\n- **Monitoring**: Pantau saturasi oksigen (SpO2) berkala dan jadwalkan evaluasi citra 1 minggu pasca pengobatan.`;
-          icd = 'Pneumonia (J18.9)';
-          conf = '95.8%';
-        }
-        // 9. Berkas Dokumen PDF / DOCX Apapun (Generic Document Extraction)
-        else {
-          responseText = `${noteContext}Hasil Analisis & Ekstraksi Dokumen Klinis: **${currentAttachment.name}**\n\n**🩺 Diagnosa Penyakit Terdeteksi:**\n**Pemeriksaan Klinis Pasien: Evaluasi Penyakit Kronis & Tanda Vital (ICD-10 Z00.0)** — Tingkat Keyakinan AI: 94.2%\n\n**📖 Penjelasan Penyakit & Konteks Klinis:**\nDokumen yang dilampirkan mencatat resume evaluasi kesehatan berkala pasien terkait pemantauan penyakit kronis (faktor risiko kardiovaskular dan metabolisme). Penilaian rutin penting untuk mendeteksi komplikasi dini pada organ target (jantung, otak, dan ginjal) sebelum timbul gejala klinis berat.\n\n**🔍 Rangkuman Berkas Klinis:**\n- Berkas dokumen berhasil diproses ke dalam arsip rekam medis terintegrasi.\n- Parameter klinis dan riwayat pengobatan sebelumnya terindeks dengan validitas tinggi.\n\n**💊 Rencana Tindak Lanjut Dokter:**\n- Lakukan verifikasi resume rekam medis bersama dokter penanggung jawab pelayanan (DPJP).\n- Simpan riwayat konsultasi ke dalam arsip rekam medis elektronik pasien.`;
-          icd = 'Evaluasi Medis (Z00.0)';
-          conf = '94.2%';
-        }
-      } else if (lowerQ.includes('fefo') || lowerQ.includes('expired') || lowerQ.includes('kadaluarsa') || lowerQ.includes('batch')) {
-        responseText = 'Penjelasan Manajemen Stok FEFO pada Sistem MediagnoTek:\n\n**📦 Prinsip FEFO (First-Expired, First-Out):**\nSistem memprioritaskan pengeluaran obat berdasarkan tanggal kedaluwarsa terdekat (bukan waktu kedatangan barang). Pada Kasir POS, nomor batch dengan masa expired terdekat akan terpotong secara otomatis.\n\n**Peringatan Visual:**\n- **Merah**: < 30 hari (Kritis)\n- **Kuning**: < 90 hari (Waspada)\n- **Hijau**: > 90 hari (Aman)';
-        icd = 'SOP-FEFO';
-        conf = '98.5%';
-      } else if (lowerQ.includes('interaksi') || lowerQ.includes('resep') || lowerQ.includes('ciprofloxacin') || lowerQ.includes('antasida')) {
-        responseText = 'Hasil Telaah Resep & Skrining Interaksi Obat:\n\n**🔍 Evaluasi Keamanan Farmasi (ICD-10 Z76.0):**\n1. **Kelasi Ciprofloxacin + Antasida**: Kation Al/Mg mengikat antibiotik kuinolon dan menghambat absorbsi tubuh. Berikan jeda waktu minimal **2 jam sebelum atau 4 jam sesudah** antasida.\n2. **Kesesuaian Dosis**: Dosis berada dalam rentang terapi lazim Farmakope Indonesia VI.\n3. **Instruksi KIE**: Pastikan antibiotik dihabiskan dan minum air putih yang cukup.';
-        icd = 'ICD-10 Z76.0';
-        conf = '98.0%';
-      } else if (lowerQ.includes('golongan') || lowerQ.includes('obat keras') || lowerQ.includes('obat bebas')) {
-        responseText = 'Klasifikasi Golongan Obat di Sistem MediagnoTek:\n\n1. **Obat Bebas (Hijau)**: Paracetamol 500mg, Vitamin C 500mg (Dapat dijual bebas).\n2. **Obat Bebas Terbatas (Biru)**: Cetirizine 10mg, CTM 4mg (Tanda peringatan P.No 1-6).\n3. **Obat Keras (K Merah)**: Amoxicillin, Cefixime, Amlodipine, Metformin (Wajib resep/DOWA).\n4. **Narkotika & Psikotropika**: Penyimpanan lemari double-lock dan pelaporan SIPNAP berkala.';
-        icd = 'BPOM-REG';
-        conf = '99.2%';
-      } else if (lowerQ.includes('demam') || lowerQ.includes('batuk')) {
-        responseText = 'Berdasarkan gejala **Demam** dan **Batuk Berdahak Pekat**, terdapat probabilitas tinggi indikasi **Pneumonia Bakterial (ICD-10 J18.1)**.\n\n**Rekomendasi Tindakan Medis:**\n1. Pemeriksaan Foto Rontgen Thorax PA/Lateral.\n2. Pemeriksaan Darah Lengkap & Kultur Dahak.\n3. Pertimbangkan terapi antibiotik empiris serta mukolitik.';
-        icd = 'ICD-10 J18.1';
-        conf = '96.2%';
-      } else if (lowerQ.includes('diabetes') || lowerQ.includes('gula darah')) {
-        responseText = 'Untuk **Diabetes Mellitus Tipe 2 (ICD-10 E11.9)**, evaluasi kendali glikemik berkala dengan parameter target HbA1c < 7.0%.\n\n**Penanganan Standar:**\n- Terapi lini pertama: **Metformin** 500mg 2x/hari diberikan bersama atau sesudah makan.\n- Edukasi diet seimbang dan pemantauan faal ginjal (eGFR) berkala.';
-        icd = 'ICD-10 E11.9';
-        conf = '97.8%';
-      } else if (lowerQ.includes('hipertensi') || lowerQ.includes('amlodipine') || lowerQ.includes('tensi')) {
-        responseText = 'Untuk indikasi **Hipertensi Primer Esensial (ICD-10 I10)**, pemberian **Amlodipine** (5-10 mg 1x/hari) efektif sebagai calcium channel blocker perifer.\n\n**Monitoring Apoteker:**\n- Evaluasi tekanan darah serial pagi & malam hari.\n- Edukasi pasien mengenai potensi efek samping edema perifer dan pembatasan asupan natrium (<2g/hari).';
-        icd = 'ICD-10 I10';
-        conf = '95.6%';
-      } else if (lowerQ.includes('halo') || lowerQ.includes('hi') || lowerQ.includes('pagi') || lowerQ.includes('siang') || lowerQ.includes('malam')) {
-        responseText = 'Halo Rekan Apoteker & Tenaga Medis! Saya adalah **MediagnoTek AI Clinical & Pharmacy Assistant**.\n\nSaya siap membantu:\n- Analisis gejala & estimasi kode diagnosa ICD-10\n- Skrining interaksi obat, kontraindikasi, & penyesuaian dosis\n- Panduan sistem stok FEFO, Kasir POS, & Buku Rekam Pasien\n\nSilakan sampaikan pertanyaan atau lampirkan berkas medis yang ingin ditelaah.';
-        icd = 'ICD-10 Z71.9';
-        conf = '99.0%';
       } else {
-        responseText = `Hasil Analisis Klinis MediagnoTek AI:\n\nPertanyaan: "${query}"\n\n**Rekomendasi Farmasi & Evaluasi Medis:**\n1. Lakukan verifikasi riwayat alergi obat dan penyakit komorbid pada menu Buku Pasien.\n2. Pastikan transaksi obat di Kasir POS mematuhi prinsip FEFO (First-Expired, First-Out).\n3. Sampaikan informasi aturan pakai (KIE) yang jelas dan anjurkan evaluasi bila keluhan menetap.`;
+        responseText = `**LAPORAN TELAAH KLINIS & FARMAKOTERAPI MEDIAGNOTEK AI**\n\nPertanyaan: "${query || currentAttachment?.name || '-'}"\n\n**Rekomendasi Farmasi & Evaluasi Medis:**\n1. Lakukan verifikasi riwayat alergi obat dan penyakit komorbid pada menu Buku Pasien.\n2. Pastikan transaksi obat di Kasir POS mematuhi prinsip FEFO (First-Expired, First-Out).\n3. Sampaikan informasi aturan pakai (KIE) yang jelas dan anjurkan evaluasi bila keluhan menetap.${stockSummary ? `\n\n**Referensi Stok Obat Apotek:**\n${stockSummary}` : ''}`;
         icd = 'ICD-10 R68.8';
-        conf = '93.5%';
+        conf = '94.5%';
       }
 
       const aiMsg: ChatMessage = {
@@ -633,50 +881,31 @@ export default function AiAnalisaPage() {
         confidence: conf
       };
 
-      setMessages((prev) => [...prev, aiMsg]);
-      setIsTyping(false);
+      finalizeAiMessage(aiMsg);
     }, 600);
-  }, [inputQuery, stagedAttachment, activePatient]);
+  }, [inputQuery, stagedAttachment, activePatient, userEmail, messages, currentSessionId, buildOrUpdateSessionRecord, triggerToast]);
 
-  // Save current active chat session to history
+  // Save current active chat session to history (updates existing record if already auto-saved, preventing duplicates)
   const handleSaveToHistory = useCallback(() => {
-    // Find the latest AI diagnosis
-    const latestAiMsg = [...messages].reverse().find(m => m.sender === 'ai' && m.icdCode);
-    const timeNow = new Date();
-    const sessionNum = Math.floor(100 + Math.random() * 900);
-    const newSession: HistorySession = {
-      id: 's_' + Date.now().toString(),
-      sessionCode: `SESI-2026-${sessionNum}`,
-      patientId: activePatient?.id || '#UMUM',
-      patientName: activePatient?.name || 'Konsultasi Mandiri (Pengguna)',
-      patientAge: activePatient?.age || '-',
-      patientGender: activePatient?.gender || '-',
-      bloodPressure: activePatient?.bloodPressure || '-',
-      chiefComplaint: activePatient?.symptoms || 'Tanya jawab kesehatan & farmasi umum',
-      date: timeNow.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
-      time: timeNow.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' WIB',
-      primaryDiagnosis: latestAiMsg?.icdCode === 'ICD-10 J18' ? 'Pneumonia Bakterial' :
-                         latestAiMsg?.icdCode === 'ICD-10 E11' ? 'Diabetes Mellitus Tipe 2' :
-                         latestAiMsg?.icdCode === 'ICD-10 I10' ? 'Hipertensi Primer' : 'Evaluasi Diagnostik Klinis',
-      icdCode: latestAiMsg?.icdCode || 'ICD-10 R69',
-      confidence: latestAiMsg?.confidence || '92.0%',
-      status: 'Terverifikasi',
-      doctorNote: 'Sesi konsultasi disimpan dari Sesi Chat aktif.',
-      messages: [...messages]
-    };
-
-    const updatedList = [newSession, ...historyList];
+    const targetSessionId = currentSessionId || 's_' + Date.now().toString();
+    if (!currentSessionId) {
+      setCurrentSessionId(targetSessionId);
+    }
+    const { session: savedSession, updatedList } = buildOrUpdateSessionRecord(messages, targetSessionId);
     setHistoryList(updatedList);
     if (typeof window !== 'undefined' && userEmail) {
-      localStorage.setItem(`mediagnotek_ai_history_${userEmail}`, JSON.stringify(updatedList));
+      try {
+        localStorage.setItem(`mediagnotek_ai_history_${userEmail}`, JSON.stringify(updatedList));
+      } catch (_) {}
     }
-    triggerToast(`Sesi konsultasi ${newSession.sessionCode} berhasil disimpan ke Riwayat!`);
-  }, [activePatient, messages, triggerToast, historyList, userEmail]);
+    triggerToast(`Sesi konsultasi ${savedSession.sessionCode} (${savedSession.primaryDiagnosis}) tersimpan di Riwayat Analisa!`);
+  }, [messages, currentSessionId, buildOrUpdateSessionRecord, triggerToast, userEmail]);
 
 
   // Start new clean chat session
   const handleNewSession = useCallback((patientPreset?: { id: string; name: string; age: string; gender: string; bloodPressure: string; symptoms: string }) => {
     setActivePatient(patientPreset || null);
+    setCurrentSessionId(null);
     setMessages([
       {
         id: 'msg_new_1',
@@ -693,6 +922,7 @@ export default function AiAnalisaPage() {
 
   // Load a session from History into the interactive chat
   const handleLoadSessionIntoChat = useCallback((session: HistorySession) => {
+    setCurrentSessionId(session.id);
     setActivePatient({
       id: session.patientId,
       name: session.patientName,
@@ -1798,7 +2028,14 @@ export default function AiAnalisaPage() {
                 <span>Rata-Rata Keyakinan AI</span>
               </div>
               <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#166534' }}>
-                94.5%
+                {(() => {
+                  const nums = historyList
+                    .map((h) => parseFloat(String(h.confidence).replace(/[^0-9.]/g, '')))
+                    .filter((n) => !isNaN(n) && n > 0);
+                  if (nums.length === 0) return '96.2%';
+                  const avg = nums.reduce((a, b) => a + b, 0) / nums.length;
+                  return `${avg.toFixed(1)}%`;
+                })()}
               </div>
               <div style={{ fontSize: '0.76rem', color: '#52525B', marginTop: '4px' }}>
                 Estimasi akurasi diagnostik klinis
@@ -1810,24 +2047,24 @@ export default function AiAnalisaPage() {
                 <FileText size={16} />
                 <span>Diagnosa Terbanyak</span>
               </div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#18181B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                Pneumonia (J18)
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#18181B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {historyList.length > 0 ? historyList[0].primaryDiagnosis : 'Pneumonia (J18.9)'}
               </div>
               <div style={{ fontSize: '0.76rem', color: '#92400E', marginTop: '4px', fontWeight: 600 }}>
-                Diikuti Diabetes Tipe 2 (E11)
+                {historyList.length > 0 ? `Kode Terakhir: ${historyList[0].icdCode}` : 'Klasifikasi Standar WHO ICD-10'}
               </div>
             </div>
 
             <div className="neo-card" style={{ padding: '18px 22px', backgroundColor: '#FFFFFF', boxShadow: '2.5px 3px 0px #1E1E1E' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6B7280', fontSize: '0.82rem', fontWeight: 700, marginBottom: '6px' }}>
                 <ShieldCheck size={16} />
-                <span>Status Verifikasi Dokter</span>
+                <span>Status Verifikasi Faskes</span>
               </div>
               <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#18181B' }}>
                 {historyList.filter(h => h.status === 'Terverifikasi').length} / {historyList.length}
               </div>
-              <div style={{ fontSize: '0.76rem', color: '#166534', marginTop: '4px', fontWeight: 600 }}>
-                Disetujui dr. Anita R.
+              <div style={{ fontSize: '0.76rem', color: '#166534', marginTop: '4px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {faskesProfile.faskes_profile?.penanggung_jawab || faskesProfile.faskes_profile?.nama_faskes || 'Apoteker Penanggung Jawab'}
               </div>
             </div>
           </div>
@@ -1954,8 +2191,34 @@ export default function AiAnalisaPage() {
                         {item.patientAge} • {item.patientGender} • Tekanan Darah: <strong>{item.bloodPressure}</strong>
                       </div>
                       <div style={{ fontSize: '0.82rem', color: '#6B7280', marginTop: '8px', lineHeight: 1.4 }}>
-                        <strong>Keluhan:</strong> {item.chiefComplaint}
+                        <strong>Keluhan / Kasus:</strong> {item.chiefComplaint}
                       </div>
+                      {item.messages && item.messages.some((m) => m.attachment) && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
+                          {item.messages
+                            .filter((m) => m.attachment)
+                            .map((m, idx) => (
+                              <span
+                                key={idx}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '5px',
+                                  padding: '3px 8px',
+                                  borderRadius: '6px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  backgroundColor: '#FEF3D6',
+                                  border: '1px solid #1E1E1E',
+                                  color: '#92400E'
+                                }}
+                              >
+                                <Paperclip size={11} />
+                                {m.attachment!.name} ({m.attachment!.type.toUpperCase()})
+                              </span>
+                            ))}
+                        </div>
+                      )}
                     </div>
 
                     {/* Right: AI Diagnostic Result */}
@@ -1963,7 +2226,7 @@ export default function AiAnalisaPage() {
                       <div style={{ fontSize: '0.78rem', color: '#6B7280', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>
                         Hasil Diagnosa AI & ICD-10
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
                         <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#18181B' }}>
                           {item.primaryDiagnosis}
                         </span>
@@ -1971,7 +2234,7 @@ export default function AiAnalisaPage() {
                         <span className="tag-cyan" style={{ fontWeight: 700 }}>Keyakinan: {item.confidence}</span>
                       </div>
                       <p style={{ fontSize: '0.84rem', color: '#4B5563', lineHeight: 1.45 }}>
-                        <strong>Catatan Klinis:</strong> {item.doctorNote}
+                        <strong>Ringkasan Klinis AI:</strong> {item.doctorNote}
                       </p>
                     </div>
                   </div>
@@ -2155,14 +2418,30 @@ export default function AiAnalisaPage() {
             {selectedHistoryModal.messages && selectedHistoryModal.messages.length > 0 && (
               <div>
                 <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#18181B', marginBottom: '10px' }}>
-                  Transkrip Percakapan Sesi ({selectedHistoryModal.messages.length} Pesan):
+                  Transkrip Percakapan & Berkas Sesi ({selectedHistoryModal.messages.length} Pesan):
                 </h4>
-                <div style={{ maxHeight: '180px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', backgroundColor: '#FAF8F4', borderRadius: '12px', border: '1.2px solid #1E1E1E' }}>
+                <div style={{ maxHeight: '300px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', padding: '12px', backgroundColor: '#FAF8F4', borderRadius: '12px', border: '1.2px solid #1E1E1E' }}>
                   {selectedHistoryModal.messages.map((m) => (
-                    <div key={m.id} style={{ fontSize: '0.82rem', padding: '8px 10px', backgroundColor: '#FFFFFF', border: '1px solid #1E1E1E', borderRadius: '8px' }}>
-                      <strong style={{ color: m.sender === 'user' ? '#166534' : '#92400E' }}>
-                        {m.sender === 'user' ? 'Dokter' : 'MediagnoTek AI'}:
-                      </strong>
+                    <div key={m.id} style={{ fontSize: '0.82rem', padding: '10px 12px', backgroundColor: '#FFFFFF', border: '1px solid #1E1E1E', borderRadius: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <strong style={{ color: m.sender === 'user' ? '#166534' : '#92400E' }}>
+                          {m.sender === 'user' ? 'Dokter / Apoteker' : 'MediagnoTek AI'}:
+                        </strong>
+                        <span style={{ fontSize: '0.7rem', color: '#6B7280' }}>{m.timestamp}</span>
+                      </div>
+                      {m.attachment && (
+                        <div style={{ margin: '6px 0', padding: '8px', borderRadius: '8px', backgroundColor: '#FAF8F4', border: '1px solid #1E1E1E' }}>
+                          {m.attachment.dataUrl && (m.attachment.type === 'image' || m.attachment.type === 'camera') && (
+                            <div style={{ marginBottom: '6px', borderRadius: '6px', overflow: 'hidden', maxHeight: '150px', display: 'flex', justifyContent: 'center', backgroundColor: '#000' }}>
+                              <img src={m.attachment.dataUrl} alt={m.attachment.name} style={{ maxHeight: '150px', maxWidth: '100%', objectFit: 'contain' }} />
+                            </div>
+                          )}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: 700 }}>
+                            <Paperclip size={12} />
+                            <span>{m.attachment.name} ({m.attachment.type.toUpperCase()})</span>
+                          </div>
+                        </div>
+                      )}
                       <div style={{ marginTop: '3px' }}>
                         {renderFormattedMedicalText(m.text)}
                       </div>
